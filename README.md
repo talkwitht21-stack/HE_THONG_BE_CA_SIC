@@ -65,17 +65,7 @@ Dự án này tích hợp thêm **AI Camera (Computer Vision)** để khắc ph�
 
 ## 5. Quy trình hoạt động (Workflow)
 
-1. **Thu thập dữ liệu (Data Acquisition):**
-   - Các cảm biến (Nhiệt độ, siêu âm đo mực nước, độ đục) liên tục đọc dữ liệu từ môi trường nước.
-   - AI Camera thu nhận luồng video (video stream) từ trong bể.
-2. **Xử lý và Phân tích (Processing & AI Inference):**
-   - Bộ vi điều khiển trung tâm xử lý số liệu cảm biến và so sánh với ngưỡng an toàn.
-   - Hệ thống máy chủ/Edge AI phân tích luồng video bằng các model nhận diện (như YOLO/OpenCV) để đánh giá trạng thái cá.
-3. **Thực thi và Cảnh báo (Actuation & Alert):**
-   - Nếu phát hiện môi trường nước lệch ngưỡng: Bộ điều khiển tự động kích hoạt Relay bật máy sưởi, máy sủi oxy hoặc bơm nước.
-   - Nếu AI phát hiện cá bất thường: Lập tức chụp ảnh và gửi thông báo khẩn cấp (Push Notification/Email) qua API cho người dùng.
-4. **Đồng bộ hóa đám mây (Cloud Sync):**
-   - Toàn bộ log dữ liệu, lịch sử nhiệt độ, lịch sử thay nước và hình ảnh cảnh báo được lưu trữ trên Cloud Platform (Firebase/AWS/ThingsBoard) để người dùng xem lại bất cứ lúc nào.
+*(Đang cập nhật - Sẽ được bổ sung sau)*
 
 ## 6. Kiến trúc hệ thống dự kiến
 *(Cập nhật thêm tùy thuộc vào phần cứng bạn sử dụng)*
