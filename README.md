@@ -15,42 +15,39 @@ Dự án nghiên cứu và ứng dụng nền tảng Vạn vật kết nối (Io
 ---
 
 ## 1. MỤC TIÊU NGHIÊN CỨU
-Mục tiêu chính của dự án là xây dựng một hệ thống quản lý bể cá thông minh dựa trên IoT và AI, nhằm:
-\+ Đảm bảo và duy trì các thông số của môi trường nước ở trạng thái cân bằng và lý tưởng nhất.  
-\+ Giảm thiểu rủi ro sinh vật chết do thiếu sự giám sát thường xuyên.  
-\+ Cung cấp nền tảng quản trị từ xa toàn diện, cho phép người dùng giám sát và điều khiển hệ sinh thái của bể cá thông qua giao diện Web/Ứng dụng quản lý.  
+Mục tiêu cốt lõi của dự án là nghiên cứu, thiết kế và chế tạo một hệ thống sinh thái thủy sinh thông minh tự vận hành, có khả năng tự động điều tiết các yếu tố môi trường (nhiệt độ, mức nước, độ trong của nước) thông qua mạng lưới Vạn vật kết nối (IoT). Song song với việc duy trì chất lượng nước ở trạng thái lý tưởng, nghiên cứu này đặt tham vọng tích hợp hệ thống Trí tuệ Nhân tạo tại biên (Edge AI) để thực hiện giám sát trực tiếp "thực thể" sinh học. Cụ thể, hệ thống sẽ liên tục phân tích hình ảnh từ camera để trích xuất dữ liệu về tần suất bơi lội, tập tính ăn và trạng thái sức khỏe của sinh vật, qua đó phát hiện sớm các rủi ro (chẳng hạn như sinh vật mắc bệnh, lờ đờ, hay tử vong) mà các cảm biến hóa lý truyền thống không thể nhận diện được. Sự kết hợp giữa IoT và AI hướng tới việc thay thế hoàn toàn phương thức chăm sóc thủ công, giảm thiểu tối đa rủi ro hao hụt sinh vật và cung cấp một nền tảng quản trị từ xa toàn diện, độ trễ thấp thông qua Web Server và các ứng dụng di động.
 
 ## 2. ĐẶT VẤN ĐỀ VÀ ĐỐI TƯỢNG NGHIÊN CỨU
 
 ### 2.1. Đối tượng nghiên cứu và ứng dụng
-\+ Cá nhân nuôi thủy sinh, cá cảnh tại nhà.  
-\+ Cơ sở kinh doanh cá cảnh quy mô vừa và nhỏ.  
-\+ Cá nhân có lịch trình bận rộn, thường xuyên công tác, hạn chế thời gian chăm sóc thường xuyên.  
+Nghiên cứu tập trung giải quyết bài toán chăm sóc thủy sinh cho ba nhóm đối tượng chính:
+\+ **Người nuôi cá cảnh gia đình:** Những cá nhân thiếu kiến thức chuyên sâu về hóa sinh môi trường nước, thường gặp khó khăn trong việc thiết lập chu trình vi sinh và duy trì nhiệt độ ổn định.  
+\+ **Cơ sở kinh doanh và bảo tồn thủy sinh:** Các mô hình kinh doanh quy mô vừa và nhỏ cần tự động hóa việc theo dõi tình trạng của hàng loạt bể chứa nhằm tối ưu hóa chi phí nhân sự và hạn chế lây lan dịch bệnh.  
+\+ **Cá nhân có lịch trình bận rộn:** Những người thường xuyên đi công tác, không có khả năng túc trực 24/7 để cho ăn định kỳ hoặc thay nước kịp thời khi có sự cố bộ lọc.  
 
 ### 2.2. Vấn đề thực tiễn
-\+ **Biến động môi trường:** Sinh vật thủy sinh có độ nhạy cảm cao với sự thay đổi của môi trường. Sự biến thiên đột ngột về nhiệt độ hoặc mực nước mà không được phát hiện kịp thời sẽ dẫn đến rủi ro hao hụt sinh vật.  
-\+ **Rủi ro trong quá trình chăm sóc:** Hoạt động cung cấp thức ăn thiếu tính chu kỳ sẽ gây ảnh hưởng tiêu cực đến sức khỏe của sinh vật.  
-\+ **Hạn chế về mặt giám sát:** Sự vắng mặt của người quản lý tạo ra khoảng trống trong việc nắm bắt thông tin và tình trạng của hệ sinh thái.  
+Theo các nghiên cứu về nuôi trồng thủy sản, sinh vật thủy sinh có độ nhạy cảm sinh học cực kỳ cao với sự dao động của môi trường. Các vấn đề cấp thiết hiện nay bao gồm:
+\+ **Biến động thông số hóa lý (Physicochemical Fluctuations):** Sự biến thiên đột ngột về nhiệt độ (chênh lệch quá 2-3°C trong ngày) hoặc sự tích tụ của các hợp chất độc hại (Amoniac, Nitrat) do thức ăn thừa sẽ trực tiếp gây sốc phản vệ, làm suy giảm hệ miễn dịch của sinh vật.  
+\+ **Rủi ro trong quá trình chăm sóc thủ công:** Việc cung cấp thức ăn dư thừa hoặc thiếu tính chu kỳ không chỉ gây ô nhiễm nguồn nước mà còn làm suy giảm tuổi thọ của vi sinh vật có lợi trong hệ thống lọc.  
+\+ **Khoảng trống trong giám sát thời gian thực:** Đa số người dùng chỉ phát hiện sự cố (như rò rỉ nước, thiết bị sưởi chập cháy, cá chết lây lan) khi hậu quả đã trở nên nghiêm trọng do thiếu một hệ thống cảnh báo tức thời theo thời gian thực (Real-time alerting).  
 
 ### 2.3. Giải pháp đề xuất
-Hệ thống triển khai cơ chế tự động hóa toàn diện bao gồm: thu thập dữ liệu môi trường, phân tích hình ảnh, phát tín hiệu cảnh báo và thực thi các chuỗi hành động khắc phục (thay nước, kích hoạt sục khí oxy, cung cấp thức ăn) mà không đòi hỏi sự can thiệp liên tục từ người sử dụng.
+Để giải quyết triệt để các vấn đề trên, đề tài đề xuất một giải pháp công nghệ đa tầng (Multi-layer Architecture) kết hợp giữa Cảm biến IoT (IoT Sensors) và Thị giác máy tính (Computer Vision). Hệ thống sẽ chủ động thu thập các biến số môi trường và hình ảnh thời gian thực, tiến hành phân tích đa biến trên bộ vi xử lý biên (Raspberry Pi 5) và đám mây (ThingsBoard). Khi hệ thống phát hiện các bất thường—chẳng hạn như nhiệt độ giảm sâu kết hợp với dấu hiệu cá bơi lờ đờ—nó sẽ lập tức kích hoạt chuỗi hành động cơ học (bật sưởi, kích hoạt sủi oxy) và tự động phát tín hiệu cảnh báo khẩn cấp tới quản trị viên mà không cần chờ sự can thiệp từ con người.
 
 ## 3. KHẢO SÁT HIỆN TRẠNG VÀ ĐIỂM MỚI CỦA ĐỀ TÀI
 
 ### 3.1. Hiện trạng các sản phẩm trên thị trường
-Thông qua khảo sát các sản phẩm bể cá thông minh tiêu biểu trên thị trường như: Xiaomi Mijia 20L MYG100, DINGSMART Mini Wi-Fi Tank, Xiaomi Mijia 10L MYG200, Hygger Smart Aquarium Kit, và Smart Aquarium 5 Gallon Glass Tank, có thể ghi nhận các hệ thống này đã đáp ứng được yêu cầu kiểm soát môi trường với các chức năng cơ bản:
-\+ **Điều khiển từ xa:** Thiết lập thông qua kết nối Wi-Fi/Bluetooth.  
-\+ **Kiểm soát ánh sáng:** Điều chỉnh cường độ, màu sắc và chu kỳ chiếu sáng.  
-\+ **Ổn định nhiệt độ:** Tích hợp bộ sưởi tự động để điều tiết nhiệt độ nước.  
-\+ **Lọc nước tuần hoàn:** Hệ thống lọc nhiều lớp giúp duy trì chất lượng nước.  
-\+ **Cung cấp thức ăn tự động:** Định lượng và thiết lập lịch trình cho ăn.  
+Thị trường bể cá thông minh hiện tại (Smart Aquarium Market) đang có sự phát triển mạnh mẽ với các dòng sản phẩm tiêu biểu như Xiaomi Mijia (10L/20L MYG100, MYG200), DINGSMART Mini Wi-Fi Tank, hay Hygger Smart Aquarium Kit. Phân tích kiến trúc của các thiết bị này cho thấy chúng hầu hết đều chia sẻ một mô hình quản lý tập trung vào "môi trường nước", bao gồm:
+\+ **Tự động hóa phần cứng cơ bản:** Tích hợp bơm nước, bộ lọc đa tầng và đèn LED RGB mô phỏng chu kỳ ánh sáng tự nhiên.  
+\+ **Điều khiển từ xa (Remote Control):** Giao tiếp qua giao thức Wi-Fi/Bluetooth, cho phép người dùng bật/tắt thiết bị hoặc thiết lập lịch trình cho ăn thông qua ứng dụng di động độc quyền.  
+\+ **Điều tiết cơ học (Actuation):** Có khả năng tự động cân bằng nhiệt độ qua hệ thống sưởi tích hợp.  
+Tuy nhiên, theo các nghiên cứu về IoT trong nuôi trồng thủy sản, các hệ thống này mắc phải một **điểm mù công nghệ lớn**: Chúng hoàn toàn "mù" trước sinh vật sống trong bể. Việc kiểm soát nước tốt không đảm bảo sinh vật không bị bệnh, và hệ thống không thể tự nhận biết khi có cá chết để phát cảnh báo nhằm vớt ra trước khi nước bị nhiễm độc amoniac.
 
 ### 3.2. Điểm đóng góp và Tính đột phá
-Hạn chế lớn nhất của các hệ thống hiện hữu là chỉ dừng lại ở việc giám sát môi trường nước, thiếu đi cơ chế giám sát trực tiếp thực thể (sinh vật). 
-Dự án này tích hợp công nghệ **Thị giác máy tính (Computer Vision)** để khắc phục hạn chế nêu trên:
-\+ **Giám sát thời gian thực:** Camera thực hiện theo dõi liên tục hoạt động của sinh vật.  
-\+ **Phân tích hành vi:** Triển khai mô hình học sâu (Deep Learning) nhằm phân tích hình ảnh, phát hiện các cá thể có biểu hiện bơi bất thường, mang mầm bệnh hoặc đã chết.  
-\+ **Cảnh báo khẩn cấp:** Hệ thống Web Server tự động kích hoạt tiến trình gửi thư điện tử (Email) cảnh báo tới người quản lý, đính kèm dữ liệu hình ảnh/video để hỗ trợ ra quyết định kịp thời.  
+Tính đột phá (Novelty) của nghiên cứu này nằm ở việc vượt qua ranh giới của các hệ thống IoT truyền thống bằng cách tích hợp **Trí tuệ Nhân tạo dựa trên Thị giác máy tính (Computer Vision-based AI)**. Sự khác biệt cụ thể bao gồm:
+\+ **Giám sát trực tiếp "Thực thể sống":** Chuyển dịch từ việc đo lường "môi trường" (IoT truyền thống) sang theo dõi trực tiếp "sinh vật". Hệ thống Camera liên tục thu thập luồng dữ liệu hình ảnh (Video stream) để phân tích hành vi sinh học.  
+\+ **Mô hình AI dự báo rủi ro:** Triển khai các mạng nơ-ron học sâu (Deep Learning) trên phần cứng Raspberry Pi 5 để định vị quỹ đạo bơi, tốc độ di chuyển, và thống kê mật độ đàn. Từ đó, AI có thể phân loại và phát hiện các cá thể có biểu hiện bơi bất thường, mang mầm bệnh, hoặc lật ngửa bụng (tử vong).  
+\+ **Quyết định ngữ cảnh đa biến (Context-aware Decision Making):** Khác với các hệ thống tự động thông thường (chỉ bật sưởi khi nước lạnh), hệ thống này kết hợp chéo dữ liệu từ AI Camera (nước chuyển màu đục) và cảm biến (mực nước thay đổi) để đưa ra phán đoán khẩn cấp (Critical Alarm), tự động gửi Email đính kèm ảnh chụp hiện trường để quản trị viên có phương án xử lý tức thời.  
 
 ## 4. CÁC TÍNH NĂNG CỐT LÕI
 1. **Theo dõi thông số môi trường 24/7:** Đo đạc nhiệt độ, mực nước (có khả năng mở rộng tích hợp cảm biến pH, TDS).
