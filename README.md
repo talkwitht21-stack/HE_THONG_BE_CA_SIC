@@ -1,4 +1,4 @@
-# BÁO CÁO DỰ ÁN: HỆ THỐNG GIÁM SÁT VÀ ĐIỀU KHIỂN TỰ ĐỘNG BỂ CÁ ỨNG DỤNG IOT VÀ TRÍ TUỆ NHÂN TẠO
+# HỆ THỐNG GIÁM SÁT VÀ ĐIỀU KHIỂN TỰ ĐỘNG BỂ CÁ ỨNG DỤNG IOT VÀ TRÍ TUỆ NHÂN TẠO
 
 Dự án nghiên cứu và ứng dụng nền tảng Vạn vật kết nối (IoT) kết hợp với Trí tuệ nhân tạo (AI) nhằm xây dựng một hệ thống giám sát và điều khiển tự động toàn diện cho môi trường thủy sinh. Hệ thống được thiết kế để duy trì môi trường sống ổn định cho sinh vật, đồng thời tích hợp thị giác máy tính (Computer Vision) để phân tích hành vi và trạng thái sức khỏe của sinh vật theo thời gian thực.
 
