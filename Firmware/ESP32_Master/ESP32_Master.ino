@@ -22,9 +22,11 @@
 #include <ESPmDNS.h>
 #include <time.h>
 
+#define LED_WIFI_PIN 2
+
 // ===================== CẤU HÌNH MẠNG =====================
 String sta_ssid = "NONNET";
-String sta_password = "123456789";
+String sta_password = "12345678";
 
 const char* MQTT_SERVER = "demo.thingsboard.io";
 const int   MQTT_PORT   = 1883;
@@ -76,6 +78,8 @@ unsigned long bootPressStart = 0;
 bool wifiConnecting = false;
 unsigned long wifiConnectStart = 0;
 unsigned long lastWifiAttempt = 0;
+unsigned long lastLedBlink = 0;
+bool wifiLedState = false;
 bool mdnsStarted = false;
 
 #include "index_html.h"
@@ -88,6 +92,8 @@ void setup() {
   Serial2.setTimeout(50);
 
   pinMode(0, INPUT_PULLUP); // Nút BOOT (GPIO 0)
+  pinMode(LED_WIFI_PIN, OUTPUT);
+  digitalWrite(LED_WIFI_PIN, LOW);
 
   loadSettings();
 
@@ -109,6 +115,7 @@ void setup() {
   Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(LED_WIFI_PIN, HIGH);
     Serial.println("[WIFI] Da ket noi thanh cong!");
     Serial.print("[WIFI] Dia chi IP: http://"); Serial.println(WiFi.localIP());
     configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
@@ -131,7 +138,7 @@ void setup() {
 void loadSettings() {
   prefs.begin("beca", false);
   sta_ssid = prefs.getString("ssid", "NONNET");
-  sta_password = prefs.getString("pass", "123456789");
+  sta_password = prefs.getString("pass", "12345678");
   cameraIP = prefs.getString("cam", "");
   ir1 = prefs.getString("ir1", "45");
   ir2 = prefs.getString("ir2", "46");
@@ -429,8 +436,9 @@ void loop() {
     bootPressStart = 0;
   }
 
-  // Quản lý trạng thái kết nối WiFi & mDNS
+  // Quản lý trạng thái kết nối WiFi & mDNS & LED GPIO 2
   if (WiFi.status() == WL_CONNECTED) {
+    digitalWrite(LED_WIFI_PIN, HIGH); // Sáng đứng khi có WiFi
     if (!mdnsStarted) {
       if (MDNS.begin("beca")) {
         MDNS.addService("http", "tcp", 80);
@@ -446,10 +454,19 @@ void loop() {
     }
   } else {
     mdnsStarted = false;
-    // Tự động thử kết nối lại nếu mất sóng (mỗi 15 giây)
-    if (ms - lastWifiAttempt > 15000) {
+    
+    // Nháy đèn LED GPIO 2 liên tục (chớp tắt 300ms) khi không có mạng
+    if (ms - lastLedBlink >= 300) {
+      lastLedBlink = ms;
+      wifiLedState = !wifiLedState;
+      digitalWrite(LED_WIFI_PIN, wifiLedState ? HIGH : LOW);
+    }
+
+    // Tự động thử kết nối lại nếu mất sóng (mỗi 10 giây)
+    if (ms - lastWifiAttempt > 10000) {
       lastWifiAttempt = ms;
       Serial.println("[WIFI] Mat ket noi, dang thu ket noi lai toi: " + sta_ssid);
+      WiFi.disconnect();
       WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
     }
   }
@@ -473,7 +490,7 @@ void loop() {
       Serial.print(WiFi.localIP());
       Serial.println(")");
     } else {
-      Serial.println("[MASTER] Hoat dong... Dang cho ket noi WiFi...");
+      Serial.println("[MASTER] Hoat dong... Dang cho ket noi WiFi (LED GPIO 2 dang nhay)...");
     }
     
     if (WiFi.status() == WL_CONNECTED && mqtt.connected()) {
