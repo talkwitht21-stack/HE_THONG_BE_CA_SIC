@@ -549,34 +549,48 @@ void checkLogic() {
   bool stateChanged = false;
   unsigned long ms = millis();
 
-  // 1. Cross-check Nhiệt độ (Chi chay khi co du lieu hop le > 0)
-  if (waterTemp > 0 && airTemp > 0) {
-    // Bat suoi khi ca 2 deu lanh
+  // 1. Cross-check Nhiet Do (Chi chay khi CA 2 cam bien hop le, loc ca -999 lan -127)
+  if (waterTemp > -50.0 && airTemp > -50.0) {
+    // Bat suoi khi CA 2 deu lanh (cross-check tranh cam bien 1 bi hong)
     if (waterTemp < th_heater_on && airTemp < th_heater_on && !heaterState) {
       heaterState = true;
       start_heater = ms;
       stateChanged = true;
-      Serial.println("[LOGIC] Nhiet do thap -> BAT Suoi");
+      Serial.printf("[LOGIC] Cross-check: Nuoc=%.1fC KK=%.1fC < %.1fC -> BAT Suoi\n",
+                    waterTemp, airTemp, th_heater_on);
     }
-    // Tat suoi khi nuoc dat nguong
+    // Tat suoi khi nuoc dat nguong (chi can nuoc am la du, khong can KK)
     if (waterTemp >= th_heater_off && heaterState) {
       heaterState = false;
       stateChanged = true;
-      Serial.println("[LOGIC] Nhiet do du -> TAT Suoi");
+      Serial.printf("[LOGIC] Nuoc=%.1fC >= %.1fC -> TAT Suoi\n", waterTemp, th_heater_off);
     }
 
-    // Bat quat khi ca 2 deu nong
+    // Bat quat khi CA 2 deu nong (cross-check)
     if (waterTemp > th_fan_on && airTemp > th_fan_on && !fanState) {
       fanState = true;
       start_fan = ms;
       stateChanged = true;
-      Serial.println("[LOGIC] Nhiet do cao -> BAT Quat");
+      Serial.printf("[LOGIC] Cross-check: Nuoc=%.1fC KK=%.1fC > %.1fC -> BAT Quat\n",
+                    waterTemp, airTemp, th_fan_on);
     }
     // Tat quat khi nuoc da mat
     if (waterTemp <= th_fan_off && fanState) {
       fanState = false;
       stateChanged = true;
-      Serial.println("[LOGIC] Nhiet do da mat -> TAT Quat");
+      Serial.printf("[LOGIC] Nuoc=%.1fC <= %.1fC -> TAT Quat\n", waterTemp, th_fan_off);
+    }
+  } else {
+    // Cam bien loi -> Tat an toan Suoi va Quat neu dang bat
+    if (heaterState) {
+      heaterState = false;
+      stateChanged = true;
+      Serial.println("[LOGIC] !!! Cam bien loi -> TAT SUOI an toan !!!");
+    }
+    if (fanState) {
+      fanState = false;
+      stateChanged = true;
+      Serial.println("[LOGIC] !!! Cam bien loi -> TAT QUAT an toan !!!");
     }
   }
 
