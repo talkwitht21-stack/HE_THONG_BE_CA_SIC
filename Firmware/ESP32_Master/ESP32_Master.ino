@@ -116,23 +116,23 @@ void setup() {
 
   if (WiFi.status() == WL_CONNECTED) {
     digitalWrite(LED_WIFI_PIN, HIGH);
-    Serial.println("[WIFI] Da ket noi thanh cong!");
-    Serial.print("[WIFI] Dia chi IP: http://"); Serial.println(WiFi.localIP());
+    Serial.println("\n[WIFI] DA KET NOI THANH CONG!");
+    Serial.print("[WEB]  1. Dia chi IP    : http://"); Serial.println(WiFi.localIP());
     configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
     if (MDNS.begin("beca")) {
       MDNS.addService("http", "tcp", 80);
-      Serial.println("[mDNS] Truyen cap Web qua ten mien: http://beca.local");
+      Serial.println("[WEB]  2. Ten mien mDNS : http://beca.local");
       mdnsStarted = true;
     }
   } else {
-    Serial.println("[WIFI] Chua bat duoc WiFi, he thong se thu ket noi lai trong nen.");
+    Serial.println("[WIFI] Chua bat duoc WiFi, he thong se thu ket noi lai trong nen (LED GPIO 2 dang nhay).");
   }
   
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
 
   setupWeb();
-  Serial.println("[WEB] Web Server da khoi chay tren cong 80!");
+  Serial.println("[WEB] Web Server da khoi chay tren cong 80!\n");
 }
 
 void loadSettings() {
@@ -394,9 +394,23 @@ void sendToSlave(bool feed) {
 }
 
 // ===================== MQTT =====================
+unsigned long lastMqttAttempt = 0;
+
 void mqttReconnect() {
-  if(!mqtt.connected() && WiFi.status() == WL_CONNECTED) {
-    if(mqtt.connect("ESP_M", MQTT_TOKEN, NULL)) mqtt.subscribe("v1/devices/me/rpc/request/+");
+  // Không thử kết nối MQTT nếu chưa cấu hình Access Token thật (tránh block CPU và WebServer)
+  if (strcmp(MQTT_TOKEN, "YOUR_DEVICE_ACCESS_TOKEN") == 0) return;
+  
+  if (millis() - lastMqttAttempt < 15000) return; // Chỉ thử lại mỗi 15 giây
+  lastMqttAttempt = millis();
+
+  if (!mqtt.connected() && WiFi.status() == WL_CONNECTED) {
+    Serial.println("[MQTT] Dang thu ket noi toi MQTT broker...");
+    if (mqtt.connect("ESP_M", MQTT_TOKEN, NULL)) {
+      Serial.println("[MQTT] Ket noi thanh cong!");
+      mqtt.subscribe("v1/devices/me/rpc/request/+");
+    } else {
+      Serial.printf("[MQTT] Ket noi that bai (rc=%d), se thu lai sau 15s.\n", mqtt.state());
+    }
   }
 }
 
