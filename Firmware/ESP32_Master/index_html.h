@@ -202,6 +202,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
   </div>
 
   <script>
+    let _fetching = false;
+
     function switchTab(t) {
       document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(e=>e.classList.remove('active'));
@@ -219,90 +221,79 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     }
 
     function f() {
-      fetch('/api/data').then(r=>r.json()).then(d=>{
-        // Update Dashboard
-        document.getElementById('v-wt').textContent = (d.wt > -50) ? d.wt.toFixed(1) : '--';
-        document.getElementById('v-at').textContent = (d.at > -50) ? d.at.toFixed(1) : '--';
-        document.getElementById('v-ah').textContent = (d.ah > -50) ? d.ah.toFixed(1) : '--';
-        document.getElementById('v-wl').textContent = (d.wcm > 0) ? d.wcm.toFixed(1) : 'Loi';
-        document.getElementById('v-time').textContent = d.time;
-        document.getElementById('oxy-mode-lbl').textContent = d.om ? 'Lien tuc' : 'Chu ky';
+      if (_fetching) return;      // Bo qua neu fetch truoc chua xong
+      _fetching = true;
+      const ctrl = new AbortController();
+      const tid  = setTimeout(() => ctrl.abort(), 1500); // Timeout 1.5s
 
-        ub('b-heater', d.h); ub('b-fan', d.f); ub('b-pump', d.p);
-        ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-led', d.l);
+      fetch('/api/data', {signal: ctrl.signal})
+        .then(r => r.json())
+        .then(d => {
+          clearTimeout(tid);
+          // Update Dashboard
+          document.getElementById('v-wt').textContent = (d.wt > -50) ? d.wt.toFixed(1) : '--';
+          document.getElementById('v-at').textContent = (d.at > -50) ? d.at.toFixed(1) : '--';
+          document.getElementById('v-ah').textContent = (d.ah > -50) ? d.ah.toFixed(1) : '--';
+          document.getElementById('v-wl').textContent = (d.wcm > 0) ? d.wcm.toFixed(1) : 'Loi';
+          document.getElementById('v-time').textContent = d.time;
+          document.getElementById('oxy-mode-lbl').textContent = d.om ? 'Lien tuc' : 'Chu ky';
 
-        // Update WiFi status
-        let wstEl = document.getElementById('s-wst');
-        if (d.wst == 2) {
-          wstEl.textContent = 'Da ket noi (' + d.wip + ')';
-          wstEl.style.color = '#22c55e';
-        } else if (d.wst == 1) {
-          wstEl.textContent = 'Dang ket noi...';
-          wstEl.style.color = '#f59e0b';
-        } else {
-          wstEl.textContent = 'Mat ket noi';
-          wstEl.style.color = '#ef4444';
-        }
+          ub('b-heater', d.h); ub('b-fan', d.f); ub('b-pump', d.p);
+          ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-led', d.l);
 
-        // Update MQTT status
-        let mqstEl = document.getElementById('s-mqst');
-        if (!d.mqe) {
-          mqstEl.textContent = 'Da tat';
-          mqstEl.style.color = '#94a3b8';
-        } else if (d.mqc) {
-          mqstEl.textContent = 'Da ket noi';
-          mqstEl.style.color = '#22c55e';
-        } else {
-          mqstEl.textContent = 'Chua ket noi';
-          mqstEl.style.color = '#f59e0b';
-        }
+          // WiFi status
+          let wstEl = document.getElementById('s-wst');
+          if (d.wst == 2) { wstEl.textContent = 'Da ket noi (' + d.wip + ')'; wstEl.style.color = '#22c55e'; }
+          else if (d.wst == 1) { wstEl.textContent = 'Dang ket noi...'; wstEl.style.color = '#f59e0b'; }
+          else { wstEl.textContent = 'Mat ket noi'; wstEl.style.color = '#ef4444'; }
 
-        // Update Last IR Code
-        if (d.last_ir && d.last_ir.length > 0) {
-          document.getElementById('s-last-ir').textContent = d.last_ir;
-        }
+          // MQTT status
+          let mqstEl = document.getElementById('s-mqst');
+          if (!d.mqe) { mqstEl.textContent = 'Da tat'; mqstEl.style.color = '#94a3b8'; }
+          else if (d.mqc) { mqstEl.textContent = 'Da ket noi'; mqstEl.style.color = '#22c55e'; }
+          else { mqstEl.textContent = 'Chua ket noi'; mqstEl.style.color = '#f59e0b'; }
 
-        // Only populate inputs if user is not actively typing
-        if (!document.querySelector('input:focus')) {
-          document.getElementById('s-ho').value = d.sh_on;
-          document.getElementById('s-hf').value = d.sh_off;
-          document.getElementById('s-fo').value = d.sf_on;
-          document.getElementById('s-ff').value = d.sf_off;
-          
-          document.getElementById('s-thh').value = d.th_h;
-          document.getElementById('s-twe').value = d.th_we;
-          document.getElementById('s-twl').value = d.th_wl;
-          document.getElementById('s-twf').value = d.th_wf;
-          document.getElementById('s-ap').value = d.sap ? 1 : 0;
-          document.getElementById('s-ad').value = d.sad ? 1 : 0;
+          // Last IR
+          if (d.last_ir && d.last_ir.length > 0)
+            document.getElementById('s-last-ir').textContent = d.last_ir;
 
-          document.getElementById('s-om').value = d.om ? 1 : 0;
-          document.getElementById('s-lm').value = d.slm ? 1 : 0;
-          document.getElementById('s-lon').value = d.sl_on;
-          document.getElementById('s-loff').value = d.sl_off;
-
-          document.getElementById('t-heater').value = d.th;
-          document.getElementById('t-fan').value = d.tf;
-          document.getElementById('t-drain').value = d.td;
-
-          document.getElementById('s-ssid').value = d.ssid;
-          document.getElementById('s-pass').value = d.pass;
-          document.getElementById('s-cam').value = d.cam;
-
-          document.getElementById('s-mqe').value = d.mqe ? 1 : 0;
-          document.getElementById('s-mqs').value = d.mqs;
-          document.getElementById('s-mqt').value = d.mqt;
-
-          document.getElementById('s-ir1').value = d.ir1;
-          document.getElementById('s-ir2').value = d.ir2;
-          document.getElementById('s-ir3').value = d.ir3;
-          document.getElementById('s-ir4').value = d.ir4;
-          document.getElementById('s-ir5').value = d.ir5;
-          document.getElementById('s-ir6').value = d.ir6;
-          document.getElementById('s-ir7').value = d.ir7;
-          document.getElementById('s-ir0').value = d.ir0;
-        }
-      });
+          // Settings fields: chi cap nhat khi khong co o nao dang focus
+          if (!document.querySelector('input:focus, select:focus')) {
+            document.getElementById('s-ho').value   = d.sh_on;
+            document.getElementById('s-hf').value   = d.sh_off;
+            document.getElementById('s-fo').value   = d.sf_on;
+            document.getElementById('s-ff').value   = d.sf_off;
+            document.getElementById('s-thh').value  = d.th_h;
+            document.getElementById('s-twe').value  = d.th_we;
+            document.getElementById('s-twl').value  = d.th_wl;
+            document.getElementById('s-twf').value  = d.th_wf;
+            document.getElementById('s-ap').value   = d.sap ? 1 : 0;
+            document.getElementById('s-ad').value   = d.sad ? 1 : 0;
+            document.getElementById('s-om').value   = d.om  ? 1 : 0;
+            document.getElementById('s-lm').value   = d.slm ? 1 : 0;
+            document.getElementById('s-lon').value  = d.sl_on;
+            document.getElementById('s-loff').value = d.sl_off;
+            document.getElementById('t-heater').value = d.th;
+            document.getElementById('t-fan').value    = d.tf;
+            document.getElementById('t-drain').value  = d.td;
+            document.getElementById('s-ssid').value   = d.ssid;
+            document.getElementById('s-pass').value   = d.pass;
+            document.getElementById('s-cam').value    = d.cam;
+            document.getElementById('s-mqe').value    = d.mqe ? 1 : 0;
+            document.getElementById('s-mqs').value    = d.mqs;
+            document.getElementById('s-mqt').value    = d.mqt;
+            document.getElementById('s-ir1').value    = d.ir1;
+            document.getElementById('s-ir2').value    = d.ir2;
+            document.getElementById('s-ir3').value    = d.ir3;
+            document.getElementById('s-ir4').value    = d.ir4;
+            document.getElementById('s-ir5').value    = d.ir5;
+            document.getElementById('s-ir6').value    = d.ir6;
+            document.getElementById('s-ir7').value    = d.ir7;
+            document.getElementById('s-ir0').value    = d.ir0;
+          }
+        })
+        .catch(() => { clearTimeout(tid); }) // Abort hoac loi mang -> im lang
+        .finally(() => { _fetching = false; });
     }
 
     function ub(id, s) {
@@ -312,44 +303,45 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     }
 
     function t(dev) {
+      // Optimistic update: doi mau nut ngay lap tuc, khong cho ESP tra loi
+      let map = {heater:'b-heater', fan:'b-fan', pump:'b-pump', oxy:'b-oxy', drain:'b-drain', led:'b-led'};
+      if (map[dev]) {
+        let b = document.getElementById(map[dev]);
+        let now = b.classList.contains('on');
+        ub(map[dev], !now);
+      }
       fetch('/api/ctrl', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({d: dev})
-      }).then(() => setTimeout(f, 300));
+      }).then(() => { _fetching = false; f(); }); // fetch ngay sau khi ctrl xong
     }
 
     function saveSettings() {
       let data = {
         sh_on: parseFloat(document.getElementById('s-ho').value),
         sh_off: parseFloat(document.getElementById('s-hf').value),
-        sf_on: parseFloat(document.getElementById('s-fo').value),
+        sf_on:  parseFloat(document.getElementById('s-fo').value),
         sf_off: parseFloat(document.getElementById('s-ff').value),
-        
-        th_h: parseFloat(document.getElementById('s-thh').value),
-        th_we: parseFloat(document.getElementById('s-twe').value),
-        th_wl: parseFloat(document.getElementById('s-twl').value),
-        th_wf: parseFloat(document.getElementById('s-twf').value),
+        th_h:   parseFloat(document.getElementById('s-thh').value),
+        th_we:  parseFloat(document.getElementById('s-twe').value),
+        th_wl:  parseFloat(document.getElementById('s-twl').value),
+        th_wf:  parseFloat(document.getElementById('s-twf').value),
         sap: document.getElementById('s-ap').value == 1,
         sad: document.getElementById('s-ad').value == 1,
-
-        om: document.getElementById('s-om').value == 1,
+        om:  document.getElementById('s-om').value == 1,
         slm: document.getElementById('s-lm').value == 1,
-        sl_on: document.getElementById('s-lon').value,
+        sl_on:  document.getElementById('s-lon').value,
         sl_off: document.getElementById('s-loff').value,
-
         th: parseInt(document.getElementById('t-heater').value),
         tf: parseInt(document.getElementById('t-fan').value),
         td: parseInt(document.getElementById('t-drain').value),
-
         ssid: document.getElementById('s-ssid').value,
         pass: document.getElementById('s-pass').value,
-        cam: document.getElementById('s-cam').value,
-
+        cam:  document.getElementById('s-cam').value,
         mqe: document.getElementById('s-mqe').value == 1,
         mqs: document.getElementById('s-mqs').value,
         mqt: document.getElementById('s-mqt').value,
-
         ir1: document.getElementById('s-ir1').value,
         ir2: document.getElementById('s-ir2').value,
         ir3: document.getElementById('s-ir3').value,
@@ -359,7 +351,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         ir7: document.getElementById('s-ir7').value,
         ir0: document.getElementById('s-ir0').value
       };
-
       fetch('/api/set', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -368,7 +359,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     }
 
     f();
-    setInterval(f, 2000);
+    setInterval(f, 1500);
   </script>
 </body>
 </html>
