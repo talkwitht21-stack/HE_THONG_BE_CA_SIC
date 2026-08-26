@@ -71,6 +71,10 @@ unsigned long start_drain = 0, start_led = 0;
 bool pendingCommand = false;
 unsigned long lastMqttPublish = 0;
 
+unsigned long lastWifiAttempt = 0;
+bool isWifiConnecting = false;
+unsigned long wifiConnectStart = 0;
+
 // ===================== TRANG WEB HTML =====================
 const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -287,12 +291,27 @@ void setup() {
 
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
+  Serial.print("[WIFI] Connecting to "); Serial.println(STA_SSID);
   WiFi.begin(STA_SSID, STA_PASSWORD);
   
   int r = 0;
-  while(WiFi.status() != WL_CONNECTED && r < 20) { delay(500); r++; }
+  while(WiFi.status() != WL_CONNECTED && r < 40) { // 40 * 500ms = 20s
+    delay(500); 
+    r++; 
+    Serial.print(".");
+  }
+  Serial.println();
   
-  configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("[WIFI] Connected!");
+    configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
+  } else {
+    Serial.println("[WIFI] Failed to connect in 20s! Switching to AP-ONLY mode.");
+    WiFi.disconnect();
+    WiFi.mode(WIFI_AP);
+    lastWifiAttempt = millis();
+    isWifiConnecting = false;
+  }
   
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
@@ -554,6 +573,32 @@ void mqttCallback(char* topic, byte* p, unsigned int len) {
 
 // ===================== LOOP =====================
 void loop() {
+  unsigned long ms = millis();
+
+  // Logic kết nối lại WiFi không chặn (Non-blocking)
+  if (isWifiConnecting) {
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("[WIFI] Reconnected!");
+      configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
+      isWifiConnecting = false;
+    } else if (ms - wifiConnectStart > 20000) {
+      Serial.println("[WIFI] Reconnect failed (20s). Back to AP-ONLY mode.");
+      WiFi.disconnect();
+      WiFi.mode(WIFI_AP);
+      isWifiConnecting = false;
+      lastWifiAttempt = ms;
+    }
+  } else {
+    // Nếu chưa kết nối WiFi, thử kết nối lại mỗi 2 phút
+    if (WiFi.status() != WL_CONNECTED && (ms - lastWifiAttempt > 120000)) {
+      Serial.println("[WIFI] Attempting to reconnect...");
+      WiFi.mode(WIFI_AP_STA);
+      WiFi.begin(STA_SSID, STA_PASSWORD);
+      wifiConnectStart = ms;
+      isWifiConnecting = true;
+    }
+  }
+
   server.handleClient();
   if(!mqtt.connected()) mqttReconnect();
   mqtt.loop();
