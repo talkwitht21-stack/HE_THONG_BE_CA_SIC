@@ -21,8 +21,8 @@
 #include <time.h>
 
 // ===================== CẤU HÌNH MẠNG =====================
-const char* STA_SSID     = "YOUR_WIFI_SSID";
-const char* STA_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* STA_SSID     = "NONNET";
+const char* STA_PASSWORD = "123456789";
 const char* AP_SSID     = "BeCa_Control";
 const char* AP_PASSWORD = "12345678";
 
