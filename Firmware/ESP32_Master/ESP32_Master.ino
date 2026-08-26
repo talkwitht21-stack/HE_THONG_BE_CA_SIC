@@ -86,27 +86,14 @@ void setup() {
 
   loadSettings();
 
-  // Tắt cache tự kết nối ngầm của ESP32 để tránh xung đột kênh AP
-  WiFi.persistent(false);
-  WiFi.disconnect(true);
-  delay(100);
-
   WiFi.mode(WIFI_AP_STA);
   
   IPAddress local_IP(192, 168, 4, 1);
   IPAddress gateway(192, 168, 4, 1);
   IPAddress subnet(255, 255, 255, 0);
   WiFi.softAPConfig(local_IP, gateway, subnet);
-  WiFi.softAP(AP_SSID, AP_PASSWORD);
+  WiFi.softAP(AP_SSID, AP_PASSWORD, 1, 0, 4);
   
-  // Tự động bật cờ kết nối ngầm nếu đã có WiFi lưu trong Flash (chạy ngầm 30s, không chặn Web/AP)
-  if (sta_ssid.length() > 0) {
-    WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
-    wifiConnecting = true;
-    wifiConnectStart = millis();
-    Serial.println("[WIFI] Tu dong ket noi ngam toi: " + sta_ssid + " (Toi da 30s)");
-  }
-
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
 
@@ -414,7 +401,7 @@ void loop() {
     } else if (ms - wifiConnectStart > 30000) {
       wifiConnecting = false;
       Serial.println("[WIFI] Ket noi that bai (qua 30s)! Da tat co. Dung thu ket noi de on dinh mang AP.");
-      WiFi.disconnect();
+      WiFi.disconnect(false);
       WiFi.mode(WIFI_AP_STA);
     }
   }
