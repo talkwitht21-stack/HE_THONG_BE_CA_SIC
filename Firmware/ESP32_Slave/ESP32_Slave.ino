@@ -118,11 +118,7 @@ void setup() {
   servoFeed.attach(SERVO_FEED_PIN);
   servoFeed.write(0);
 
-  // IR
-  IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
-
-  Serial.println("[SLAVE] Khởi động v2 (IR Remote)...");
-  
+  // Load ma phim IR tu Flash (neu da tu gan truoc do)
   prefs.begin("beca", false);
   ir_btn_1 = prefs.getUChar("ir1", 0x45);
   ir_btn_2 = prefs.getUChar("ir2", 0x46);
@@ -134,7 +130,12 @@ void setup() {
   ir_btn_0 = prefs.getUChar("ir0", 0x16);
   prefs.end();
 
-  ds18b20.begin();
+  // IR - TAT LED_FEEDBACK de tranh xung dot GPIO 13 (Servo)
+  IrReceiver.begin(IR_RECEIVE_PIN, DISABLE_LED_FEEDBACK);
+
+  Serial.println("[SLAVE] Khoi dong v2 OK - IR san sang!");
+  Serial.printf("[SLAVE] Ma phim: 1=0x%02X 2=0x%02X 3=0x%02X 4=0x%02X 5=0x%02X 6=0x%02X 7=0x%02X 0=0x%02X\n",
+                ir_btn_1, ir_btn_2, ir_btn_3, ir_btn_4, ir_btn_5, ir_btn_6, ir_btn_7, ir_btn_0);
 }
 
 // ===================== HÀM LOOP =====================
@@ -157,60 +158,62 @@ void loop() {
 
 void handleIR() {
   if (IrReceiver.decode()) {
-    // Luôn in ra mã nhận được để dễ debug phím
-    if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
-      // Bỏ qua phím đè
-    } else {
-      uint8_t command = IrReceiver.decodedIRData.command;
-      lastIrCode = command;
-      forceStatusUpdate = true;
-      Serial.printf("[SLAVE] IR Code: 0x%02X (Proto: %d, Raw: 0x%X)\n", 
-                    command, IrReceiver.decodedIRData.protocol, IrReceiver.decodedIRData.decodedRawData);
-      
-      unsigned long now = millis();
-      
-      if (command == ir_btn_1) {
-        heaterState = !heaterState;
-        forceStatusUpdate = true;
-      } else if (command == ir_btn_2) {
-        fanState = !fanState;
-        forceStatusUpdate = true;
-      } else if (command == ir_btn_3) {
-        pumpState = !pumpState;
-        forceStatusUpdate = true;
-      } else if (command == ir_btn_4) {
-        if (now - lastPress4Time <= 3000) press4Count++;
-        else press4Count = 1;
-        lastPress4Time = now;
-        if (press4Count >= 3) {
-          oxyModeContinuous = true;
-          oxyState = true;
-          Serial.println("[SLAVE] Oxy -> LIEN TUC");
-          press4Count = 0;
-        } else {
-          oxyModeContinuous = false;
-          oxyState = !oxyState;
-          oxyLastChange = millis();
-          Serial.println(oxyState ? "[SLAVE] Oxy -> BAT (Chu ky)" : "[SLAVE] Oxy -> TAT");
-        }
-        forceStatusUpdate = true;
-      } else if (command == ir_btn_5) {
-        drainState = !drainState;
-        forceStatusUpdate = true;
-      } else if (command == ir_btn_6) {
-        ledState = !ledState;
-        forceStatusUpdate = true;
-      } else if (command == ir_btn_7) {
-        startFeeding();
-      } else if (command == ir_btn_0) {
-        heaterState = fanState = pumpState = oxyState = drainState = ledState = false;
-        oxyModeContinuous = false;
-        forceStatusUpdate = true;
-        Serial.println("[SLAVE] EMERGENCY OFF");
-      }
-      applyRelayStates();
-    }
+    uint8_t command = IrReceiver.decodedIRData.command;
+
+    // Resume NGAY LAP TUC - phai goi truoc khi xu ly de khong bi tro
     IrReceiver.resume();
+
+    // Bo qua phim de (repeat) - nhung da resume roi nen IRremote van tiep tuc nhan
+    if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) return;
+
+    lastIrCode = command;
+    forceStatusUpdate = true;
+    Serial.printf("[SLAVE] IR Code: 0x%02X (Proto: %d)\n",
+                  command, IrReceiver.decodedIRData.protocol);
+
+    unsigned long now = millis();
+
+    if (command == ir_btn_1) {
+      heaterState = !heaterState;
+      Serial.printf("[SLAVE] Suoi -> %s\n", heaterState ? "BAT" : "TAT");
+    } else if (command == ir_btn_2) {
+      fanState = !fanState;
+      Serial.printf("[SLAVE] Quat -> %s\n", fanState ? "BAT" : "TAT");
+    } else if (command == ir_btn_3) {
+      pumpState = !pumpState;
+      Serial.printf("[SLAVE] BomBu -> %s\n", pumpState ? "BAT" : "TAT");
+    } else if (command == ir_btn_4) {
+      if (now - lastPress4Time <= 3000) press4Count++;
+      else press4Count = 1;
+      lastPress4Time = now;
+      if (press4Count >= 3) {
+        oxyModeContinuous = true;
+        oxyState = true;
+        Serial.println("[SLAVE] Oxy -> LIEN TUC");
+        press4Count = 0;
+      } else {
+        oxyModeContinuous = false;
+        oxyState = !oxyState;
+        oxyLastChange = now;
+        Serial.printf("[SLAVE] Oxy -> %s (Chu ky)\n", oxyState ? "BAT" : "TAT");
+      }
+    } else if (command == ir_btn_5) {
+      drainState = !drainState;
+      Serial.printf("[SLAVE] BomThay -> %s\n", drainState ? "BAT" : "TAT");
+    } else if (command == ir_btn_6) {
+      ledState = !ledState;
+      Serial.printf("[SLAVE] LED -> %s\n", ledState ? "BAT" : "TAT");
+    } else if (command == ir_btn_7) {
+      startFeeding();
+      Serial.println("[SLAVE] Cho an!");
+    } else if (command == ir_btn_0) {
+      heaterState = fanState = pumpState = oxyState = drainState = ledState = false;
+      oxyModeContinuous = false;
+      Serial.println("[SLAVE] EMERGENCY OFF - Tat tat ca!");
+    } else {
+      Serial.printf("[SLAVE] Phim chua gan chuc nang: 0x%02X\n", command);
+    }
+    applyRelayStates();
   }
 }
 
