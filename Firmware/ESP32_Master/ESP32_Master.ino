@@ -80,18 +80,32 @@ unsigned long wifiConnectStart = 0;
 // ===================== SETUP =====================
 void setup() {
   Serial.begin(115200);
+  Serial.setTimeout(50);
   Serial2.begin(9600, SERIAL_8N1, 16, 17);
+  Serial2.setTimeout(50);
 
   loadSettings();
 
+  // Tắt cache tự kết nối ngầm của ESP32 để tránh xung đột kênh AP
+  WiFi.persistent(false);
+  WiFi.disconnect(true);
+  delay(100);
+
   WiFi.mode(WIFI_AP_STA);
+  
+  IPAddress local_IP(192, 168, 4, 1);
+  IPAddress gateway(192, 168, 4, 1);
+  IPAddress subnet(255, 255, 255, 0);
+  WiFi.softAPConfig(local_IP, gateway, subnet);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
   
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
 
   setupWeb();
-  Serial.println("[MASTER] Khoi dong xong. Web: 192.168.4.1 (AP Mode)");
+  Serial.println("[MASTER] Khoi dong xong!");
+  Serial.print("[MASTER] AP SSID: "); Serial.println(AP_SSID);
+  Serial.print("[MASTER] AP IP: "); Serial.println(WiFi.softAPIP());
 }
 
 void loadSettings() {
@@ -261,7 +275,12 @@ void setupWeb() {
     }
   });
 
+  server.onNotFound([]() {
+    server.send(200, "text/html", INDEX_HTML);
+  });
+
   server.begin();
+  Serial.println("[WEB] Web Server started on port 80");
 }
 
 // ===================== LOGIC =====================
