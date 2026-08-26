@@ -1,4 +1,4 @@
-﻿# DỰ ÁN: HỆ THỐNG GIÁM SÁT VÀ ĐIỀU KHIỂN TỰ ĐỘNG BỂ CÁ ỨNG DỤNG IOT VÀ TRÍ TUỆ NHÂN TẠO
+# DỰ ÁN: HỆ THỐNG GIÁM SÁT VÀ ĐIỀU KHIỂN TỰ ĐỘNG BỂ CÁ ỨNG DỤNG IOT VÀ TRÍ TUỆ NHÂN TẠO
 
 Dự án nghiên cứu và ứng dụng nền tảng Vạn vật kết nối (IoT) kết hợp với Trí tuệ nhân tạo (AI) nhằm xây dựng một hệ thống giám sát và điều khiển tự động toàn diện cho môi trường thủy sinh. Hệ thống được thiết kế để duy trì môi trường sống ổn định cho sinh vật, đồng thời tích hợp thị giác máy tính (Computer Vision) để phân tích hành vi và trạng thái sức khỏe của sinh vật theo thời gian thực.
 
@@ -159,12 +159,12 @@ graph TD
     subgraph Box ["Tủ Điện / Khu Vực Điều Khiển (Bên ngoài)"]
         direction TB
         Pi["Raspberry Pi 5 (Edge AI)"]
-        ESPM["ESP32-Master (Gateway)"]
-        ESPS["ESP32-Slave (Sensor Node)"]
+        ESPM["ESP32-Master (Gateway + Web Server)"]
+        ESPS["ESP32-Slave (Sensor Node & IR)"]
         
         Pi <-->|Giao tiếp| ESPM
         ESPM <-->|UART| ESPS
-        ESPM -.->|Đẩy dữ liệu| Cloud[("ThingsBoard Cloud")]
+        ESPM -.->|Đẩy dữ liệu MQTT| Cloud[("ThingsBoard Cloud")]
     end
 
     %% Khối Thiết bị Gắn Mép Bể (Trên Cạn)
@@ -174,20 +174,24 @@ graph TD
         Feed["Máy Cho Ăn Tự Động (Servo)"]
         Fan["Quạt Tản Nhiệt Bề Mặt"]
         DHT["Cảm biến Nhiệt Ẩm (DHT22)"]
+        LED["Đèn LED Chiếu Sáng"]
+        AirPump["Máy Sục Oxy (Air Pump)"]
+        IR["Mắt thu Hồng ngoại (IR MH-R38)"]
     end
 
     %% Khối Bề Mặt Nước
     subgraph SurfaceWater ["Bề Mặt Nước"]
         direction LR
-        WaterLevel["Phao từ (Đo mực nước cạn/tràn)"]
+        WaterLevel["Phao từ (Đo mực nước)"]
+        DrainPump["Bơm Thay Nước (Hút nước cũ)"]
     end
 
     %% Khối Ngập Nước
     subgraph Underwater ["Lòng Bể (Ngập Nước)"]
         direction LR
-        Temp["Cảm biến Nhiệt độ Nước (DS18B20)"]
+        Temp["Cảm biến Nhiệt độ (DS18B20)"]
         Heater["Thanh Sưởi Nhiệt"]
-        Pump["Máy Bơm / Lọc Nước"]
+        Pump["Máy Bơm Bù Nước"]
     end
 
     %% Kết nối vật lý
@@ -195,11 +199,15 @@ graph TD
     ESPS -->|"Đọc tín hiệu"| DHT
     ESPS -->|"Đọc tín hiệu"| WaterLevel
     ESPS -->|"Đọc tín hiệu"| Temp
+    ESPS -->|"Nhận lệnh Remote"| IR
     
     ESPS -->|"Cấp điện (Relay)"| Feed
     ESPS -->|"Cấp điện (Relay)"| Fan
     ESPS -->|"Cấp điện (Relay)"| Heater
     ESPS -->|"Cấp điện (Relay)"| Pump
+    ESPS -->|"Cấp điện (Relay)"| AirPump
+    ESPS -->|"Cấp điện (Relay)"| DrainPump
+    ESPS -->|"Cấp điện (Relay)"| LED
     
     %% Định dạng màu sắc để dễ nhìn
     style Pi fill:#f9f,stroke:#333,stroke-width:2px
@@ -210,10 +218,14 @@ graph TD
     style Cam fill:#ff9,stroke:#333,stroke-width:1px
     style Feed fill:#eee,stroke:#333,stroke-width:1px
     style Fan fill:#eee,stroke:#333,stroke-width:1px
+    style LED fill:#ffa,stroke:#333,stroke-width:1px
+    style AirPump fill:#eee,stroke:#333,stroke-width:1px
+    style IR fill:#dfd,stroke:#333,stroke-width:1px
     
     style Temp fill:#9cf,stroke:#333,stroke-width:1px
     style Heater fill:#f99,stroke:#333,stroke-width:1px
     style Pump fill:#9cf,stroke:#333,stroke-width:1px
+    style DrainPump fill:#9cf,stroke:#333,stroke-width:1px
     style WaterLevel fill:#9cf,stroke:#333,stroke-width:1px
 ```
 
