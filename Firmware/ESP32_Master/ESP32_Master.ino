@@ -281,7 +281,7 @@ void setup() {
 
 void loadSettings() {
   prefs.begin("beca", false);
-  cam_ip = prefs.getString("cam", "");
+  cameraIP = prefs.getString("cam", "");
   th_heater_on = prefs.getFloat("h_on", 24.0);
   th_heater_off = prefs.getFloat("h_off", 28.0);
   th_fan_on = prefs.getFloat("f_on", 30.0);
