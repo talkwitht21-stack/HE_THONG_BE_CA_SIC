@@ -222,7 +222,6 @@ void setupWiFi() {
     Serial.println("[WIFI] Chua ket noi duoc WiFi. He thong tiep tuc chay offline va thu ket noi lai.");
   }
 }
-}
 
 // ===================== THIET LAP WEB SERVER =====================
 void setupWeb() {
