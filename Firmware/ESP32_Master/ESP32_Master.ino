@@ -40,7 +40,6 @@ Preferences prefs;
 
 // ===================== BIẾN TRẠNG THÁI (Từ Slave) =====================
 float waterTemp = 0.0, airTemp = 0.0, airHum = 0.0;
-bool  waterLow  = false; // Từ Phao từ
 float waterLevelCm = 0.0; // Từ HC-SR04
 
 bool heaterState = false, fanState = false, pumpState = false;
@@ -192,7 +191,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         // Dash
         document.getElementById('v-wt').textContent = d.wt.toFixed(1);
         document.getElementById('v-at').textContent = d.at.toFixed(1);
-        document.getElementById('v-wl').textContent = d.wl ? 'CAN' : 'DU';
+        document.getElementById('v-wl').textContent = (d.wcm > 0) ? d.wcm.toFixed(1) + ' cm' : 'Loi';
         document.getElementById('v-time').textContent = d.time;
         document.getElementById('oxy-mode-lbl').textContent = d.om ? 'Lien tuc' : 'Chu ky';
 
@@ -316,7 +315,7 @@ void setupWeb() {
   
   server.on("/api/data", []() {
     StaticJsonDocument<512> d;
-    d["wt"] = waterTemp; d["at"] = airTemp; d["wl"] = waterLow;
+    d["wt"] = waterTemp; d["at"] = airTemp; d["wcm"] = waterLevelCm;
     d["time"] = getTimeStr();
     d["h"] = heaterState; d["f"] = fanState; d["p"] = pumpState;
     d["o"] = oxyState; d["d"] = drainState; d["l"] = ledState;
@@ -393,10 +392,10 @@ void checkLogic() {
     if(waterTemp <= th_fan_off && fanState) { fanState=0; c=1; }
   }
 
-  // Nước cạn/thấp (Phao từ + HC-SR04)
-  bool is_empty = waterLow || (waterLevelCm > 0 && waterLevelCm < th_water_empty);
+  // Nước cạn/thấp (HC-SR04)
+  bool is_empty = (waterLevelCm > 0 && waterLevelCm < th_water_empty);
   bool is_low   = is_empty || (waterLevelCm > 0 && waterLevelCm < th_water_low);
-  bool is_full  = !waterLow && (waterLevelCm > 0 && waterLevelCm >= th_water_full);
+  bool is_full  = (waterLevelCm > 0 && waterLevelCm >= th_water_full);
 
   if(is_empty) {
     if(auto_pump && !pumpState) { pumpState=1; c=1; }
@@ -433,7 +432,7 @@ void handleSlave() {
     StaticJsonDocument<300> d; if(deserializeJson(d, s)) return;
 
     waterTemp = d["water_temp"]; airTemp = d["air_temp"];
-    airHum = d["air_hum"]; waterLow = d["water_low"];
+    airHum = d["air_hum"];
     if(d.containsKey("water_cm")) waterLevelCm = d["water_cm"];
     
     bool sh = d["heater"], sf = d["fan"], sp = d["pump"];
@@ -493,7 +492,7 @@ void loop() {
     if(mqtt.connected()) {
       StaticJsonDocument<300> d;
       d["water_temp"]=waterTemp; d["air_temp"]=airTemp;
-      d["water_low"]=waterLow; d["heater"]=heaterState;
+      d["water_cm"]=waterLevelCm; d["heater"]=heaterState;
       d["fan"]=fanState; d["pump"]=pumpState;
       d["oxy"]=oxyState; d["drain"]=drainState; d["led"]=ledState;
       char b[300]; serializeJson(d, b);

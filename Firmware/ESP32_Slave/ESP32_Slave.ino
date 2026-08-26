@@ -26,7 +26,6 @@
 #define DS18B20_PIN       4     // Nhiệt độ nước
 #define DHT_PIN           5     // Nhiệt ẩm KK
 #define DHT_TYPE          DHT22
-#define WATER_LEVEL_PIN   33    // Phao từ (LOW=Đủ, HIGH=Cạn)
 #define HC_TRIG_PIN       14    // Siêu âm Trig
 #define HC_ECHO_PIN       32    // Siêu âm Echo
 #define IR_RECEIVE_PIN    15    // Mắt thu IR MH-R38
@@ -100,7 +99,6 @@ void setup() {
   ds18b20.begin();
   dht.begin();
   
-  pinMode(WATER_LEVEL_PIN, INPUT_PULLUP);
   pinMode(HC_TRIG_PIN, OUTPUT);
   pinMode(HC_ECHO_PIN, INPUT);
 
@@ -309,7 +307,6 @@ void sendStatusToMaster() {
   float waterTemp = ds18b20.getTempCByIndex(0);
   float airTemp   = dht.readTemperature();
   float airHum    = dht.readHumidity();
-  bool  waterLow  = (digitalRead(WATER_LEVEL_PIN) == HIGH);
 
   // Đọc siêu âm
   digitalWrite(HC_TRIG_PIN, LOW);
@@ -331,7 +328,6 @@ void sendStatusToMaster() {
   doc["water_temp"] = waterTemp;
   doc["air_temp"]   = airTemp;
   doc["air_hum"]    = airHum;
-  doc["water_low"]  = waterLow;
   doc["water_cm"]   = waterLevelCm;
   doc["heater"]     = heaterState ? 1 : 0;
   doc["fan"]        = fanState    ? 1 : 0;
