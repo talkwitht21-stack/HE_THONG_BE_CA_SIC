@@ -24,7 +24,7 @@
 String sta_ssid = "NONNET";
 String sta_password = "123456789";
 const char* AP_SSID     = "BeCa_Control";
-const char* AP_PASSWORD = "12345678";
+String ap_password      = "12345678";
 
 const char* MQTT_SERVER = "demo.thingsboard.io";
 const int   MQTT_PORT   = 1883;
@@ -65,11 +65,12 @@ String ir1="45", ir2="46", ir3="47", ir4="44", ir5="40", ir6="43", ir7="07", ir0
 int timer_heater = 0, timer_fan = 0, timer_pump = 0;
 int timer_drain = 30, timer_led = 0;
 
-// ===================== BIẾN HỖ TRỢ TIMER =====================
+// ===================== BIẾN HỖ TRỢ TIMER & HỆ THỐNG =====================
 unsigned long start_heater = 0, start_fan = 0, start_pump = 0;
 unsigned long start_drain = 0, start_led = 0;
 bool pendingCommand = false;
 unsigned long lastMqttPublish = 0;
+unsigned long bootPressStart = 0;
 
 // ===================== BIẾN HỖ TRỢ WIFI =====================
 bool wifiConnecting = false;
@@ -84,6 +85,8 @@ void setup() {
   Serial2.begin(9600, SERIAL_8N1, 16, 17);
   Serial2.setTimeout(50);
 
+  pinMode(0, INPUT_PULLUP); // Nút BOOT (GPIO 0)
+
   loadSettings();
 
   WiFi.mode(WIFI_AP_STA);
@@ -92,7 +95,7 @@ void setup() {
   IPAddress gateway(192, 168, 4, 1);
   IPAddress subnet(255, 255, 255, 0);
   WiFi.softAPConfig(local_IP, gateway, subnet);
-  WiFi.softAP(AP_SSID, AP_PASSWORD, 1, 0, 4);
+  WiFi.softAP(AP_SSID, ap_password.c_str(), 1, 0, 4);
   
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
@@ -107,6 +110,7 @@ void loadSettings() {
   prefs.begin("beca", false);
   sta_ssid = prefs.getString("ssid", "NONNET");
   sta_password = prefs.getString("pass", "123456789");
+  ap_password = prefs.getString("ap_pass", "12345678");
   cameraIP = prefs.getString("cam", "");
   ir1 = prefs.getString("ir1", "45");
   ir2 = prefs.getString("ir2", "46");
@@ -161,6 +165,7 @@ void setupWeb() {
     d["sl_on"] = led_on_time; d["sl_off"] = led_off_time;
     d["td"] = timer_drain; d["th"] = timer_heater; d["tf"] = timer_fan;
     d["ssid"] = sta_ssid; d["pass"] = sta_password;
+    d["appass"] = ap_password;
     d["wst"] = (WiFi.status() == WL_CONNECTED) ? 2 : (wifiConnecting ? 1 : 0);
     d["wip"] = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
     d["cam"] = cameraIP;
@@ -222,6 +227,15 @@ void setupWeb() {
       }
     }
 
+    bool apPassChanged = false;
+    if(d.containsKey("appass")) {
+      String napp = d["appass"].as<String>();
+      if(napp.length() >= 8 && napp != ap_password) {
+        ap_password = napp;
+        apPassChanged = true;
+      }
+    }
+
     if(d.containsKey("ir1")) ir1 = d["ir1"].as<String>();
     if(d.containsKey("ir2")) ir2 = d["ir2"].as<String>();
     if(d.containsKey("ir3")) ir3 = d["ir3"].as<String>();
@@ -243,11 +257,17 @@ void setupWeb() {
     prefs.putInt("td", timer_drain); prefs.putInt("th", timer_heater); prefs.putInt("tf", timer_fan);
     prefs.putString("cam", cameraIP);
     prefs.putString("ssid", sta_ssid); prefs.putString("pass", sta_password);
+    prefs.putString("ap_pass", ap_password);
     prefs.putString("ir1", ir1); prefs.putString("ir2", ir2);
     prefs.putString("ir3", ir3); prefs.putString("ir4", ir4);
     prefs.putString("ir5", ir5); prefs.putString("ir6", ir6);
     prefs.putString("ir7", ir7); prefs.putString("ir0", ir0);
     prefs.end();
+
+    if(apPassChanged) {
+      Serial.println("[AP] Mat khau AP da thay doi! Cap nhat lai SoftAP...");
+      WiFi.softAP(AP_SSID, ap_password.c_str(), 1, 0, 4);
+    }
 
     // Gửi map IR mới xuống Slave
     StaticJsonDocument<300> cmd;
@@ -390,6 +410,22 @@ void mqttCallback(char* topic, byte* p, unsigned int len) {
 // ===================== LOOP =====================
 void loop() {
   unsigned long ms = millis();
+
+  // Kiểm tra nút BOOT (GPIO 0) nhấn giữ 3s để Factory Reset
+  if (digitalRead(0) == LOW) {
+    if (bootPressStart == 0) bootPressStart = ms;
+    else if (ms - bootPressStart >= 3000) {
+      Serial.println("\n[SYSTEM] !!! GIU NUT BOOT 3S -> FACTORY RESET !!!");
+      prefs.begin("beca", false);
+      prefs.clear();
+      prefs.end();
+      Serial.println("[SYSTEM] Da xoa sach bo nho Flash! Dang khoi dong lai...");
+      delay(500);
+      ESP.restart();
+    }
+  } else {
+    bootPressStart = 0;
+  }
 
   // Quản lý biến cờ kết nối WiFi (Thời gian chờ tối đa 30s)
   if (wifiConnecting) {

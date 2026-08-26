@@ -102,9 +102,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
       <div class="card">
         <div class="card-title">Kết Nối WiFi & Camera</div>
-        <div class="form-group"><span>WiFi:</span><input type="text" id="s-ssid" style="width:150px;"></div>
-        <div class="form-group"><span>Pass:</span><input type="text" id="s-pass" style="width:150px;"></div>
-        <div class="form-group"><span>Cam:</span><input type="text" id="s-cam" style="width:150px;"></div>
+        <div class="form-group"><span>WiFi Nhà:</span><input type="text" id="s-ssid" style="width:150px;"></div>
+        <div class="form-group"><span>Pass WiFi:</span><input type="text" id="s-pass" style="width:150px;"></div>
+        <div class="form-group"><span>Pass AP (Mạch):</span><input type="text" id="s-appass" style="width:150px;"></div>
+        <div class="form-group"><span>Cam IP:</span><input type="text" id="s-cam" style="width:150px;"></div>
         <div class="form-group"><span>Trạng thái:</span><span id="s-wst" style="font-weight:bold; font-size:0.85em;">--</span></div>
       </div>
       
@@ -177,6 +178,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           document.getElementById('t-fan').value = d.tf;
           document.getElementById('s-ssid').value = d.ssid;
           document.getElementById('s-pass').value = d.pass;
+          document.getElementById('s-appass').value = d.appass;
           document.getElementById('s-cam').value = d.cam;
           document.getElementById('s-ir1').value = d.ir1; document.getElementById('s-ir2').value = d.ir2;
           document.getElementById('s-ir3').value = d.ir3; document.getElementById('s-ir4').value = d.ir4;
@@ -214,6 +216,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         tf: parseInt(document.getElementById('t-fan').value),
         ssid: document.getElementById('s-ssid').value,
         pass: document.getElementById('s-pass').value,
+        appass: document.getElementById('s-appass').value,
         cam: document.getElementById('s-cam').value,
         ir1: document.getElementById('s-ir1').value, ir2: document.getElementById('s-ir2').value,
         ir3: document.getElementById('s-ir3').value, ir4: document.getElementById('s-ir4').value,
