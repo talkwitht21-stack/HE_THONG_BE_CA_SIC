@@ -142,19 +142,21 @@ void loop() {
 
 void handleIR() {
   if (IrReceiver.decode()) {
-    if (IrReceiver.decodedIRData.protocol != UNKNOWN) {
+    // Luôn in ra mã nhận được để dễ debug phím
+    if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) {
+      // Bỏ qua phím đè
+    } else {
       uint8_t command = IrReceiver.decodedIRData.command;
+      Serial.printf("[SLAVE] IR Code: 0x%02X (Proto: %d, Raw: 0x%X)\n", 
+                    command, IrReceiver.decodedIRData.protocol, IrReceiver.decodedIRData.decodedRawData);
+      
       unsigned long now = millis();
       
-      // Chống lặp (repeat)
-      if ((IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) == 0) {
-        Serial.printf("[SLAVE] IR Code: 0x%02X\n", command);
-        
-        switch (command) {
-          case IR_BTN_1:
-            heaterState = !heaterState;
-            forceStatusUpdate = true;
-            break;
+      switch (command) {
+        case IR_BTN_1:
+          heaterState = !heaterState;
+          forceStatusUpdate = true;
+          break;
           case IR_BTN_2:
             fanState = !fanState;
             forceStatusUpdate = true;
@@ -205,7 +207,6 @@ void handleIR() {
             break;
         }
         applyRelayStates();
-      }
     }
     IrReceiver.resume();
   }

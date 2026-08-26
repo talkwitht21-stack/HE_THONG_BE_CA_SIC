@@ -385,11 +385,11 @@ void checkLogic() {
 
   // Cross check Nhiệt
   if(waterTemp > 0) {
-    if(waterTemp < th_heater_on && airTemp < th_heater_on && !heaterState) { heaterState=1; start_heater=ms; c=1; }
-    if(waterTemp >= th_heater_off && heaterState) { heaterState=0; c=1; }
+    if(waterTemp < th_heater_on && airTemp < th_heater_on && !heaterState) { heaterState=1; start_heater=ms; c=1; Serial.println("[LOGIC] Nhiet do thap -> BAT Suoi"); }
+    if(waterTemp >= th_heater_off && heaterState) { heaterState=0; c=1; Serial.println("[LOGIC] Nhiet do dat -> TAT Suoi"); }
     
-    if(waterTemp > th_fan_on && airTemp > th_fan_on && !fanState) { fanState=1; start_fan=ms; c=1; }
-    if(waterTemp <= th_fan_off && fanState) { fanState=0; c=1; }
+    if(waterTemp > th_fan_on && airTemp > th_fan_on && !fanState) { fanState=1; start_fan=ms; c=1; Serial.println("[LOGIC] Nhiet do cao -> BAT Quat"); }
+    if(waterTemp <= th_fan_off && fanState) { fanState=0; c=1; Serial.println("[LOGIC] Nhiet do dat -> TAT Quat"); }
   }
 
   // Nước cạn/thấp (HC-SR04)
@@ -398,30 +398,33 @@ void checkLogic() {
   bool is_full  = (waterLevelCm > 0 && waterLevelCm >= th_water_full);
 
   if(is_empty) {
-    if(auto_pump && !pumpState) { pumpState=1; c=1; }
+    if(auto_pump && !pumpState) { pumpState=1; c=1; Serial.println("[LOGIC] Nuoc can -> BAT Bom Bu"); }
   } else if (is_full) {
-    if(auto_pump && pumpState) { pumpState=0; c=1; }
+    if(auto_pump && pumpState) { pumpState=0; c=1; Serial.println("[LOGIC] Nuoc day -> TAT Bom Bu"); }
   }
 
   if(is_low) {
-    if(auto_drain && !drainState) { drainState=1; start_drain=ms; c=1; }
+    if(auto_drain && !drainState) { drainState=1; start_drain=ms; c=1; Serial.println("[LOGIC] Nuoc thap -> BAT Bom Thay"); }
   } else if (is_full) {
-    if(auto_drain && drainState) { drainState=0; c=1; }
+    if(auto_drain && drainState) { drainState=0; c=1; Serial.println("[LOGIC] Nuoc day -> TAT Bom Thay"); }
   }
 
   // Hẹn giờ LED
   if(led_timer_mode) {
     String t = getTimeStr();
-    if(t == led_on_time && !ledState) { ledState=1; c=1; }
-    if(t == led_off_time && ledState) { ledState=0; c=1; }
+    if(t == led_on_time && !ledState) { ledState=1; c=1; Serial.println("[LOGIC] Den gio hen -> BAT Den LED"); }
+    if(t == led_off_time && ledState) { ledState=0; c=1; Serial.println("[LOGIC] Den gio hen -> TAT Den LED"); }
   }
 
   // Timer tắt
   if(timer_heater > 0 && heaterState && (ms - start_heater > timer_heater*60000UL)) { heaterState=0; c=1; }
-  if(timer_fan > 0 && fanState && (ms - start_fan > timer_fan*60000UL)) { fanState=0; c=1; }
-  if(timer_drain > 0 && drainState && (ms - start_drain > timer_drain*60000UL)) { drainState=0; c=1; }
+  if(timer_fan > 0 && fanState && (ms - start_fan > timer_fan*60000UL)) { fanState=0; c=1; Serial.println("[LOGIC] Quat het timer -> TAT"); }
+  if(timer_drain > 0 && drainState && (ms - start_drain > timer_drain*60000UL)) { drainState=0; c=1; Serial.println("[LOGIC] Bom thay het timer -> TAT"); }
 
-  if(c) sendToSlave(false);
+  if(c) {
+    Serial.println("[LOGIC] Phat hien thay doi trang thai -> Gui lenh cho Slave");
+    sendToSlave(false);
+  }
 }
 
 // ===================== UART =====================
@@ -434,6 +437,9 @@ void handleSlave() {
     waterTemp = d["water_temp"]; airTemp = d["air_temp"];
     airHum = d["air_hum"];
     if(d.containsKey("water_cm")) waterLevelCm = d["water_cm"];
+    
+    Serial.printf("[MASTER] Nhan tu Slave: Nuoc=%.1f KK=%.1f Am=%.1f MucNuoc=%.1fcm\n", 
+                  waterTemp, airTemp, airHum, waterLevelCm);
     
     bool sh = d["heater"], sf = d["fan"], sp = d["pump"];
     bool so = d["oxy"], sd = d["drain"], sl = d["led"];
