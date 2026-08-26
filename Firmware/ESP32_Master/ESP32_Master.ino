@@ -108,7 +108,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 </head>
 <body>
   <div class="container">
-    <h1>🐟 BE CA THONG MINH</h1>
+    <h1>BE CA THONG MINH</h1>
     
     <div class="tabs">
       <div class="tab active" onclick="switchTab('dash')">DASHBOARD</div>
@@ -128,12 +128,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       </div>
       <div class="card">
         <div class="card-title">Dieu Khien</div>
-        <div class="row"><span>🔥 Suoi</span><button class="btn off" id="b-heater" onclick="t('heater')">TAT</button></div>
-        <div class="row"><span>🌀 Quat</span><button class="btn off" id="b-fan" onclick="t('fan')">TAT</button></div>
-        <div class="row"><span>💧 Bom bu</span><button class="btn off" id="b-pump" onclick="t('pump')">TAT</button></div>
-        <div class="row"><span>🫧 Suc Oxy (<span id="oxy-mode-lbl"></span>)</span><button class="btn off" id="b-oxy" onclick="t('oxy')">TAT</button></div>
-        <div class="row"><span>🚰 Bom thay</span><button class="btn off" id="b-drain" onclick="t('drain')">TAT</button></div>
-        <div class="row"><span>💡 Den LED</span><button class="btn off" id="b-led" onclick="t('led')">TAT</button></div>
+        <div class="row"><span>Suoi</span><button class="btn off" id="b-heater" onclick="t('heater')">TAT</button></div>
+        <div class="row"><span>Quat</span><button class="btn off" id="b-fan" onclick="t('fan')">TAT</button></div>
+        <div class="row"><span>Bom bu</span><button class="btn off" id="b-pump" onclick="t('pump')">TAT</button></div>
+        <div class="row"><span>Suc Oxy (<span id="oxy-mode-lbl"></span>)</span><button class="btn off" id="b-oxy" onclick="t('oxy')">TAT</button></div>
+        <div class="row"><span>Bom thay</span><button class="btn off" id="b-drain" onclick="t('drain')">TAT</button></div>
+        <div class="row"><span>Den LED</span><button class="btn off" id="b-led" onclick="t('led')">TAT</button></div>
         <button class="btn feed" onclick="t('feed')">CHO AN NGAY</button>
       </div>
     </div>
