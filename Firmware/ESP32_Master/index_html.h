@@ -104,8 +104,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="card-title">Kết Nối WiFi & Camera</div>
         <div class="form-group"><span>WiFi Nhà:</span><input type="text" id="s-ssid" style="width:150px;"></div>
         <div class="form-group"><span>Pass WiFi:</span><input type="text" id="s-pass" style="width:150px;"></div>
-        <div class="form-group"><span>Pass AP (Mạch):</span><input type="text" id="s-appass" style="width:150px;"></div>
         <div class="form-group"><span>Cam IP:</span><input type="text" id="s-cam" style="width:150px;"></div>
+        <div class="form-group"><span>Tên miền:</span><span style="color:#38bdf8; font-weight:bold; font-size:0.85em;">http://beca.local</span></div>
         <div class="form-group"><span>Trạng thái:</span><span id="s-wst" style="font-weight:bold; font-size:0.85em;">--</span></div>
       </div>
       
@@ -155,11 +155,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           wstEl.textContent = 'Da ket noi (' + d.wip + ')';
           wstEl.style.color = '#22c55e';
         } else if (d.wst == 1) {
-          wstEl.textContent = 'Dang ket noi... (toi da 30s)';
+          wstEl.textContent = 'Dang ket noi lai...';
           wstEl.style.color = '#f59e0b';
         } else {
-          wstEl.textContent = 'Chua ket noi (AP Mode)';
-          wstEl.style.color = '#94a3b8';
+          wstEl.textContent = 'Mat ket noi';
+          wstEl.style.color = '#ef4444';
         }
 
         if(!document.querySelector('input:focus')) {
@@ -178,7 +178,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           document.getElementById('t-fan').value = d.tf;
           document.getElementById('s-ssid').value = d.ssid;
           document.getElementById('s-pass').value = d.pass;
-          document.getElementById('s-appass').value = d.appass;
           document.getElementById('s-cam').value = d.cam;
           document.getElementById('s-ir1').value = d.ir1; document.getElementById('s-ir2').value = d.ir2;
           document.getElementById('s-ir3').value = d.ir3; document.getElementById('s-ir4').value = d.ir4;
@@ -216,7 +215,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         tf: parseInt(document.getElementById('t-fan').value),
         ssid: document.getElementById('s-ssid').value,
         pass: document.getElementById('s-pass').value,
-        appass: document.getElementById('s-appass').value,
         cam: document.getElementById('s-cam').value,
         ir1: document.getElementById('s-ir1').value, ir2: document.getElementById('s-ir2').value,
         ir3: document.getElementById('s-ir3').value, ir4: document.getElementById('s-ir4').value,
@@ -224,7 +222,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         ir7: document.getElementById('s-ir7').value, ir0: document.getElementById('s-ir0').value
       };
       fetch('/api/set', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
-      .then(()=>alert('Da luu!'));
+      .then(()=>alert('Da luu! He thong dang ket noi mang moi...'));
     }
 
     f(); setInterval(f, 2000);

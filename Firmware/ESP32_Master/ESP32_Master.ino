@@ -1,10 +1,11 @@
 /*
  * ============================================================
- *  ESP32-MASTER FIRMWARE (v2)
+ *  ESP32-MASTER FIRMWARE (v2) - STATION MODE ONLY
  *  Dự án: Hệ thống Giám sát & Điều khiển Tự động Bể Cá
  * ============================================================
  *  Vai trò: Bộ não logic + Gateway Internet
- *    + WiFi STA+AP đồng thời
+ *    + WiFi STA thuần túy (Kết nối WiFi nhà)
+ *    + Tên miền nội bộ mDNS: http://beca.local
  *    + NTP Client đồng bộ giờ thực
  *    + Nhận dữ liệu cảm biến & trạng thái 6 relay từ Slave
  *    + Thuật toán Cross-check (ngưỡng tuỳ chỉnh qua Web)
@@ -18,13 +19,12 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
+#include <ESPmDNS.h>
 #include <time.h>
 
 // ===================== CẤU HÌNH MẠNG =====================
 String sta_ssid = "NONNET";
 String sta_password = "123456789";
-const char* AP_SSID     = "BeCa_Control";
-String ap_password      = "12345678";
 
 const char* MQTT_SERVER = "demo.thingsboard.io";
 const int   MQTT_PORT   = 1883;
@@ -72,9 +72,11 @@ bool pendingCommand = false;
 unsigned long lastMqttPublish = 0;
 unsigned long bootPressStart = 0;
 
-// ===================== BIẾN HỖ TRỢ WIFI =====================
+// ===================== BIẾN HỖ TRỢ WIFI & MDNS =====================
 bool wifiConnecting = false;
 unsigned long wifiConnectStart = 0;
+unsigned long lastWifiAttempt = 0;
+bool mdnsStarted = false;
 
 #include "index_html.h"
 
@@ -89,28 +91,47 @@ void setup() {
 
   loadSettings();
 
-  WiFi.mode(WIFI_AP_STA);
-  
-  IPAddress local_IP(192, 168, 4, 1);
-  IPAddress gateway(192, 168, 4, 1);
-  IPAddress subnet(255, 255, 255, 0);
-  WiFi.softAPConfig(local_IP, gateway, subnet);
-  WiFi.softAP(AP_SSID, ap_password.c_str(), 1, 0, 4);
+  Serial.println("\n=================================");
+  Serial.println("   BE CA THONG MINH - ESP32 MASTER");
+  Serial.println("=================================");
+
+  WiFi.mode(WIFI_STA);
+  Serial.print("[WIFI] Dang ket noi toi WiFi: ");
+  Serial.println(sta_ssid);
+  WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
+
+  int count = 0;
+  while (WiFi.status() != WL_CONNECTED && count < 20) {
+    delay(500);
+    Serial.print(".");
+    count++;
+  }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("[WIFI] Da ket noi thanh cong!");
+    Serial.print("[WIFI] Dia chi IP: http://"); Serial.println(WiFi.localIP());
+    configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
+    if (MDNS.begin("beca")) {
+      MDNS.addService("http", "tcp", 80);
+      Serial.println("[mDNS] Truyen cap Web qua ten mien: http://beca.local");
+      mdnsStarted = true;
+    }
+  } else {
+    Serial.println("[WIFI] Chua bat duoc WiFi, he thong se thu ket noi lai trong nen.");
+  }
   
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
 
   setupWeb();
-  Serial.println("[MASTER] Khoi dong xong!");
-  Serial.print("[MASTER] AP SSID: "); Serial.println(AP_SSID);
-  Serial.print("[MASTER] AP IP: "); Serial.println(WiFi.softAPIP());
+  Serial.println("[WEB] Web Server da khoi chay tren cong 80!");
 }
 
 void loadSettings() {
   prefs.begin("beca", false);
   sta_ssid = prefs.getString("ssid", "NONNET");
   sta_password = prefs.getString("pass", "123456789");
-  ap_password = prefs.getString("ap_pass", "12345678");
   cameraIP = prefs.getString("cam", "");
   ir1 = prefs.getString("ir1", "45");
   ir2 = prefs.getString("ir2", "46");
@@ -165,7 +186,6 @@ void setupWeb() {
     d["sl_on"] = led_on_time; d["sl_off"] = led_off_time;
     d["td"] = timer_drain; d["th"] = timer_heater; d["tf"] = timer_fan;
     d["ssid"] = sta_ssid; d["pass"] = sta_password;
-    d["appass"] = ap_password;
     d["wst"] = (WiFi.status() == WL_CONNECTED) ? 2 : (wifiConnecting ? 1 : 0);
     d["wip"] = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
     d["cam"] = cameraIP;
@@ -186,7 +206,7 @@ void setupWeb() {
     if(dev=="drain") { drainState=!drainState; if(drainState) start_drain = millis(); }
     if(dev=="led") ledState=!ledState;
     if(dev=="oxy") {
-      oxyModeContinuous = false; // Web toggle auto turns off continuous
+      oxyModeContinuous = false; 
       oxyState = !oxyState;
     }
     if(dev=="feed") feed = true;
@@ -221,18 +241,9 @@ void setupWeb() {
     if(d.containsKey("ssid") && d.containsKey("pass")) {
       String ns = d["ssid"].as<String>();
       String np = d["pass"].as<String>();
-      if(ns.length() > 0) {
+      if(ns.length() > 0 && (ns != sta_ssid || np != sta_password)) {
         sta_ssid = ns; sta_password = np;
         wifiTrigger = true;
-      }
-    }
-
-    bool apPassChanged = false;
-    if(d.containsKey("appass")) {
-      String napp = d["appass"].as<String>();
-      if(napp.length() >= 8 && napp != ap_password) {
-        ap_password = napp;
-        apPassChanged = true;
       }
     }
 
@@ -257,19 +268,12 @@ void setupWeb() {
     prefs.putInt("td", timer_drain); prefs.putInt("th", timer_heater); prefs.putInt("tf", timer_fan);
     prefs.putString("cam", cameraIP);
     prefs.putString("ssid", sta_ssid); prefs.putString("pass", sta_password);
-    prefs.putString("ap_pass", ap_password);
     prefs.putString("ir1", ir1); prefs.putString("ir2", ir2);
     prefs.putString("ir3", ir3); prefs.putString("ir4", ir4);
     prefs.putString("ir5", ir5); prefs.putString("ir6", ir6);
     prefs.putString("ir7", ir7); prefs.putString("ir0", ir0);
     prefs.end();
 
-    if(apPassChanged) {
-      Serial.println("[AP] Mat khau AP da thay doi! Cap nhat lai SoftAP...");
-      WiFi.softAP(AP_SSID, ap_password.c_str(), 1, 0, 4);
-    }
-
-    // Gửi map IR mới xuống Slave
     StaticJsonDocument<300> cmd;
     cmd["cmd"] = "ir_map";
     cmd["ir1"] = ir1; cmd["ir2"] = ir2; cmd["ir3"] = ir3; cmd["ir4"] = ir4;
@@ -277,13 +281,12 @@ void setupWeb() {
     String js; serializeJson(cmd, js);
     Serial2.println(js);
     
-    sendToSlave(false); // Update oxy mode
+    sendToSlave(false); 
     server.send(200, "application/json", "{}");
 
     if (wifiTrigger) {
-      Serial.println("[WIFI] Nhan lenh ket noi tu Web! Bat co ket noi toi: " + sta_ssid);
+      Serial.println("[WIFI] Chuyen sang mang WiFi moi: " + sta_ssid);
       WiFi.disconnect();
-      WiFi.mode(WIFI_AP_STA);
       WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
       wifiConnecting = true;
       wifiConnectStart = millis();
@@ -295,7 +298,6 @@ void setupWeb() {
   });
 
   server.begin();
-  Serial.println("[WEB] Web Server started on port 80");
 }
 
 // ===================== LOGIC =====================
@@ -361,8 +363,8 @@ void handleSlave() {
     Serial.printf("[MASTER] Nhan tu Slave: Nuoc=%.1f KK=%.1f Am=%.1f MucNuoc=%.1fcm\n", 
                   waterTemp, airTemp, airHum, waterLevelCm);
     
-    bool sh = d["heater"], sf = d["fan"], sp = d["pump"];
-    bool so = d["oxy"], sd = d["drain"], sl = d["led"];
+    bool sh = d["heater"]; bool sf = d["fan"]; bool sp = d["pump"];
+    bool so = d["oxy"];    bool sd = d["drain"]; bool sl = d["led"];
     bool som = d["oxy_mode"];
 
     // Update from Slave (IR remote changes)
@@ -427,18 +429,28 @@ void loop() {
     bootPressStart = 0;
   }
 
-  // Quản lý biến cờ kết nối WiFi (Thời gian chờ tối đa 30s)
-  if (wifiConnecting) {
-    if (WiFi.status() == WL_CONNECTED) {
+  // Quản lý trạng thái kết nối WiFi & mDNS
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!mdnsStarted) {
+      if (MDNS.begin("beca")) {
+        MDNS.addService("http", "tcp", 80);
+        Serial.println("[mDNS] Da khoi tao ten mien: http://beca.local");
+        mdnsStarted = true;
+      }
+    }
+    if (wifiConnecting) {
       wifiConnecting = false;
-      Serial.print("[WIFI] Ket noi thanh cong! IP: ");
-      Serial.println(WiFi.localIP());
+      Serial.println("[WIFI] Da ket noi thanh cong mang moi!");
+      Serial.print("[WIFI] IP: http://"); Serial.println(WiFi.localIP());
       configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
-    } else if (ms - wifiConnectStart > 30000) {
-      wifiConnecting = false;
-      Serial.println("[WIFI] Ket noi that bai (qua 30s)! Da tat co. Dung thu ket noi de on dinh mang AP.");
-      WiFi.disconnect(false);
-      WiFi.mode(WIFI_AP_STA);
+    }
+  } else {
+    mdnsStarted = false;
+    // Tự động thử kết nối lại nếu mất sóng (mỗi 15 giây)
+    if (ms - lastWifiAttempt > 15000) {
+      lastWifiAttempt = ms;
+      Serial.println("[WIFI] Mat ket noi, dang thu ket noi lai toi: " + sta_ssid);
+      WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
     }
   }
 
@@ -455,8 +467,14 @@ void loop() {
   if (millis() - lastMqttPublish >= 5000) {
     lastMqttPublish = millis();
     
-    // Heartbeat để check xem có treo không
-    Serial.println("[MASTER] Dang hoat dong... (Web: 192.168.4.1)");
+    // Heartbeat debug
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.print("[MASTER] Hoat dong... Web: http://beca.local (IP: ");
+      Serial.print(WiFi.localIP());
+      Serial.println(")");
+    } else {
+      Serial.println("[MASTER] Hoat dong... Dang cho ket noi WiFi...");
+    }
     
     if (WiFi.status() == WL_CONNECTED && mqtt.connected()) {
       StaticJsonDocument<300> d;
