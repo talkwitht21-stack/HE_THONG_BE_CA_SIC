@@ -283,7 +283,7 @@ void handleMasterCommand() {
 
     Serial.println("[SLAVE] Received from Master: " + incoming);
 
-    StaticJsonDocument<300> doc;
+    StaticJsonDocument<512> doc;
     DeserializationError err = deserializeJson(doc, incoming);
     if (err) return;
 
@@ -329,11 +329,11 @@ void handleMasterCommand() {
 
 void sendStatusToMaster() {
   ds18b20.requestTemperatures();
-  float waterTemp = ds18b20.getTempCByIndex(0);
-  float airTemp   = dht.readTemperature();
-  float airHum    = dht.readHumidity();
+  float wt  = ds18b20.getTempCByIndex(0);
+  float at  = dht.readTemperature();
+  float ah  = dht.readHumidity();
 
-  // Đọc siêu âm
+  // Doc sieu am
   digitalWrite(HC_TRIG_PIN, LOW);
   delayMicroseconds(2);
   digitalWrite(HC_TRIG_PIN, HIGH);
@@ -343,16 +343,17 @@ void sendStatusToMaster() {
   if (duration > 0) {
     waterLevelCm = (duration / 2.0) * 0.0343;
   } else {
-    waterLevelCm = -1; // Lỗi
+    waterLevelCm = -1; // Loi
   }
 
-  if (isnan(airTemp)) airTemp = -999.0;
-  if (isnan(airHum))  airHum  = -999.0;
+  if (isnan(at)) at = -999.0;
+  if (isnan(ah)) ah = -999.0;
+  if (wt < -100) wt = -999.0; // DS18B20 mat ket noi tra ve -127
 
-  StaticJsonDocument<350> doc;
-  doc["water_temp"] = waterTemp;
-  doc["air_temp"]   = airTemp;
-  doc["air_hum"]    = airHum;
+  StaticJsonDocument<384> doc;
+  doc["water_temp"] = wt;
+  doc["air_temp"]   = at;
+  doc["air_hum"]    = ah;
   doc["water_cm"]   = waterLevelCm;
   doc["heater"]     = heaterState ? 1 : 0;
   doc["fan"]        = fanState    ? 1 : 0;
@@ -361,7 +362,7 @@ void sendStatusToMaster() {
   doc["drain"]      = drainState  ? 1 : 0;
   doc["led"]        = ledState    ? 1 : 0;
   doc["oxy_mode"]   = oxyModeContinuous ? 1 : 0;
-  
+
   if (lastIrCode > 0) {
     char hexBuf[5];
     sprintf(hexBuf, "%02X", lastIrCode);
@@ -373,7 +374,8 @@ void sendStatusToMaster() {
   String jsonString;
   serializeJson(doc, jsonString);
   Serial2.println(jsonString);
-  
-  Serial.printf("[SLAVE] Send: NhietNuoc=%.1f NhietKK=%.1f AmKK=%.1f MucNuoc=%.1fcm LastIR=%02X\n",
-                waterTemp, airTemp, airHum, waterLevelCm, lastIrCode);
+
+  Serial.printf("[SLAVE->MASTER] Nuoc=%.1fC KK=%.1fC Am=%.1f%% MucNuoc=%.1fcm IR=%02X Relay:H%d F%d P%d O%d D%d L%d\n",
+                wt, at, ah, waterLevelCm, lastIrCode,
+                heaterState, fanState, pumpState, oxyState, drainState, ledState);
 }

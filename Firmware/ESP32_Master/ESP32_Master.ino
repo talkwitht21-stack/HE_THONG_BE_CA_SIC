@@ -485,7 +485,7 @@ void sendToSlave(bool feed) {
   d["drain"]    = drainState;
   d["led"]      = ledState;
   d["oxy_mode"] = oxyModeContinuous;
-  if (feed) d["feed"] = 1;
+  if (feed) d["feed"] = true;
 
   String js;
   serializeJson(d, js);
@@ -511,7 +511,7 @@ void handleSlave() {
     s.trim();
     if (s.length() == 0) return;
 
-    StaticJsonDocument<300> d;
+    StaticJsonDocument<512> d;
     if (deserializeJson(d, s)) return;
 
     waterTemp     = d["water_temp"];
