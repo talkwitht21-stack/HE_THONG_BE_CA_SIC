@@ -164,44 +164,82 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
   </div>
   <script>
     let _fetching = false;
+    let _currentTab = 'dash';
+    let _settingsLoaded = false;
+
     function switchTab(id, el) {
+      _currentTab = id;
       document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
       document.querySelectorAll('.panel').forEach(e => e.classList.remove('active'));
       el.classList.add('active');
       document.getElementById(id).classList.add('active');
+      if (id === 'settings' && !_settingsLoaded) {
+        f(true);
+      }
     }
+
     function ganIR(inputId) {
       let code = document.getElementById('s-last-ir').textContent;
-      if (code && code !== '--') document.getElementById(inputId).value = code;
-      else alert('Hay bam mot nut tren Remote truoc de he thong bat ma Hex!');
+      if (code && code !== '--' && code.trim().length > 0) {
+        let inp = document.getElementById(inputId);
+        inp.value = code.trim();
+        inp.focus();
+      } else {
+        alert('Hay bam mot nut tren Remote truoc de he thong bat ma Hex!');
+      }
     }
-    function f() {
+
+    function f(forceSettings) {
       if (_fetching) return;
       _fetching = true;
       const ctrl = new AbortController();
       const tid  = setTimeout(() => ctrl.abort(), 1500);
+
       fetch('/api/data', {signal: ctrl.signal})
         .then(r => r.json())
         .then(d => {
           clearTimeout(tid);
+
+          // Cam bien
           document.getElementById('v-wt').textContent   = (d.wt > -50) ? d.wt.toFixed(1) : '--';
           document.getElementById('v-at').textContent   = (d.at > -50) ? d.at.toFixed(1) : '--';
           document.getElementById('v-ah').textContent   = (d.ah > -50) ? d.ah.toFixed(1) : '--';
           document.getElementById('v-wl').textContent   = (d.wcm > 0)  ? d.wcm.toFixed(1) : 'Loi';
           document.getElementById('v-time').textContent = d.time;
           document.getElementById('oxy-mode-lbl').textContent = d.om ? 'Lien tuc' : 'Chu ky';
+
+          // Relay
           ub('b-heater', d.h); ub('b-fan', d.f); ub('b-pump', d.p);
           ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-led', d.l);
+
+          // WiFi
           let wstEl = document.getElementById('s-wst');
           if (d.wst == 2)      { wstEl.textContent = 'Da ket noi (' + d.wip + ')'; wstEl.style.color = '#22c55e'; }
           else if (d.wst == 1) { wstEl.textContent = 'Dang ket noi...'; wstEl.style.color = '#f59e0b'; }
           else                 { wstEl.textContent = 'Mat ket noi'; wstEl.style.color = '#ef4444'; }
+
+          // MQTT
           let mqEl = document.getElementById('s-mqst');
           if (!d.mqe)     { mqEl.textContent = 'Da tat';       mqEl.style.color = '#64748b'; }
           else if (d.mqc) { mqEl.textContent = 'Da ket noi';   mqEl.style.color = '#22c55e'; }
           else            { mqEl.textContent = 'Chua ket noi'; mqEl.style.color = '#f59e0b'; }
-          if (d.last_ir && d.last_ir.length > 0) document.getElementById('s-last-ir').textContent = d.last_ir;
-          if (!document.querySelector('input:focus, select:focus')) {
+
+          // Last IR (luon cap nhat de nguoi dung thay ma phiem vua bam)
+          if (d.last_ir && d.last_ir.length > 0) {
+            document.getElementById('s-last-ir').textContent = d.last_ir;
+          }
+
+          // Cap nhat Timer Dashboard neu khong dang go
+          if (_currentTab === 'dash' && !document.querySelector('.timer-input:focus')) {
+            if (document.getElementById('t-heater')) document.getElementById('t-heater').value = d.th;
+            if (document.getElementById('t-fan'))    document.getElementById('t-fan').value    = d.tf;
+            if (document.getElementById('t-drain'))  document.getElementById('t-drain').value  = d.td;
+          }
+
+          // Cap nhat Settings inputs: CHI cap nhat lan dau hoac sau khi Luu
+          // KHONG tu y ghi de khi dang o Tab Cai Dat de tranh mat ma IR vua gan!
+          if (!_settingsLoaded || forceSettings) {
+            _settingsLoaded = true;
             document.getElementById('s-ho').value    = d.sh_on;
             document.getElementById('s-hf').value    = d.sh_off;
             document.getElementById('s-fo').value    = d.sf_on;
@@ -216,62 +254,77 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             document.getElementById('s-lm').value    = d.slm ? 1 : 0;
             document.getElementById('s-lon').value   = d.sl_on;
             document.getElementById('s-loff').value  = d.sl_off;
-            document.getElementById('t-heater').value = d.th;
-            document.getElementById('t-fan').value    = d.tf;
-            document.getElementById('t-drain').value  = d.td;
-            document.getElementById('s-ssid').value   = d.ssid;
-            document.getElementById('s-pass').value   = d.pass;
-            document.getElementById('s-cam').value    = d.cam;
-            document.getElementById('s-mqe').value    = d.mqe ? 1 : 0;
-            document.getElementById('s-mqs').value    = d.mqs;
-            document.getElementById('s-mqt').value    = d.mqt;
-            document.getElementById('s-ir1').value    = d.ir1;
-            document.getElementById('s-ir2').value    = d.ir2;
-            document.getElementById('s-ir3').value    = d.ir3;
-            document.getElementById('s-ir4').value    = d.ir4;
-            document.getElementById('s-ir5').value    = d.ir5;
-            document.getElementById('s-ir6').value    = d.ir6;
-            document.getElementById('s-ir7').value    = d.ir7;
-            document.getElementById('s-ir0').value    = d.ir0;
+            document.getElementById('s-ssid').value  = d.ssid;
+            document.getElementById('s-pass').value  = d.pass;
+            document.getElementById('s-cam').value   = d.cam;
+            document.getElementById('s-mqe').value   = d.mqe ? 1 : 0;
+            document.getElementById('s-mqs').value   = d.mqs;
+            document.getElementById('s-mqt').value   = d.mqt;
+            document.getElementById('s-ir1').value   = d.ir1;
+            document.getElementById('s-ir2').value   = d.ir2;
+            document.getElementById('s-ir3').value   = d.ir3;
+            document.getElementById('s-ir4').value   = d.ir4;
+            document.getElementById('s-ir5').value   = d.ir5;
+            document.getElementById('s-ir6').value   = d.ir6;
+            document.getElementById('s-ir7').value   = d.ir7;
+            document.getElementById('s-ir0').value   = d.ir0;
           }
         })
         .catch(() => { clearTimeout(tid); })
         .finally(() => { _fetching = false; });
     }
+
     function ub(id, s) {
       let b = document.getElementById(id);
       b.textContent = s ? 'BAT' : 'TAT';
       b.className   = 'btn ' + (s ? 'on' : 'off');
     }
+
     const timerKey = { heater: {inp:'t-heater', key:'th'}, fan: {inp:'t-fan', key:'tf'}, drain: {inp:'t-drain', key:'td'} };
+
     function toggle(dev) {
       const btnId = {heater:'b-heater', fan:'b-fan', pump:'b-pump', oxy:'b-oxy', drain:'b-drain', led:'b-led'};
-      if (btnId[dev]) { let b = document.getElementById(btnId[dev]); ub(btnId[dev], !b.classList.contains('on')); }
+      if (btnId[dev]) {
+        let b = document.getElementById(btnId[dev]);
+        ub(btnId[dev], !b.classList.contains('on'));
+      }
+
       if (timerKey[dev]) {
         let tVal = parseInt(document.getElementById(timerKey[dev].inp).value) || 0;
-        let payload = {}; payload[timerKey[dev].key] = tVal;
-        fetch('/api/set', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-          .then(() => sendCtrl(dev));
-      } else { sendCtrl(dev); }
+        let payload = {};
+        payload[timerKey[dev].key] = tVal;
+        fetch('/api/set', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
+        }).then(() => sendCtrl(dev));
+      } else {
+        sendCtrl(dev);
+      }
     }
+
     function sendCtrl(dev) {
-      fetch('/api/ctrl', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({d: dev}) })
-        .then(() => { _fetching = false; f(); });
+      fetch('/api/ctrl', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({d: dev})
+      }).then(() => { _fetching = false; f(); });
     }
+
     function saveSettings() {
       let data = {
-        sh_on: parseFloat(document.getElementById('s-ho').value),
+        sh_on:  parseFloat(document.getElementById('s-ho').value),
         sh_off: parseFloat(document.getElementById('s-hf').value),
         sf_on:  parseFloat(document.getElementById('s-fo').value),
         sf_off: parseFloat(document.getElementById('s-ff').value),
-        th_h:  parseFloat(document.getElementById('s-thh').value),
-        th_we: parseFloat(document.getElementById('s-twe').value),
-        th_wl: parseFloat(document.getElementById('s-twl').value),
-        th_wf: parseFloat(document.getElementById('s-twf').value),
-        sap: document.getElementById('s-ap').value == 1,
-        sad: document.getElementById('s-ad').value == 1,
-        om:  document.getElementById('s-om').value == 1,
-        slm: document.getElementById('s-lm').value == 1,
+        th_h:   parseFloat(document.getElementById('s-thh').value),
+        th_we:  parseFloat(document.getElementById('s-twe').value),
+        th_wl:  parseFloat(document.getElementById('s-twl').value),
+        th_wf:  parseFloat(document.getElementById('s-twf').value),
+        sap:  document.getElementById('s-ap').value == 1,
+        sad:  document.getElementById('s-ad').value == 1,
+        om:   document.getElementById('s-om').value == 1,
+        slm:  document.getElementById('s-lm').value == 1,
         sl_on:  document.getElementById('s-lon').value,
         sl_off: document.getElementById('s-loff').value,
         th: parseInt(document.getElementById('t-heater').value) || 0,
@@ -292,10 +345,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         ir7:  document.getElementById('s-ir7').value,
         ir0:  document.getElementById('s-ir0').value
       };
-      fetch('/api/set', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
-        .then(() => alert('Da luu cai dat thanh cong!'));
+      fetch('/api/set', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      }).then(() => {
+        alert('Da luu cai dat thanh cong!');
+        _fetching = false;
+        f(true);
+      });
     }
-    f();
+
+    f(true);
     setInterval(f, 1500);
   </script>
 </body>

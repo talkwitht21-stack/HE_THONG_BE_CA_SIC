@@ -91,6 +91,7 @@ unsigned long lastSendTime = 0;
 const unsigned long SEND_INTERVAL_MS = 2000;
 bool forceStatusUpdate = false;
 uint8_t lastIrCode = 0;
+bool hasNewIrCode = false;
 
 // ===================== HÀM SETUP =====================
 
@@ -167,6 +168,7 @@ void handleIR() {
     if (IrReceiver.decodedIRData.flags & IRDATA_FLAGS_IS_REPEAT) return;
 
     lastIrCode = command;
+    hasNewIrCode = true;
     forceStatusUpdate = true;
     Serial.printf("[SLAVE] IR Code: 0x%02X (Proto: %d)\n",
                   command, IrReceiver.decodedIRData.protocol);
@@ -290,18 +292,19 @@ void handleMasterCommand() {
     DeserializationError err = deserializeJson(doc, incoming);
     if (err) return;
 
-    if (doc.containsKey("cmd") && doc["cmd"] == "ir_map") {
+    if (doc.containsKey("cmd") && doc["cmd"].as<String>() == "ir_map") {
       prefs.begin("beca", false);
-      if(doc.containsKey("ir1")) { ir_btn_1 = strtol(doc["ir1"], NULL, 16); prefs.putUChar("ir1", ir_btn_1); }
-      if(doc.containsKey("ir2")) { ir_btn_2 = strtol(doc["ir2"], NULL, 16); prefs.putUChar("ir2", ir_btn_2); }
-      if(doc.containsKey("ir3")) { ir_btn_3 = strtol(doc["ir3"], NULL, 16); prefs.putUChar("ir3", ir_btn_3); }
-      if(doc.containsKey("ir4")) { ir_btn_4 = strtol(doc["ir4"], NULL, 16); prefs.putUChar("ir4", ir_btn_4); }
-      if(doc.containsKey("ir5")) { ir_btn_5 = strtol(doc["ir5"], NULL, 16); prefs.putUChar("ir5", ir_btn_5); }
-      if(doc.containsKey("ir6")) { ir_btn_6 = strtol(doc["ir6"], NULL, 16); prefs.putUChar("ir6", ir_btn_6); }
-      if(doc.containsKey("ir7")) { ir_btn_7 = strtol(doc["ir7"], NULL, 16); prefs.putUChar("ir7", ir_btn_7); }
-      if(doc.containsKey("ir0")) { ir_btn_0 = strtol(doc["ir0"], NULL, 16); prefs.putUChar("ir0", ir_btn_0); }
+      if(doc.containsKey("ir1")) { const char* s = doc["ir1"]; if (s) { ir_btn_1 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir1", ir_btn_1); } }
+      if(doc.containsKey("ir2")) { const char* s = doc["ir2"]; if (s) { ir_btn_2 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir2", ir_btn_2); } }
+      if(doc.containsKey("ir3")) { const char* s = doc["ir3"]; if (s) { ir_btn_3 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir3", ir_btn_3); } }
+      if(doc.containsKey("ir4")) { const char* s = doc["ir4"]; if (s) { ir_btn_4 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir4", ir_btn_4); } }
+      if(doc.containsKey("ir5")) { const char* s = doc["ir5"]; if (s) { ir_btn_5 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir5", ir_btn_5); } }
+      if(doc.containsKey("ir6")) { const char* s = doc["ir6"]; if (s) { ir_btn_6 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir6", ir_btn_6); } }
+      if(doc.containsKey("ir7")) { const char* s = doc["ir7"]; if (s) { ir_btn_7 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir7", ir_btn_7); } }
+      if(doc.containsKey("ir0")) { const char* s = doc["ir0"]; if (s) { ir_btn_0 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir0", ir_btn_0); } }
       prefs.end();
-      Serial.println("[SLAVE] Da cap nhat ma IR tu Master");
+      Serial.printf("[SLAVE] Da cap nhat ma IR: 1=0x%02X 2=0x%02X 3=0x%02X 4=0x%02X 5=0x%02X 6=0x%02X 7=0x%02X 0=0x%02X\n",
+                    ir_btn_1, ir_btn_2, ir_btn_3, ir_btn_4, ir_btn_5, ir_btn_6, ir_btn_7, ir_btn_0);
       return;
     }
 
@@ -366,10 +369,11 @@ void sendStatusToMaster() {
   doc["led"]        = ledState    ? 1 : 0;
   doc["oxy_mode"]   = oxyModeContinuous ? 1 : 0;
 
-  if (lastIrCode > 0) {
+  if (hasNewIrCode) {
     char hexBuf[5];
     sprintf(hexBuf, "%02X", lastIrCode);
     doc["last_ir"] = String(hexBuf);
+    hasNewIrCode = false; // Reset sau khi da gui len Master
   } else {
     doc["last_ir"] = "";
   }

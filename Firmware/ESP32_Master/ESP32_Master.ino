@@ -308,28 +308,28 @@ void setupWeb() {
     StaticJsonDocument<768> d;
     deserializeJson(d, server.arg("plain"));
 
-    th_heater_on  = d["sh_on"];
-    th_heater_off = d["sh_off"];
-    th_fan_on     = d["sf_on"];
-    th_fan_off    = d["sf_off"];
+    if (d.containsKey("sh_on"))  th_heater_on  = d["sh_on"];
+    if (d.containsKey("sh_off")) th_heater_off = d["sh_off"];
+    if (d.containsKey("sf_on"))  th_fan_on     = d["sf_on"];
+    if (d.containsKey("sf_off")) th_fan_off    = d["sf_off"];
 
-    th_tank_height= d["th_h"];
-    th_water_empty= d["th_we"];
-    th_water_low  = d["th_wl"];
-    th_water_full = d["th_wf"];
-    auto_pump     = d["sap"];
-    auto_drain    = d["sad"];
+    if (d.containsKey("th_h"))   th_tank_height= d["th_h"];
+    if (d.containsKey("th_we"))  th_water_empty= d["th_we"];
+    if (d.containsKey("th_wl"))  th_water_low  = d["th_wl"];
+    if (d.containsKey("th_wf"))  th_water_full = d["th_wf"];
+    if (d.containsKey("sap"))    auto_pump     = d["sap"];
+    if (d.containsKey("sad"))    auto_drain    = d["sad"];
 
-    oxyModeContinuous = d["om"];
-    led_timer_mode    = d["slm"];
-    led_on_time       = d["sl_on"].as<String>();
-    led_off_time      = d["sl_off"].as<String>();
+    if (d.containsKey("om"))     oxyModeContinuous = d["om"];
+    if (d.containsKey("slm"))    led_timer_mode    = d["slm"];
+    if (d.containsKey("sl_on"))  led_on_time       = d["sl_on"].as<String>();
+    if (d.containsKey("sl_off")) led_off_time      = d["sl_off"].as<String>();
 
-    timer_heater      = d["th"];
-    timer_fan         = d["tf"];
-    timer_drain       = d["td"];
+    if (d.containsKey("th"))     timer_heater      = d["th"];
+    if (d.containsKey("tf"))     timer_fan         = d["tf"];
+    if (d.containsKey("td"))     timer_drain       = d["td"];
 
-    cameraIP          = d["cam"].as<String>();
+    if (d.containsKey("cam"))    cameraIP          = d["cam"].as<String>();
 
     bool wifiChanged = false;
     if (d.containsKey("ssid") && d.containsKey("pass")) {
@@ -346,18 +346,20 @@ void setupWeb() {
     if (d.containsKey("mqs")) mqtt_server = d["mqs"].as<String>();
     if (d.containsKey("mqt")) mqtt_token = d["mqt"].as<String>();
 
-    if (d.containsKey("ir1")) ir1 = d["ir1"].as<String>();
-    if (d.containsKey("ir2")) ir2 = d["ir2"].as<String>();
-    if (d.containsKey("ir3")) ir3 = d["ir3"].as<String>();
-    if (d.containsKey("ir4")) ir4 = d["ir4"].as<String>();
-    if (d.containsKey("ir5")) ir5 = d["ir5"].as<String>();
-    if (d.containsKey("ir6")) ir6 = d["ir6"].as<String>();
-    if (d.containsKey("ir7")) ir7 = d["ir7"].as<String>();
-    if (d.containsKey("ir0")) ir0 = d["ir0"].as<String>();
+    bool irChanged = false;
+    if (d.containsKey("ir1")) { ir1 = d["ir1"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir2")) { ir2 = d["ir2"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir3")) { ir3 = d["ir3"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir4")) { ir4 = d["ir4"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir5")) { ir5 = d["ir5"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir6")) { ir6 = d["ir6"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir7")) { ir7 = d["ir7"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir0")) { ir0 = d["ir0"].as<String>(); irChanged = true; }
 
     saveSettings();
-    sendIRMapToSlave();
-    sendToSlave(false);
+    if (irChanged) {
+      sendIRMapToSlave();
+    }
 
     server.send(200, "application/json", "{}");
 
