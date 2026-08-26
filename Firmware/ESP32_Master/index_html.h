@@ -1,4 +1,4 @@
-﻿#ifndef INDEX_HTML_H
+#ifndef INDEX_HTML_H
 #define INDEX_HTML_H
 
 const char INDEX_HTML[] PROGMEM = R"rawliteral(
