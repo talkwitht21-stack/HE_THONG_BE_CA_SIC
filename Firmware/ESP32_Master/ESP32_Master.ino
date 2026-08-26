@@ -313,7 +313,8 @@ void setup() {
   Serial.println();
   
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("[WIFI] Connected!");
+    Serial.print("[WIFI] Connected! IP Address: ");
+    Serial.println(WiFi.localIP());
     configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
   } else {
     Serial.println("[WIFI] Failed to connect in 20s! Switching to AP-ONLY mode.");
@@ -609,7 +610,8 @@ void loop() {
   // Logic kết nối lại WiFi không chặn (Non-blocking)
   if (isWifiConnecting) {
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("[WIFI] Reconnected!");
+      Serial.print("[WIFI] Reconnected! IP Address: ");
+      Serial.println(WiFi.localIP());
       configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
       isWifiConnecting = false;
     } else if (ms - wifiConnectStart > 20000) {
