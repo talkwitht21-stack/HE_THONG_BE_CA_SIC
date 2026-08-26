@@ -18,7 +18,6 @@ Bảng GPIO này sử dụng **13 chân** trên ESP32. Đảm bảo nguồn cấ
 |:---:|:---|:---|:---|
 | `GPIO 4` | **DS18B20** (Nước) | Data (DQ) | Cần trở kéo **4.7kΩ** nối giữa Data và 3.3V |
 | `GPIO 5` | **DHT22** (Không khí) | Data | |
-| `GPIO 33` | **Phao từ** (Mực nước) | Tín hiệu | Chân còn lại của phao từ nối xuống GND (INPUT_PULLUP) |
 | `GPIO 14` | **HC-SR04** (Siêu âm) | Trig | Phát sóng siêu âm đo khoảng cách |
 | `GPIO 32` | **HC-SR04** (Siêu âm) | Echo | Thu sóng phản xạ |
 | `GPIO 15` | **Mắt thu IR** (MH-R38) | OUT / Y | Chân VCC nối 3.3V, GND nối GND |
