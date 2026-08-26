@@ -89,25 +89,12 @@ void setup() {
   Serial.print("[WIFI] Connecting to "); Serial.println(sta_ssid);
   WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
   
-  int r = 0;
-  while(WiFi.status() != WL_CONNECTED && r < 40) { // 40 * 500ms = 20s
-    delay(500); 
-    r++; 
-    Serial.print(".");
-  }
-  Serial.println();
+  // Không dùng while() chặn ở đây nữa để tránh treo Web Server lúc khởi động
+  wifiConnectStart = millis();
+  isWifiConnecting = true;
+  lastWifiAttempt = 0;
   
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.print("[WIFI] Connected! IP Address: ");
-    Serial.println(WiFi.localIP());
-    configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
-  } else {
-    Serial.println("[WIFI] Failed to connect in 20s! Switching to AP-ONLY mode.");
-    WiFi.disconnect();
-    WiFi.mode(WIFI_AP);
-    lastWifiAttempt = millis();
-    isWifiConnecting = false;
-  }
+  Serial.println("[WIFI] Dang ket noi ngam, he thong van tiep tuc hoat dong...");
   
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
@@ -429,6 +416,10 @@ void loop() {
 
   if(millis() - lastMqttPublish >= 5000) {
     lastMqttPublish = millis();
+    
+    // Heartbeat để check xem có treo không
+    Serial.println("[MASTER] Dang hoat dong... (Web: 192.168.4.1)");
+    
     if(mqtt.connected()) {
       StaticJsonDocument<300> d;
       d["water_temp"]=waterTemp; d["air_temp"]=airTemp;
