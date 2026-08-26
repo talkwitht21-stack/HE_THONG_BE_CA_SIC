@@ -21,8 +21,8 @@
 #include <time.h>
 
 // ===================== CẤU HÌNH MẠNG =====================
-const char* STA_SSID     = "NONNET";
-const char* STA_PASSWORD = "123456789";
+String sta_ssid = "NONNET";
+String sta_password = "123456789";
 const char* AP_SSID     = "BeCa_Control";
 const char* AP_PASSWORD = "12345678";
 
@@ -176,8 +176,14 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       </div>
 
       <div class="card">
-        <div class="card-title">Camera IP & IR Remote (Hex)</div>
-        <div class="form-group"><span>IP:</span><input type="text" id="s-cam" style="width:150px;"></div>
+        <div class="card-title">Kết Nối WiFi & Camera</div>
+        <div class="form-group"><span>WiFi:</span><input type="text" id="s-ssid" style="width:150px;"></div>
+        <div class="form-group"><span>Pass:</span><input type="text" id="s-pass" style="width:150px;"></div>
+        <div class="form-group"><span>Cam:</span><input type="text" id="s-cam" style="width:150px;"></div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">Mã IR Remote (Hex)</div>
         <div class="row">
           <span>S: <input type="text" id="s-ir1" style="width:30px;"></span>
           <span>Q: <input type="text" id="s-ir2" style="width:30px;"></span>
@@ -231,6 +237,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           document.getElementById('t-drain').value = d.td;
           document.getElementById('t-heater').value = d.th;
           document.getElementById('t-fan').value = d.tf;
+          document.getElementById('s-ssid').value = d.ssid;
+          document.getElementById('s-pass').value = d.pass;
           document.getElementById('s-cam').value = d.cam;
           document.getElementById('s-ir1').value = d.ir1; document.getElementById('s-ir2').value = d.ir2;
           document.getElementById('s-ir3').value = d.ir3; document.getElementById('s-ir4').value = d.ir4;
@@ -266,6 +274,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         td: parseInt(document.getElementById('t-drain').value),
         th: parseInt(document.getElementById('t-heater').value),
         tf: parseInt(document.getElementById('t-fan').value),
+        ssid: document.getElementById('s-ssid').value,
+        pass: document.getElementById('s-pass').value,
         cam: document.getElementById('s-cam').value,
         ir1: document.getElementById('s-ir1').value, ir2: document.getElementById('s-ir2').value,
         ir3: document.getElementById('s-ir3').value, ir4: document.getElementById('s-ir4').value,
@@ -291,8 +301,8 @@ void setup() {
 
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
-  Serial.print("[WIFI] Connecting to "); Serial.println(STA_SSID);
-  WiFi.begin(STA_SSID, STA_PASSWORD);
+  Serial.print("[WIFI] Connecting to "); Serial.println(sta_ssid);
+  WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
   
   int r = 0;
   while(WiFi.status() != WL_CONNECTED && r < 40) { // 40 * 500ms = 20s
@@ -322,6 +332,8 @@ void setup() {
 
 void loadSettings() {
   prefs.begin("beca", false);
+  sta_ssid = prefs.getString("ssid", "NONNET");
+  sta_password = prefs.getString("pass", "123456789");
   cameraIP = prefs.getString("cam", "");
   ir1 = prefs.getString("ir1", "45");
   ir2 = prefs.getString("ir2", "46");
@@ -375,6 +387,7 @@ void setupWeb() {
     d["om"] = oxyModeContinuous; d["slm"] = led_timer_mode;
     d["sl_on"] = led_on_time; d["sl_off"] = led_off_time;
     d["td"] = timer_drain; d["th"] = timer_heater; d["tf"] = timer_fan;
+    d["ssid"] = sta_ssid; d["pass"] = sta_password;
     d["cam"] = cameraIP;
     d["ir1"] = ir1; d["ir2"] = ir2; d["ir3"] = ir3; d["ir4"] = ir4;
     d["ir5"] = ir5; d["ir6"] = ir6; d["ir7"] = ir7; d["ir0"] = ir0;
@@ -423,6 +436,16 @@ void setupWeb() {
     timer_heater = d["th"];
     timer_fan = d["tf"];
     cameraIP = d["cam"].as<String>();
+    
+    bool wifiChanged = false;
+    if(d.containsKey("ssid") && d.containsKey("pass")) {
+      String ns = d["ssid"].as<String>();
+      String np = d["pass"].as<String>();
+      if(ns != sta_ssid || np != sta_password) {
+        sta_ssid = ns; sta_password = np;
+        wifiChanged = true;
+      }
+    }
 
     if(d.containsKey("ir1")) ir1 = d["ir1"].as<String>();
     if(d.containsKey("ir2")) ir2 = d["ir2"].as<String>();
@@ -444,6 +467,7 @@ void setupWeb() {
     prefs.putString("lon", led_on_time); prefs.putString("loff", led_off_time);
     prefs.putInt("td", timer_drain); prefs.putInt("th", timer_heater); prefs.putInt("tf", timer_fan);
     prefs.putString("cam", cameraIP);
+    prefs.putString("ssid", sta_ssid); prefs.putString("pass", sta_password);
     prefs.putString("ir1", ir1); prefs.putString("ir2", ir2);
     prefs.putString("ir3", ir3); prefs.putString("ir4", ir4);
     prefs.putString("ir5", ir5); prefs.putString("ir6", ir6);
@@ -460,6 +484,13 @@ void setupWeb() {
     
     sendToSlave(false); // Update oxy mode
     server.send(200, "application/json", "{}");
+
+    if (wifiChanged) {
+      Serial.println("[WIFI] Credentials changed! Forcing reconnect...");
+      WiFi.disconnect();
+      isWifiConnecting = false;
+      lastWifiAttempt = millis() - 130000; // Force immediate reconnect in loop
+    }
   });
 
   server.begin();
@@ -593,7 +624,7 @@ void loop() {
     if (WiFi.status() != WL_CONNECTED && (ms - lastWifiAttempt > 120000)) {
       Serial.println("[WIFI] Attempting to reconnect...");
       WiFi.mode(WIFI_AP_STA);
-      WiFi.begin(STA_SSID, STA_PASSWORD);
+      WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
       wifiConnectStart = ms;
       isWifiConnecting = true;
     }
