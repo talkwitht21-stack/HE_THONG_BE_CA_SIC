@@ -59,6 +59,8 @@ float th_water_full = 35.0; // Khoảng cách tới đủ
 bool led_timer_mode = false;
 String led_on_time = "07:00", led_off_time = "21:00";
 
+String ir1="45", ir2="46", ir3="47", ir4="44", ir5="40", ir6="43", ir7="07", ir0="16";
+
 // Timer countdown (phút). 0 = Tắt timer.
 int timer_heater = 0, timer_fan = 0, timer_pump = 0;
 int timer_drain = 30, timer_led = 0;
@@ -170,8 +172,20 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       </div>
 
       <div class="card">
-        <div class="card-title">Camera IP</div>
+        <div class="card-title">Camera IP & IR Remote (Hex)</div>
         <div class="form-group"><span>IP:</span><input type="text" id="s-cam" style="width:150px;"></div>
+        <div class="row">
+          <span>S: <input type="text" id="s-ir1" style="width:30px;"></span>
+          <span>Q: <input type="text" id="s-ir2" style="width:30px;"></span>
+          <span>B: <input type="text" id="s-ir3" style="width:30px;"></span>
+          <span>O: <input type="text" id="s-ir4" style="width:30px;"></span>
+        </div>
+        <div class="row">
+          <span>T: <input type="text" id="s-ir5" style="width:30px;"></span>
+          <span>L: <input type="text" id="s-ir6" style="width:30px;"></span>
+          <span>A: <input type="text" id="s-ir7" style="width:30px;"></span>
+          <span>X: <input type="text" id="s-ir0" style="width:30px;"></span>
+        </div>
       </div>
 
       <button class="save-btn" onclick="saveSettings()">LUU CAI DAT</button>
@@ -214,6 +228,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           document.getElementById('t-heater').value = d.th;
           document.getElementById('t-fan').value = d.tf;
           document.getElementById('s-cam').value = d.cam;
+          document.getElementById('s-ir1').value = d.ir1; document.getElementById('s-ir2').value = d.ir2;
+          document.getElementById('s-ir3').value = d.ir3; document.getElementById('s-ir4').value = d.ir4;
+          document.getElementById('s-ir5').value = d.ir5; document.getElementById('s-ir6').value = d.ir6;
+          document.getElementById('s-ir7').value = d.ir7; document.getElementById('s-ir0').value = d.ir0;
         }
       });
     }
@@ -244,7 +262,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         td: parseInt(document.getElementById('t-drain').value),
         th: parseInt(document.getElementById('t-heater').value),
         tf: parseInt(document.getElementById('t-fan').value),
-        cam: document.getElementById('s-cam').value
+        cam: document.getElementById('s-cam').value,
+        ir1: document.getElementById('s-ir1').value, ir2: document.getElementById('s-ir2').value,
+        ir3: document.getElementById('s-ir3').value, ir4: document.getElementById('s-ir4').value,
+        ir5: document.getElementById('s-ir5').value, ir6: document.getElementById('s-ir6').value,
+        ir7: document.getElementById('s-ir7').value, ir0: document.getElementById('s-ir0').value
       };
       fetch('/api/set', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)})
       .then(()=>alert('Da luu!'));
@@ -282,6 +304,14 @@ void setup() {
 void loadSettings() {
   prefs.begin("beca", false);
   cameraIP = prefs.getString("cam", "");
+  ir1 = prefs.getString("ir1", "45");
+  ir2 = prefs.getString("ir2", "46");
+  ir3 = prefs.getString("ir3", "47");
+  ir4 = prefs.getString("ir4", "44");
+  ir5 = prefs.getString("ir5", "40");
+  ir6 = prefs.getString("ir6", "43");
+  ir7 = prefs.getString("ir7", "07");
+  ir0 = prefs.getString("ir0", "16");
   th_heater_on = prefs.getFloat("h_on", 24.0);
   th_heater_off = prefs.getFloat("h_off", 28.0);
   th_fan_on = prefs.getFloat("f_on", 30.0);
@@ -327,8 +357,10 @@ void setupWeb() {
     d["sl_on"] = led_on_time; d["sl_off"] = led_off_time;
     d["td"] = timer_drain; d["th"] = timer_heater; d["tf"] = timer_fan;
     d["cam"] = cameraIP;
-
-    String s; serializeJson(d, s); server.send(200, "application/json", s);
+    d["ir1"] = ir1; d["ir2"] = ir2; d["ir3"] = ir3; d["ir4"] = ir4;
+    d["ir5"] = ir5; d["ir6"] = ir6; d["ir7"] = ir7; d["ir0"] = ir0;
+    String resp; serializeJson(d, resp);
+    server.send(200, "application/json", resp);
   });
 
   server.on("/api/ctrl", HTTP_POST, []() {
@@ -353,24 +385,60 @@ void setupWeb() {
 
   server.on("/api/set", HTTP_POST, []() {
     StaticJsonDocument<512> d; deserializeJson(d, server.arg("plain"));
+    
+    th_heater_on = d["sh_on"];
+    th_heater_off = d["sh_off"];
+    th_fan_on = d["sf_on"];
+    th_fan_off = d["sf_off"];
+    auto_pump = d["sap"];
+    auto_drain = d["sad"];
+    th_tank_height = d["th_h"];
+    th_water_empty = d["th_we"];
+    th_water_low = d["th_wl"];
+    th_water_full = d["th_wf"];
+    oxyModeContinuous = d["om"];
+    led_timer_mode = d["slm"];
+    led_on_time = d["sl_on"].as<String>();
+    led_off_time = d["sl_off"].as<String>();
+    timer_drain = d["td"];
+    timer_heater = d["th"];
+    timer_fan = d["tf"];
+    cameraIP = d["cam"].as<String>();
+
+    if(d.containsKey("ir1")) ir1 = d["ir1"].as<String>();
+    if(d.containsKey("ir2")) ir2 = d["ir2"].as<String>();
+    if(d.containsKey("ir3")) ir3 = d["ir3"].as<String>();
+    if(d.containsKey("ir4")) ir4 = d["ir4"].as<String>();
+    if(d.containsKey("ir5")) ir5 = d["ir5"].as<String>();
+    if(d.containsKey("ir6")) ir6 = d["ir6"].as<String>();
+    if(d.containsKey("ir7")) ir7 = d["ir7"].as<String>();
+    if(d.containsKey("ir0")) ir0 = d["ir0"].as<String>();
+
     prefs.begin("beca", false);
-    
-    th_heater_on = d["sh_on"]; prefs.putFloat("h_on", th_heater_on);
-    th_heater_off = d["sh_off"]; prefs.putFloat("h_off", th_heater_off);
-    th_fan_on = d["sf_on"]; prefs.putFloat("f_on", th_fan_on);
-    th_fan_off = d["sf_off"]; prefs.putFloat("f_off", th_fan_off);
-    auto_pump = d["sap"]; prefs.putBool("ap", auto_pump);
-    auto_drain = d["sad"]; prefs.putBool("ad", auto_drain);
-    oxyModeContinuous = d["om"]; prefs.putBool("om", oxyModeContinuous);
-    led_timer_mode = d["slm"]; prefs.putBool("lm", led_timer_mode);
-    led_on_time = d["sl_on"].as<String>(); prefs.putString("lon", led_on_time);
-    led_off_time = d["sl_off"].as<String>(); prefs.putString("loff", led_off_time);
-    timer_drain = d["td"]; prefs.putInt("td", timer_drain);
-    timer_heater = d["th"]; prefs.putInt("th", timer_heater);
-    timer_fan = d["tf"]; prefs.putInt("tf", timer_fan);
-    cameraIP = d["cam"].as<String>(); prefs.putString("cam", cameraIP);
-    
+    prefs.putFloat("h_on", th_heater_on); prefs.putFloat("h_off", th_heater_off);
+    prefs.putFloat("f_on", th_fan_on); prefs.putFloat("f_off", th_fan_off);
+    prefs.putBool("ap", auto_pump); prefs.putBool("ad", auto_drain);
+    prefs.putFloat("th_h", th_tank_height); prefs.putFloat("th_we", th_water_empty);
+    prefs.putFloat("th_wl", th_water_low); prefs.putFloat("th_wf", th_water_full);
+    prefs.putBool("om", oxyModeContinuous);
+    prefs.putBool("lm", led_timer_mode);
+    prefs.putString("lon", led_on_time); prefs.putString("loff", led_off_time);
+    prefs.putInt("td", timer_drain); prefs.putInt("th", timer_heater); prefs.putInt("tf", timer_fan);
+    prefs.putString("cam", cameraIP);
+    prefs.putString("ir1", ir1); prefs.putString("ir2", ir2);
+    prefs.putString("ir3", ir3); prefs.putString("ir4", ir4);
+    prefs.putString("ir5", ir5); prefs.putString("ir6", ir6);
+    prefs.putString("ir7", ir7); prefs.putString("ir0", ir0);
     prefs.end();
+
+    // Gửi map IR mới xuống Slave
+    StaticJsonDocument<300> cmd;
+    cmd["cmd"] = "ir_map";
+    cmd["ir1"] = ir1; cmd["ir2"] = ir2; cmd["ir3"] = ir3; cmd["ir4"] = ir4;
+    cmd["ir5"] = ir5; cmd["ir6"] = ir6; cmd["ir7"] = ir7; cmd["ir0"] = ir0;
+    String js; serializeJson(cmd, js);
+    Serial2.println(js);
+    
     sendToSlave(false); // Update oxy mode
     server.send(200, "application/json", "{}");
   });

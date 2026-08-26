@@ -49,6 +49,17 @@ DHT dht(DHT_PIN, DHT_TYPE);
 Servo servoFeed;
 
 // ===================== BIẾN TRẠNG THÁI =====================
+#include <Preferences.h>
+Preferences prefs;
+
+uint8_t ir_btn_1 = 0x45;
+uint8_t ir_btn_2 = 0x46;
+uint8_t ir_btn_3 = 0x47;
+uint8_t ir_btn_4 = 0x44;
+uint8_t ir_btn_5 = 0x40;
+uint8_t ir_btn_6 = 0x43;
+uint8_t ir_btn_7 = 0x07;
+uint8_t ir_btn_0 = 0x16;
 
 bool heaterState = false;
 bool fanState    = false;
@@ -80,16 +91,6 @@ unsigned long lastSendTime = 0;
 const unsigned long SEND_INTERVAL_MS = 2000;
 bool forceStatusUpdate = false;
 
-// Mã IR (Ví dụ cho NEC 21/20 phím, có thể thay đổi tùy remote thực tế)
-#define IR_BTN_1     0x45
-#define IR_BTN_2     0x46
-#define IR_BTN_3     0x47
-#define IR_BTN_4     0x44
-#define IR_BTN_5     0x40
-#define IR_BTN_6     0x43
-#define IR_BTN_7     0x07
-#define IR_BTN_0     0x19 // Hoặc 0x16
-
 // ===================== HÀM SETUP =====================
 
 void setup() {
@@ -120,6 +121,19 @@ void setup() {
   IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK);
 
   Serial.println("[SLAVE] Khởi động v2 (IR Remote)...");
+  
+  prefs.begin("beca", false);
+  ir_btn_1 = prefs.getUChar("ir1", 0x45);
+  ir_btn_2 = prefs.getUChar("ir2", 0x46);
+  ir_btn_3 = prefs.getUChar("ir3", 0x47);
+  ir_btn_4 = prefs.getUChar("ir4", 0x44);
+  ir_btn_5 = prefs.getUChar("ir5", 0x40);
+  ir_btn_6 = prefs.getUChar("ir6", 0x43);
+  ir_btn_7 = prefs.getUChar("ir7", 0x07);
+  ir_btn_0 = prefs.getUChar("ir0", 0x16);
+  prefs.end();
+
+  ds18b20.begin();
 }
 
 // ===================== HÀM LOOP =====================
@@ -152,61 +166,46 @@ void handleIR() {
       
       unsigned long now = millis();
       
-      switch (command) {
-        case IR_BTN_1:
-          heaterState = !heaterState;
-          forceStatusUpdate = true;
-          break;
-          case IR_BTN_2:
-            fanState = !fanState;
-            forceStatusUpdate = true;
-            break;
-          case IR_BTN_3:
-            pumpState = !pumpState;
-            forceStatusUpdate = true;
-            break;
-          case IR_BTN_4:
-            // Sục oxy (1 lần -> chu kỳ, 3 lần/3s -> liên tục)
-            if (now - lastPress4Time <= 3000) {
-              press4Count++;
-            } else {
-              press4Count = 1;
-            }
-            lastPress4Time = now;
-            
-            if (press4Count >= 3) {
-              oxyModeContinuous = true;
-              oxyState = true; // Bật luôn
-              Serial.println("[SLAVE] Oxy -> LIÊN TỤC");
-              press4Count = 0;
-            } else {
-              // Bật/tắt thủ công hoặc reset chu kỳ
-              oxyModeContinuous = false;
-              oxyState = !oxyState;
-              oxyLastChange = millis();
-              Serial.println(oxyState ? "[SLAVE] Oxy -> BẬT (Chu kỳ)" : "[SLAVE] Oxy -> TẮT");
-            }
-            forceStatusUpdate = true;
-            break;
-          case IR_BTN_5:
-            drainState = !drainState;
-            forceStatusUpdate = true;
-            break;
-          case IR_BTN_6:
-            ledState = !ledState;
-            forceStatusUpdate = true;
-            break;
-          case IR_BTN_7:
-            startFeeding();
-            break;
-          case IR_BTN_0:
-            heaterState = fanState = pumpState = oxyState = drainState = ledState = false;
-            oxyModeContinuous = false;
-            forceStatusUpdate = true;
-            Serial.println("[SLAVE] EMERGENCY OFF");
-            break;
+      if (command == ir_btn_1) {
+        heaterState = !heaterState;
+        forceStatusUpdate = true;
+      } else if (command == ir_btn_2) {
+        fanState = !fanState;
+        forceStatusUpdate = true;
+      } else if (command == ir_btn_3) {
+        pumpState = !pumpState;
+        forceStatusUpdate = true;
+      } else if (command == ir_btn_4) {
+        if (now - lastPress4Time <= 3000) press4Count++;
+        else press4Count = 1;
+        lastPress4Time = now;
+        if (press4Count >= 3) {
+          oxyModeContinuous = true;
+          oxyState = true;
+          Serial.println("[SLAVE] Oxy -> LIEN TUC");
+          press4Count = 0;
+        } else {
+          oxyModeContinuous = false;
+          oxyState = !oxyState;
+          oxyLastChange = millis();
+          Serial.println(oxyState ? "[SLAVE] Oxy -> BAT (Chu ky)" : "[SLAVE] Oxy -> TAT");
         }
-        applyRelayStates();
+        forceStatusUpdate = true;
+      } else if (command == ir_btn_5) {
+        drainState = !drainState;
+        forceStatusUpdate = true;
+      } else if (command == ir_btn_6) {
+        ledState = !ledState;
+        forceStatusUpdate = true;
+      } else if (command == ir_btn_7) {
+        startFeeding();
+      } else if (command == ir_btn_0) {
+        heaterState = fanState = pumpState = oxyState = drainState = ledState = false;
+        oxyModeContinuous = false;
+        forceStatusUpdate = true;
+        Serial.println("[SLAVE] EMERGENCY OFF");
+      }
+      applyRelayStates();
     }
     IrReceiver.resume();
   }
@@ -284,6 +283,21 @@ void handleMasterCommand() {
     StaticJsonDocument<300> doc;
     DeserializationError err = deserializeJson(doc, incoming);
     if (err) return;
+
+    if (doc.containsKey("cmd") && doc["cmd"] == "ir_map") {
+      prefs.begin("beca", false);
+      if(doc.containsKey("ir1")) { ir_btn_1 = strtol(doc["ir1"], NULL, 16); prefs.putUChar("ir1", ir_btn_1); }
+      if(doc.containsKey("ir2")) { ir_btn_2 = strtol(doc["ir2"], NULL, 16); prefs.putUChar("ir2", ir_btn_2); }
+      if(doc.containsKey("ir3")) { ir_btn_3 = strtol(doc["ir3"], NULL, 16); prefs.putUChar("ir3", ir_btn_3); }
+      if(doc.containsKey("ir4")) { ir_btn_4 = strtol(doc["ir4"], NULL, 16); prefs.putUChar("ir4", ir_btn_4); }
+      if(doc.containsKey("ir5")) { ir_btn_5 = strtol(doc["ir5"], NULL, 16); prefs.putUChar("ir5", ir_btn_5); }
+      if(doc.containsKey("ir6")) { ir_btn_6 = strtol(doc["ir6"], NULL, 16); prefs.putUChar("ir6", ir_btn_6); }
+      if(doc.containsKey("ir7")) { ir_btn_7 = strtol(doc["ir7"], NULL, 16); prefs.putUChar("ir7", ir_btn_7); }
+      if(doc.containsKey("ir0")) { ir_btn_0 = strtol(doc["ir0"], NULL, 16); prefs.putUChar("ir0", ir_btn_0); }
+      prefs.end();
+      Serial.println("[SLAVE] Da cap nhat ma IR tu Master");
+      return;
+    }
 
     if (doc.containsKey("cmd") && String((const char*)doc["cmd"]) == "relay") {
       if (doc.containsKey("heater")) heaterState = doc["heater"].as<bool>();
