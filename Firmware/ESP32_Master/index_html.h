@@ -120,7 +120,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="form-group"><span>WiFi Nha (SSID):</span><input type="text" id="s-ssid" class="text-wide"></div>
         <div class="form-group"><span>Pass WiFi:</span><input type="text" id="s-pass" class="text-wide"></div>
         <div class="form-group"><span>IP Camera:</span><input type="text" id="s-cam" class="text-wide"></div>
-        <div class="form-group"><span>Ten mien Web:</span><span style="color:#38bdf8; font-weight:bold; font-size:0.85em;">http://beca.local</span></div>
         <div class="form-group"><span>Trang thai WiFi:</span><span id="s-wst" style="font-weight:bold; font-size:0.85em;">--</span></div>
       </div>
 
@@ -135,16 +134,66 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       
       <!-- Cài đặt Mã Remote IR -->
       <div class="card">
-        <div class="card-title">Ma Remote IR (Hex)</div>
-        <div class="ir-grid">
-          <div class="ir-item"><span>1:</span><input type="text" id="s-ir1"></div>
-          <div class="ir-item"><span>2:</span><input type="text" id="s-ir2"></div>
-          <div class="ir-item"><span>3:</span><input type="text" id="s-ir3"></div>
-          <div class="ir-item"><span>4:</span><input type="text" id="s-ir4"></div>
-          <div class="ir-item"><span>5:</span><input type="text" id="s-ir5"></div>
-          <div class="ir-item"><span>6:</span><input type="text" id="s-ir6"></div>
-          <div class="ir-item"><span>7:</span><input type="text" id="s-ir7"></div>
-          <div class="ir-item"><span>0:</span><input type="text" id="s-ir0"></div>
+        <div class="card-title">Cai Dat Ma Remote IR (Hex)</div>
+        <div style="background:#0f172a; padding:10px; border-radius:6px; margin-bottom:12px; font-size:0.9em; display:flex; justify-content:space-between; align-items:center;">
+          <span>Ma IR vua bam tren Remote:</span>
+          <span id="s-last-ir" style="color:#38bdf8; font-weight:bold; font-size:1.15em;">--</span>
+        </div>
+        <div class="form-group">
+          <span>1 - May Suoi:</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir1" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir1')">GAN</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <span>2 - Quat Lam Mat:</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir2" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir2')">GAN</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <span>3 - Bom Bu Nuoc:</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir3" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir3')">GAN</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <span>4 - Suc Oxy:</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir4" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir4')">GAN</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <span>5 - Bom Thay Nuoc:</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir5" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir5')">GAN</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <span>6 - Den LED:</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir6" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir6')">GAN</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <span>7 - Cho An (Servo):</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir7" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir7')">GAN</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <span>0 - Tat Tat Ca:</span>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="s-ir0" style="width:50px;">
+            <button type="button" class="btn" style="padding:4px 8px; font-size:0.8em; background:#3b82f6;" onclick="assignIR('s-ir0')">GAN</button>
+          </div>
         </div>
       </div>
 
@@ -158,6 +207,15 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       document.querySelectorAll('.panel').forEach(e=>e.classList.remove('active'));
       event.target.classList.add('active');
       document.getElementById(t).classList.add('active');
+    }
+
+    function assignIR(id) {
+      let code = document.getElementById('s-last-ir').textContent;
+      if (code && code !== '--' && code.length > 0) {
+        document.getElementById(id).value = code;
+      } else {
+        alert('Hay bam mot nut bat ky tren Remote truoc de he thong bat ma Hex!');
+      }
     }
 
     function f() {
@@ -197,6 +255,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         } else {
           mqstEl.textContent = 'Chua ket noi';
           mqstEl.style.color = '#f59e0b';
+        }
+
+        // Update Last IR Code
+        if (d.last_ir && d.last_ir.length > 0) {
+          document.getElementById('s-last-ir').textContent = d.last_ir;
         }
 
         // Only populate inputs if user is not actively typing

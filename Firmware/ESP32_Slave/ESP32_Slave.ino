@@ -90,6 +90,7 @@ int press4Count = 0;
 unsigned long lastSendTime = 0;
 const unsigned long SEND_INTERVAL_MS = 2000;
 bool forceStatusUpdate = false;
+uint8_t lastIrCode = 0;
 
 // ===================== HÀM SETUP =====================
 
@@ -161,6 +162,8 @@ void handleIR() {
       // Bỏ qua phím đè
     } else {
       uint8_t command = IrReceiver.decodedIRData.command;
+      lastIrCode = command;
+      forceStatusUpdate = true;
       Serial.printf("[SLAVE] IR Code: 0x%02X (Proto: %d, Raw: 0x%X)\n", 
                     command, IrReceiver.decodedIRData.protocol, IrReceiver.decodedIRData.decodedRawData);
       
@@ -346,7 +349,7 @@ void sendStatusToMaster() {
   if (isnan(airTemp)) airTemp = -999.0;
   if (isnan(airHum))  airHum  = -999.0;
 
-  StaticJsonDocument<300> doc;
+  StaticJsonDocument<350> doc;
   doc["water_temp"] = waterTemp;
   doc["air_temp"]   = airTemp;
   doc["air_hum"]    = airHum;
@@ -358,11 +361,19 @@ void sendStatusToMaster() {
   doc["drain"]      = drainState  ? 1 : 0;
   doc["led"]        = ledState    ? 1 : 0;
   doc["oxy_mode"]   = oxyModeContinuous ? 1 : 0;
+  
+  if (lastIrCode > 0) {
+    char hexBuf[5];
+    sprintf(hexBuf, "%02X", lastIrCode);
+    doc["last_ir"] = String(hexBuf);
+  } else {
+    doc["last_ir"] = "";
+  }
 
   String jsonString;
   serializeJson(doc, jsonString);
   Serial2.println(jsonString);
   
-  Serial.printf("[SLAVE] Send: NhietNuoc=%.1f NhietKK=%.1f AmKK=%.1f MucNuoc=%.1fcm\n",
-                waterTemp, airTemp, airHum, waterLevelCm);
+  Serial.printf("[SLAVE] Send: NhietNuoc=%.1f NhietKK=%.1f AmKK=%.1f MucNuoc=%.1fcm LastIR=%02X\n",
+                waterTemp, airTemp, airHum, waterLevelCm, lastIrCode);
 }

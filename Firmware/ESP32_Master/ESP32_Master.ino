@@ -5,9 +5,10 @@
  * ============================================================================
  *  Kien truc:
  *    - WiFi Station Mode (WIFI_STA) ket noi truc tiep vao mang nha.
- *    - Web Server tren cong 80 (ho tro mDNS: http://beca.local va IP cuc bo).
+ *    - Web Server tren cong 80 (truy cap qua dia chi IP cuc bo).
  *    - Giao tiep UART2 voi ESP32-Slave (RX2: GPIO 16, TX2: GPIO 17, 9600 baud).
  *    - Logic tu dong: Cross-check nhiet do, muc nuoc sieu am, hen gio den, countdown timer.
+ *    - Cai dat va hoc ma Remote IR truc tiep tren Web.
  *    - Ho tro MQTT ThingsBoard qua co bat/tat tren Web.
  *    - Nut BOOT (GPIO 0): Nhan giu 3 giay de Factory Reset Flash.
  *    - LED GPIO 2: Nhay chot 300ms khi mat mang, sang dung khi da ket noi.
@@ -19,7 +20,6 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
-#include <ESPmDNS.h>
 #include <time.h>
 
 #include "index_html.h"
@@ -57,6 +57,7 @@ float waterTemp       = -999.0;
 float airTemp         = -999.0;
 float airHum          = -999.0;
 float waterLevelCm    = -1.0;
+String last_ir        = "";
 
 bool heaterState      = false;
 bool fanState         = false;
@@ -103,7 +104,6 @@ unsigned long start_drain     = 0;
 unsigned long lastWifiAttempt = 0;
 unsigned long lastLedBlink    = 0;
 bool          wifiLedState    = false;
-bool          mdnsStarted     = false;
 
 unsigned long lastMqttAttempt = 0;
 unsigned long lastMqttPublish = 0;
@@ -175,17 +175,7 @@ void loop() {
   // 5. Quan ly ket noi WiFi & Den bao LED GPIO 2
   if (WiFi.status() == WL_CONNECTED) {
     digitalWrite(PIN_LED_STATUS, HIGH); // Sang dung khi truc tuyen
-
-    if (!mdnsStarted) {
-      if (MDNS.begin("beca")) {
-        MDNS.addService("http", "tcp", 80);
-        Serial.println("[mDNS] Da dang ky ten mien: http://beca.local");
-        mdnsStarted = true;
-      }
-    }
   } else {
-    mdnsStarted = false;
-    
     // Nhay LED 300ms bao loi mat WiFi
     if (ms - lastLedBlink >= 300) {
       lastLedBlink = ms;
@@ -225,19 +215,13 @@ void setupWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     digitalWrite(PIN_LED_STATUS, HIGH);
     Serial.println("\n[WIFI] DA KET NOI THANH CONG!");
-    Serial.print("[WEB]  1. Dia chi IP    : http://"); Serial.println(WiFi.localIP());
-    
+    Serial.print("[WEB]  Dia chi Web: http://"); Serial.println(WiFi.localIP());
     configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
-    
-    if (MDNS.begin("beca")) {
-      MDNS.addService("http", "tcp", 80);
-      Serial.println("[WEB]  2. Ten mien mDNS : http://beca.local");
-      mdnsStarted = true;
-    }
     Serial.println("==================================================\n");
   } else {
     Serial.println("[WIFI] Chua ket noi duoc WiFi. He thong tiep tuc chay offline va thu ket noi lai.");
   }
+}
 }
 
 // ===================== THIET LAP WEB SERVER =====================
@@ -296,6 +280,7 @@ void setupWeb() {
 
     d["ir1"]    = ir1; d["ir2"] = ir2; d["ir3"] = ir3; d["ir4"] = ir4;
     d["ir5"]    = ir5; d["ir6"] = ir6; d["ir7"] = ir7; d["ir0"] = ir0;
+    d["last_ir"]= last_ir;
 
     String resp;
     serializeJson(d, resp);
@@ -534,6 +519,9 @@ void handleSlave() {
     airTemp       = d["air_temp"];
     airHum        = d["air_hum"];
     if (d.containsKey("water_cm")) waterLevelCm = d["water_cm"];
+    if (d.containsKey("last_ir") && d["last_ir"].as<String>().length() > 0) {
+      last_ir = d["last_ir"].as<String>();
+    }
 
     bool sh = d["heater"];
     bool sf = d["fan"];
