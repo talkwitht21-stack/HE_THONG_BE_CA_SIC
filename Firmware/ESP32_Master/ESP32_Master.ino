@@ -35,7 +35,7 @@ const long  GMT_OFFSET_SEC = 7 * 3600; // GMT+7
 
 WiFiClient wifiClient;
 PubSubClient mqtt(wifiClient);
-WebServer server(80);
+WebServer server(500);
 Preferences prefs;
 
 // ===================== BIẾN TRẠNG THÁI (Từ Slave) =====================
