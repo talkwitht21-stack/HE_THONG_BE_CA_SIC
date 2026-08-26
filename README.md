@@ -182,7 +182,8 @@ graph TD
     %% Khối Bề Mặt Nước
     subgraph SurfaceWater ["Bề Mặt Nước"]
         direction LR
-        WaterLevel["Phao từ (Đo mực nước)"]
+        WaterLevel["Phao từ (Đo mực nước khẩn cấp)"]
+        HCSR04["Cảm biến Siêu âm (Đo mực nước liên tục)"]
         DrainPump["Bơm Thay Nước (Hút nước cũ)"]
     end
 
@@ -198,6 +199,7 @@ graph TD
     Cam -->|"Truyền luồng Video"| Pi
     ESPS -->|"Đọc tín hiệu"| DHT
     ESPS -->|"Đọc tín hiệu"| WaterLevel
+    ESPS -->|"Đọc tín hiệu"| HCSR04
     ESPS -->|"Đọc tín hiệu"| Temp
     ESPS -->|"Nhận lệnh Remote"| IR
     
@@ -227,6 +229,7 @@ graph TD
     style Pump fill:#9cf,stroke:#333,stroke-width:1px
     style DrainPump fill:#9cf,stroke:#333,stroke-width:1px
     style WaterLevel fill:#9cf,stroke:#333,stroke-width:1px
+    style HCSR04 fill:#9cf,stroke:#333,stroke-width:1px
 ```
 
 ### 6.2. Phân tích chi tiết các lớp không gian vật lý

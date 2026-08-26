@@ -40,7 +40,8 @@ Preferences prefs;
 
 // ===================== BIẾN TRẠNG THÁI (Từ Slave) =====================
 float waterTemp = 0.0, airTemp = 0.0, airHum = 0.0;
-bool  waterLow  = false;
+bool  waterLow  = false; // Từ Phao từ
+float waterLevelCm = 0.0; // Từ HC-SR04
 
 bool heaterState = false, fanState = false, pumpState = false;
 bool oxyState = false, drainState = false, ledState = false;
@@ -51,6 +52,10 @@ String cameraIP = "";
 float th_heater_on = 24.0, th_heater_off = 28.0;
 float th_fan_on = 30.0, th_fan_off = 28.0;
 bool auto_pump = true, auto_drain = true;
+float th_tank_height = 40.0;
+float th_water_empty = 10.0; // Khoảng cách tới cạn
+float th_water_low = 15.0; // Khoảng cách tới thấp
+float th_water_full = 35.0; // Khoảng cách tới đủ
 
 bool led_timer_mode = false;
 String led_on_time = "07:00", led_off_time = "21:00";
@@ -291,6 +296,10 @@ void loadSettings() {
   timer_heater = prefs.getInt("th", 0);
   timer_fan = prefs.getInt("tf", 0);
   oxyModeContinuous = prefs.getBool("om", false);
+  th_tank_height = prefs.getFloat("th_h", 40.0);
+  th_water_empty = prefs.getFloat("th_we", 10.0);
+  th_water_low = prefs.getFloat("th_wl", 15.0);
+  th_water_full = prefs.getFloat("th_wf", 35.0);
   prefs.end();
 }
 
@@ -384,12 +393,20 @@ void checkLogic() {
     if(waterTemp <= th_fan_off && fanState) { fanState=0; c=1; }
   }
 
-  // Nước cạn
-  if(waterLow) {
+  // Nước cạn/thấp (Phao từ + HC-SR04)
+  bool is_empty = waterLow || (waterLevelCm > 0 && waterLevelCm < th_water_empty);
+  bool is_low   = is_empty || (waterLevelCm > 0 && waterLevelCm < th_water_low);
+  bool is_full  = !waterLow && (waterLevelCm > 0 && waterLevelCm >= th_water_full);
+
+  if(is_empty) {
     if(auto_pump && !pumpState) { pumpState=1; c=1; }
-    if(auto_drain && !drainState) { drainState=1; start_drain=ms; c=1; }
-  } else {
+  } else if (is_full) {
     if(auto_pump && pumpState) { pumpState=0; c=1; }
+  }
+
+  if(is_low) {
+    if(auto_drain && !drainState) { drainState=1; start_drain=ms; c=1; }
+  } else if (is_full) {
     if(auto_drain && drainState) { drainState=0; c=1; }
   }
 
@@ -417,6 +434,7 @@ void handleSlave() {
 
     waterTemp = d["water_temp"]; airTemp = d["air_temp"];
     airHum = d["air_hum"]; waterLow = d["water_low"];
+    if(d.containsKey("water_cm")) waterLevelCm = d["water_cm"];
     
     bool sh = d["heater"], sf = d["fan"], sp = d["pump"];
     bool so = d["oxy"], sd = d["drain"], sl = d["led"];

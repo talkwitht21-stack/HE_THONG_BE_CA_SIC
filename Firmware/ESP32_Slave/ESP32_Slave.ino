@@ -26,7 +26,9 @@
 #define DS18B20_PIN       4     // Nhiệt độ nước
 #define DHT_PIN           5     // Nhiệt ẩm KK
 #define DHT_TYPE          DHT22
-#define WATER_LEVEL_PIN   14    // Phao từ (LOW=Đủ, HIGH=Cạn)
+#define WATER_LEVEL_PIN   33    // Phao từ (LOW=Đủ, HIGH=Cạn)
+#define HC_TRIG_PIN       14    // Siêu âm Trig
+#define HC_ECHO_PIN       32    // Siêu âm Echo
 #define IR_RECEIVE_PIN    15    // Mắt thu IR MH-R38
 
 // Relay (OUTPUT)
@@ -55,6 +57,9 @@ bool pumpState   = false;
 bool oxyState    = true;  // Mặc định BẬT
 bool drainState  = false;
 bool ledState    = false;
+
+float waterLevelCm = 0.0; // Khoảng cách siêu âm
+
 
 // Trạng thái Servo
 bool feedingActive     = false;
@@ -96,6 +101,8 @@ void setup() {
   dht.begin();
   
   pinMode(WATER_LEVEL_PIN, INPUT_PULLUP);
+  pinMode(HC_TRIG_PIN, OUTPUT);
+  pinMode(HC_ECHO_PIN, INPUT);
 
   // Relay
   pinMode(HEATER_RELAY_PIN, OUTPUT);
@@ -304,6 +311,19 @@ void sendStatusToMaster() {
   float airHum    = dht.readHumidity();
   bool  waterLow  = (digitalRead(WATER_LEVEL_PIN) == HIGH);
 
+  // Đọc siêu âm
+  digitalWrite(HC_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(HC_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(HC_TRIG_PIN, LOW);
+  long duration = pulseIn(HC_ECHO_PIN, HIGH, 30000); // Timeout 30ms
+  if (duration > 0) {
+    waterLevelCm = (duration / 2.0) * 0.0343;
+  } else {
+    waterLevelCm = -1; // Lỗi
+  }
+
   if (isnan(airTemp)) airTemp = -999.0;
   if (isnan(airHum))  airHum  = -999.0;
 
@@ -312,6 +332,7 @@ void sendStatusToMaster() {
   doc["air_temp"]   = airTemp;
   doc["air_hum"]    = airHum;
   doc["water_low"]  = waterLow;
+  doc["water_cm"]   = waterLevelCm;
   doc["heater"]     = heaterState ? 1 : 0;
   doc["fan"]        = fanState    ? 1 : 0;
   doc["pump"]       = pumpState   ? 1 : 0;
