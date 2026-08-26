@@ -91,6 +91,7 @@ String led_off_time   = "21:00";
 int timer_heater      = 0;
 int timer_fan         = 0;
 int timer_drain       = 30;
+int timer_led         = 0;
 
 // Ma phím IR Remote (Hex)
 String ir1 = "45", ir2 = "46", ir3 = "47", ir4 = "44";
@@ -100,6 +101,7 @@ String ir5 = "40", ir6 = "43", ir7 = "07", ir0 = "16";
 unsigned long start_heater    = 0;
 unsigned long start_fan       = 0;
 unsigned long start_drain     = 0;
+unsigned long start_led       = 0;
 
 unsigned long lastWifiAttempt = 0;
 unsigned long lastLedBlink    = 0;
@@ -114,6 +116,8 @@ unsigned long lastLogicCheck  = 0;
 void loadSettings();
 void saveSettings();
 String getTimeStr();
+int parseTimeToMinutes(String tStr);
+bool isTimeInWindow(int curMin, int onMin, int offMin);
 void setupWiFi();
 void setupWeb();
 void sendToSlave(bool feed);
@@ -264,6 +268,7 @@ void setupWeb() {
     d["th"]     = timer_heater;
     d["tf"]     = timer_fan;
     d["td"]     = timer_drain;
+    d["tl"]     = timer_led;
 
     d["ssid"]   = sta_ssid;
     d["pass"]   = sta_password;
@@ -296,7 +301,7 @@ void setupWeb() {
     else if (dev == "fan") { fanState = !fanState; if (fanState) start_fan = millis(); }
     else if (dev == "pump") { pumpState = !pumpState; }
     else if (dev == "drain") { drainState = !drainState; if (drainState) start_drain = millis(); }
-    else if (dev == "led") { ledState = !ledState; }
+    else if (dev == "led") { ledState = !ledState; if (ledState) start_led = millis(); }
     else if (dev == "oxy") { oxyModeContinuous = false; oxyState = !oxyState; }
     else if (dev == "feed") { feed = true; }
 
@@ -328,6 +333,7 @@ void setupWeb() {
     if (d.containsKey("th"))     timer_heater      = d["th"];
     if (d.containsKey("tf"))     timer_fan         = d["tf"];
     if (d.containsKey("td"))     timer_drain       = d["td"];
+    if (d.containsKey("tl"))     timer_led         = d["tl"];
 
     if (d.containsKey("cam"))    cameraIP          = d["cam"].as<String>();
 
@@ -409,6 +415,7 @@ void loadSettings() {
   timer_heater    = prefs.getInt("th", 0);
   timer_fan       = prefs.getInt("tf", 0);
   timer_drain     = prefs.getInt("td", 30);
+  timer_led       = prefs.getInt("tl", 0);
 
   ir1 = prefs.getString("ir1", "45");
   ir2 = prefs.getString("ir2", "46");
@@ -453,6 +460,7 @@ void saveSettings() {
   prefs.putInt("th", timer_heater);
   prefs.putInt("tf", timer_fan);
   prefs.putInt("td", timer_drain);
+  prefs.putInt("tl", timer_led);
 
   prefs.putString("ir1", ir1);
   prefs.putString("ir2", ir2);
@@ -474,6 +482,25 @@ String getTimeStr() {
   char b[6];
   strftime(b, 6, "%H:%M", &ti);
   return String(b);
+}
+
+int parseTimeToMinutes(String tStr) {
+  int colon = tStr.indexOf(':');
+  if (colon == -1) return -1;
+  int h = tStr.substring(0, colon).toInt();
+  int m = tStr.substring(colon + 1).toInt();
+  return h * 60 + m;
+}
+
+bool isTimeInWindow(int curMin, int onMin, int offMin) {
+  if (onMin == offMin || onMin < 0 || offMin < 0) return false;
+  if (onMin < offMin) {
+    // Trong cung 1 ngay, vi du 07:00 (420) -> 21:00 (1260)
+    return (curMin >= onMin && curMin < offMin);
+  } else {
+    // Qua dem, vi du 22:00 (1320) -> 06:00 (360) sang hom sau
+    return (curMin >= onMin || curMin < offMin);
+  }
 }
 
 // ===================== GIAO TIEP UART VOI SLAVE =====================
@@ -630,18 +657,22 @@ void checkLogic() {
     }
   }
 
-  // 3. Hen gio Den LED
+  // 3. Hen gio Den LED theo lich (Time Window)
   if (led_timer_mode) {
-    String t = getTimeStr();
-    if (t == led_on_time && !ledState) {
-      ledState = true;
-      stateChanged = true;
-      Serial.println("[LOGIC] Den gio hen -> BAT Den LED");
-    }
-    if (t == led_off_time && ledState) {
-      ledState = false;
-      stateChanged = true;
-      Serial.println("[LOGIC] Den gio hen -> TAT Den LED");
+    struct tm ti;
+    if (getLocalTime(&ti)) {
+      int curMin = ti.tm_hour * 60 + ti.tm_min;
+      int onMin  = parseTimeToMinutes(led_on_time);
+      int offMin = parseTimeToMinutes(led_off_time);
+      bool shouldBeOn = isTimeInWindow(curMin, onMin, offMin);
+
+      if (shouldBeOn != ledState) {
+        ledState = shouldBeOn;
+        if (ledState) start_led = ms;
+        stateChanged = true;
+        Serial.printf("[LOGIC] Lich Hen Gio: Gio hien tai %02d:%02d (%d) -> %s Den LED\n",
+                      ti.tm_hour, ti.tm_min, curMin, ledState ? "BAT" : "TAT");
+      }
     }
   }
 
@@ -660,6 +691,11 @@ void checkLogic() {
     drainState = false;
     stateChanged = true;
     Serial.println("[LOGIC] Bom thay het timer -> TAT");
+  }
+  if (timer_led > 0 && ledState && !led_timer_mode && (ms - start_led >= timer_led * 60000UL)) {
+    ledState = false;
+    stateChanged = true;
+    Serial.println("[LOGIC] Den LED het timer -> TAT");
   }
 
   // Gui lenh cap nhat xuong Slave neu co thay doi

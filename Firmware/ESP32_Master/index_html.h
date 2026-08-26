@@ -101,7 +101,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         </div>
         <div class="row">
           <span class="row-label">Den LED Chieu Sang</span>
-          <div class="row-ctrl"><button class="btn off" id="b-led" onclick="toggle('led')">TAT</button></div>
+          <div class="row-ctrl">
+            <div class="timer-wrap"><input type="number" class="timer-input" id="t-led" min="0" max="999" value="0"><span class="timer-unit">phut</span></div>
+            <button class="btn off" id="b-led" onclick="toggle('led')">TAT</button>
+          </div>
         </div>
         <button class="feed-btn" onclick="toggle('feed')">CHO AN NGAY</button>
       </div>
@@ -234,6 +237,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             if (document.getElementById('t-heater')) document.getElementById('t-heater').value = d.th;
             if (document.getElementById('t-fan'))    document.getElementById('t-fan').value    = d.tf;
             if (document.getElementById('t-drain'))  document.getElementById('t-drain').value  = d.td;
+            if (document.getElementById('t-led'))    document.getElementById('t-led').value    = d.tl;
           }
 
           // Cap nhat Settings inputs: CHI cap nhat lan dau hoac sau khi Luu
@@ -280,7 +284,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       b.className   = 'btn ' + (s ? 'on' : 'off');
     }
 
-    const timerKey = { heater: {inp:'t-heater', key:'th'}, fan: {inp:'t-fan', key:'tf'}, drain: {inp:'t-drain', key:'td'} };
+    const timerKey = { heater: {inp:'t-heater', key:'th'}, fan: {inp:'t-fan', key:'tf'}, drain: {inp:'t-drain', key:'td'}, led: {inp:'t-led', key:'tl'} };
 
     function toggle(dev) {
       const btnId = {heater:'b-heater', fan:'b-fan', pump:'b-pump', oxy:'b-oxy', drain:'b-drain', led:'b-led'};
@@ -330,6 +334,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         th: parseInt(document.getElementById('t-heater').value) || 0,
         tf: parseInt(document.getElementById('t-fan').value)    || 0,
         td: parseInt(document.getElementById('t-drain').value)  || 0,
+        tl: parseInt(document.getElementById('t-led').value)    || 0,
         ssid: document.getElementById('s-ssid').value,
         pass: document.getElementById('s-pass').value,
         cam:  document.getElementById('s-cam').value,
