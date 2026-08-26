@@ -215,6 +215,7 @@ void handleIR() {
 
 void startFeeding() {
   if (!feedingActive) {
+    Serial.println("[SLAVE] Servo: Cho an START");
     feedingActive = true;
     feedStart = millis();
     servoFeed.write(180);
@@ -223,6 +224,7 @@ void startFeeding() {
 
 void handleFeeding() {
   if (feedingActive && (millis() - feedStart >= FEED_DURATION_MS)) {
+    Serial.println("[SLAVE] Servo: Cho an STOP");
     feedingActive = false;
     servoFeed.write(0);
   }
@@ -263,6 +265,9 @@ void applyRelayStates() {
   digitalWrite(OXY_RELAY_PIN,    oxyState    ? HIGH : LOW);
   digitalWrite(DRAIN_RELAY_PIN,  drainState  ? HIGH : LOW);
   digitalWrite(LED_RELAY_PIN,    ledState    ? HIGH : LOW);
+  
+  Serial.printf("[SLAVE] Relay: Suoi=%d Quat=%d BomBu=%d Oxy=%d BomThay=%d Led=%d\n", 
+                heaterState, fanState, pumpState, oxyState, drainState, ledState);
 }
 
 // ===================== GIAO TIẾP MASTER =====================
@@ -272,6 +277,8 @@ void handleMasterCommand() {
     String incoming = Serial2.readStringUntil('\n');
     incoming.trim();
     if (incoming.length() == 0) return;
+
+    Serial.println("[SLAVE] Received from Master: " + incoming);
 
     StaticJsonDocument<300> doc;
     DeserializationError err = deserializeJson(doc, incoming);
@@ -337,6 +344,10 @@ void sendStatusToMaster() {
   doc["led"]        = ledState    ? 1 : 0;
   doc["oxy_mode"]   = oxyModeContinuous ? 1 : 0;
 
-  serializeJson(doc, Serial2);
-  Serial2.println();
+  String jsonString;
+  serializeJson(doc, jsonString);
+  Serial2.println(jsonString);
+  
+  Serial.printf("[SLAVE] Send: NhietNuoc=%.1f NhietKK=%.1f AmKK=%.1f MucNuoc=%.1fcm\n",
+                waterTemp, airTemp, airHum, waterLevelCm);
 }
