@@ -105,6 +105,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="form-group"><span>WiFi:</span><input type="text" id="s-ssid" style="width:150px;"></div>
         <div class="form-group"><span>Pass:</span><input type="text" id="s-pass" style="width:150px;"></div>
         <div class="form-group"><span>Cam:</span><input type="text" id="s-cam" style="width:150px;"></div>
+        <div class="form-group"><span>Trạng thái:</span><span id="s-wst" style="font-weight:bold; font-size:0.85em;">--</span></div>
       </div>
       
       <div class="card">
@@ -148,6 +149,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-led', d.l);
 
         // Settings (only update if not focused)
+        let wstEl = document.getElementById('s-wst');
+        if (d.wst == 2) {
+          wstEl.textContent = 'Da ket noi (' + d.wip + ')';
+          wstEl.style.color = '#22c55e';
+        } else if (d.wst == 1) {
+          wstEl.textContent = 'Dang ket noi... (toi da 30s)';
+          wstEl.style.color = '#f59e0b';
+        } else {
+          wstEl.textContent = 'Chua ket noi (AP Mode)';
+          wstEl.style.color = '#94a3b8';
+        }
+
         if(!document.querySelector('input:focus')) {
           document.getElementById('s-ho').value = d.sh_on;
           document.getElementById('s-hf').value = d.sh_off;

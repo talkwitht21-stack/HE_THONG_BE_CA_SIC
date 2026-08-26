@@ -71,8 +71,8 @@ unsigned long start_drain = 0, start_led = 0;
 bool pendingCommand = false;
 unsigned long lastMqttPublish = 0;
 
-unsigned long lastWifiAttempt = 0;
-bool isWifiConnecting = false;
+// ===================== BIẾN HỖ TRỢ WIFI =====================
+bool wifiConnecting = false;
 unsigned long wifiConnectStart = 0;
 
 #include "index_html.h"
@@ -86,21 +86,12 @@ void setup() {
 
   WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(AP_SSID, AP_PASSWORD);
-  Serial.print("[WIFI] Connecting to "); Serial.println(sta_ssid);
-  WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
-  
-  // Không dùng while() chặn ở đây nữa để tránh treo Web Server lúc khởi động
-  wifiConnectStart = millis();
-  isWifiConnecting = true;
-  lastWifiAttempt = 0;
-  
-  Serial.println("[WIFI] Dang ket noi ngam, he thong van tiep tuc hoat dong...");
   
   mqtt.setServer(MQTT_SERVER, MQTT_PORT);
   mqtt.setCallback(mqttCallback);
 
   setupWeb();
-  Serial.println("[MASTER] Started v2.");
+  Serial.println("[MASTER] Khoi dong xong. Web: 192.168.4.1 (AP Mode)");
 }
 
 void loadSettings() {
@@ -161,6 +152,8 @@ void setupWeb() {
     d["sl_on"] = led_on_time; d["sl_off"] = led_off_time;
     d["td"] = timer_drain; d["th"] = timer_heater; d["tf"] = timer_fan;
     d["ssid"] = sta_ssid; d["pass"] = sta_password;
+    d["wst"] = (WiFi.status() == WL_CONNECTED) ? 2 : (wifiConnecting ? 1 : 0);
+    d["wip"] = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
     d["cam"] = cameraIP;
     d["ir1"] = ir1; d["ir2"] = ir2; d["ir3"] = ir3; d["ir4"] = ir4;
     d["ir5"] = ir5; d["ir6"] = ir6; d["ir7"] = ir7; d["ir0"] = ir0;
@@ -210,13 +203,13 @@ void setupWeb() {
     timer_fan = d["tf"];
     cameraIP = d["cam"].as<String>();
     
-    bool wifiChanged = false;
+    bool wifiTrigger = false;
     if(d.containsKey("ssid") && d.containsKey("pass")) {
       String ns = d["ssid"].as<String>();
       String np = d["pass"].as<String>();
-      if(ns != sta_ssid || np != sta_password) {
+      if(ns.length() > 0) {
         sta_ssid = ns; sta_password = np;
-        wifiChanged = true;
+        wifiTrigger = true;
       }
     }
 
@@ -258,11 +251,13 @@ void setupWeb() {
     sendToSlave(false); // Update oxy mode
     server.send(200, "application/json", "{}");
 
-    if (wifiChanged) {
-      Serial.println("[WIFI] Credentials changed! Forcing reconnect...");
+    if (wifiTrigger) {
+      Serial.println("[WIFI] Nhan lenh ket noi tu Web! Bat co ket noi toi: " + sta_ssid);
       WiFi.disconnect();
-      isWifiConnecting = false;
-      lastWifiAttempt = millis() - 130000; // Force immediate reconnect in loop
+      WiFi.mode(WIFI_AP_STA);
+      WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
+      wifiConnecting = true;
+      wifiConnectStart = millis();
     }
   });
 
@@ -382,45 +377,38 @@ void mqttCallback(char* topic, byte* p, unsigned int len) {
 void loop() {
   unsigned long ms = millis();
 
-  // Logic kết nối lại WiFi không chặn (Non-blocking)
-  if (isWifiConnecting) {
+  // Quản lý biến cờ kết nối WiFi (Thời gian chờ tối đa 30s)
+  if (wifiConnecting) {
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.print("[WIFI] Reconnected! IP Address: ");
+      wifiConnecting = false;
+      Serial.print("[WIFI] Ket noi thanh cong! IP: ");
       Serial.println(WiFi.localIP());
       configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
-      isWifiConnecting = false;
-    } else if (ms - wifiConnectStart > 20000) {
-      Serial.println("[WIFI] Reconnect failed (20s). Back to AP-ONLY mode.");
+    } else if (ms - wifiConnectStart > 30000) {
+      wifiConnecting = false;
+      Serial.println("[WIFI] Ket noi that bai (qua 30s)! Da tat co. Dung thu ket noi de on dinh mang AP.");
       WiFi.disconnect();
-      WiFi.mode(WIFI_AP);
-      isWifiConnecting = false;
-      lastWifiAttempt = ms;
-    }
-  } else {
-    // Nếu chưa kết nối WiFi, thử kết nối lại mỗi 2 phút
-    if (WiFi.status() != WL_CONNECTED && (ms - lastWifiAttempt > 120000)) {
-      Serial.println("[WIFI] Attempting to reconnect...");
       WiFi.mode(WIFI_AP_STA);
-      WiFi.begin(sta_ssid.c_str(), sta_password.c_str());
-      wifiConnectStart = ms;
-      isWifiConnecting = true;
     }
   }
 
   server.handleClient();
-  if(!mqtt.connected()) mqttReconnect();
-  mqtt.loop();
+  
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!mqtt.connected()) mqttReconnect();
+    mqtt.loop();
+  }
   
   handleSlave();
   checkLogic();
 
-  if(millis() - lastMqttPublish >= 5000) {
+  if (millis() - lastMqttPublish >= 5000) {
     lastMqttPublish = millis();
     
     // Heartbeat để check xem có treo không
     Serial.println("[MASTER] Dang hoat dong... (Web: 192.168.4.1)");
     
-    if(mqtt.connected()) {
+    if (WiFi.status() == WL_CONNECTED && mqtt.connected()) {
       StaticJsonDocument<300> d;
       d["water_temp"]=waterTemp; d["air_temp"]=airTemp;
       d["water_cm"]=waterLevelCm; d["heater"]=heaterState;
