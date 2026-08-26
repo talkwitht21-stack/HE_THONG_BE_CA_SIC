@@ -578,7 +578,9 @@ void sendToSlave(bool feed) {
   d["pump"] = pumpState; d["oxy"] = oxyState; d["drain"] = drainState;
   d["led"] = ledState; d["oxy_mode"] = oxyModeContinuous;
   if(feed) d["feed"] = 1;
-  serializeJson(d, Serial2); Serial2.println();
+  String js; serializeJson(d, js);
+  Serial.println("[MASTER] Send to Slave: " + js);
+  Serial2.println(js);
 }
 
 // ===================== MQTT =====================
@@ -590,6 +592,7 @@ void mqttReconnect() {
 
 void mqttCallback(char* topic, byte* p, unsigned int len) {
   String msg; for(int i=0;i<len;i++) msg+=(char)p[i];
+  Serial.println("[MASTER] Nhan tu MQTT: " + msg);
   StaticJsonDocument<200> d; if(deserializeJson(d, msg)) return;
   String m = d["method"].as<String>(); bool v = d["params"].as<bool>();
   
@@ -648,6 +651,7 @@ void loop() {
       d["fan"]=fanState; d["pump"]=pumpState;
       d["oxy"]=oxyState; d["drain"]=drainState; d["led"]=ledState;
       char b[300]; serializeJson(d, b);
+      Serial.println("[MASTER] Send MQTT: " + String(b));
       mqtt.publish("v1/devices/me/telemetry", b);
     }
   }
