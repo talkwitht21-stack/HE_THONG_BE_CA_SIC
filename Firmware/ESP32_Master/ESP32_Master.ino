@@ -16,6 +16,7 @@
  */
 
 #include <WiFi.h>
+#include <ESPmDNS.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
@@ -34,6 +35,7 @@
 // ===================== CAU HINH MANG & DICH VU =====================
 String sta_ssid       = "NONNET";
 String sta_password   = "12345678";
+String host_name      = "beca"; // Ten mien Local: http://beca.local
 String cameraIP       = "";
 
 // MQTT ThingsBoard
@@ -129,6 +131,7 @@ String ir5 = "40", ir6 = "43", ir7 = "07", ir0 = "16";
 // ===================== BIEN THOI GIAN & HE THONG =====================
 unsigned long start_heater    = 0;
 unsigned long start_fan       = 0;
+unsigned long start_pump      = 0;
 unsigned long start_drain     = 0;
 unsigned long start_led       = 0;
 unsigned long start_filter    = 0;
@@ -234,6 +237,7 @@ void loop() {
 // ===================== KHOI TAO WIFI =====================
 void setupWiFi() {
   WiFi.mode(WIFI_STA);
+  WiFi.setHostname(host_name.c_str());
   Serial.print("[WIFI] Dang ket noi toi WiFi: ");
   Serial.println(sta_ssid);
 
@@ -250,7 +254,14 @@ void setupWiFi() {
   if (WiFi.status() == WL_CONNECTED) {
     digitalWrite(PIN_LED_STATUS, HIGH);
     Serial.println("\n[WIFI] DA KET NOI THANH CONG!");
-    Serial.print("[WEB]  Dia chi Web: http://"); Serial.println(WiFi.localIP());
+    Serial.print("[WEB]  Dia chi IP: http://"); Serial.println(WiFi.localIP());
+
+    // Khoi tao mDNS Local DNS: http://<host_name>.local
+    if (MDNS.begin(host_name.c_str())) {
+      MDNS.addService("http", "tcp", 80);
+      Serial.printf("[mDNS] Ten mien Local: http://%s.local\n", host_name.c_str());
+    }
+
     configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
     Serial.println("==================================================\n");
   } else {
@@ -328,6 +339,7 @@ void setupWeb() {
 
     d["ssid"]   = sta_ssid;
     d["pass"]   = sta_password;
+    d["hn"]     = host_name;
     d["cam"]    = cameraIP;
 
     d["mqe"]    = mqtt_enabled;
@@ -507,6 +519,19 @@ void setupWeb() {
 
     if (d.containsKey("cam"))    cameraIP          = d["cam"].as<String>();
 
+    if (d.containsKey("hn")) {
+      String nhn = d["hn"].as<String>();
+      nhn.trim();
+      if (nhn.length() > 0 && nhn != host_name) {
+        host_name = nhn;
+        MDNS.end();
+        if (MDNS.begin(host_name.c_str())) {
+          MDNS.addService("http", "tcp", 80);
+          Serial.printf("[mDNS] Da doi ten mien: http://%s.local\n", host_name.c_str());
+        }
+      }
+    }
+
     bool wifiChanged = false;
     if (d.containsKey("ssid") && d.containsKey("pass")) {
       String ns = d["ssid"].as<String>();
@@ -561,6 +586,7 @@ void loadSettings() {
   prefs.begin("beca", false);
   sta_ssid        = prefs.getString("ssid", "NONNET");
   sta_password    = prefs.getString("pass", "12345678");
+  host_name       = prefs.getString("hn", "beca");
   cameraIP        = prefs.getString("cam", "");
 
   mqtt_enabled    = prefs.getBool("mqe", false);
@@ -618,6 +644,7 @@ void saveSettings() {
   prefs.begin("beca", false);
   prefs.putString("ssid", sta_ssid);
   prefs.putString("pass", sta_password);
+  prefs.putString("hn", host_name);
   prefs.putString("cam", cameraIP);
 
   prefs.putBool("mqe", mqtt_enabled);
