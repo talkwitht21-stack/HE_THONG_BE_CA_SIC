@@ -71,8 +71,8 @@ bool oxyModeContinuous= false;
 
 // ===================== BIEN CAI DAT (Luu Flash) =====================
 // Nguong nhiet do
-float th_heater_on    = 24.0;
-float th_heater_off   = 28.0;
+float th_heater_on    = 18.0; // Bat suoi khi < 18.0C
+float th_heater_off   = 20.0; // Tat suoi khi >= 20.0C
 float th_fan_on       = 30.0;
 float th_fan_off      = 28.0;
 
@@ -581,8 +581,8 @@ void loadSettings() {
 
   systemEnabled   = prefs.getBool("sys", true);
 
-  th_heater_on    = prefs.getFloat("h_on", 24.0);
-  th_heater_off   = prefs.getFloat("h_off", 28.0);
+  th_heater_on    = prefs.getFloat("h_on", 18.0);
+  th_heater_off   = prefs.getFloat("h_off", 20.0);
   th_fan_on       = prefs.getFloat("f_on", 30.0);
   th_fan_off      = prefs.getFloat("f_off", 28.0);
 
