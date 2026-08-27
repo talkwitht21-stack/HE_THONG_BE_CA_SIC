@@ -821,6 +821,9 @@ void handleSlave() {
       ledState    = sl; timer_led_active    = false; if (sl) start_led    = millis();
       oxyModeContinuous = som;
       filterMode  = (sp && sd); // Dong bo filterMode khi ca 2 bom deu bat
+      filterCycleMode = false;  // Huy chu ky tu dong khi nguoi dung bam remote IR
+      timer_filter_active = false;
+      if (filterMode) start_filter = start_pump = start_drain = millis();
 
       Serial.printf("[MASTER] Nhan su kien IR tu Slave: %s -> Da dong bo relay (Filter: %d)\n", last_ir.c_str(), filterMode);
     }
