@@ -59,6 +59,7 @@ uint8_t ir_btn_4 = 0x44;
 uint8_t ir_btn_5 = 0x40;
 uint8_t ir_btn_6 = 0x43;
 uint8_t ir_btn_7 = 0x07;
+uint8_t ir_btn_8 = 0x15;
 uint8_t ir_btn_0 = 0x16;
 
 bool heaterState = false;
@@ -134,6 +135,7 @@ void setup() {
   ir_btn_5 = prefs.getUChar("ir5", 0x40);
   ir_btn_6 = prefs.getUChar("ir6", 0x43);
   ir_btn_7 = prefs.getUChar("ir7", 0x07);
+  ir_btn_8 = prefs.getUChar("ir8", 0x15);
   ir_btn_0 = prefs.getUChar("ir0", 0x16);
   prefs.end();
 
@@ -141,8 +143,8 @@ void setup() {
   IrReceiver.begin(IR_RECEIVE_PIN, DISABLE_LED_FEEDBACK);
 
   Serial.println("[SLAVE] Khoi dong v2 OK - IR san sang!");
-  Serial.printf("[SLAVE] Ma phim: 1=0x%02X 2=0x%02X 3=0x%02X 4=0x%02X 5=0x%02X 6=0x%02X 7=0x%02X 0=0x%02X\n",
-                ir_btn_1, ir_btn_2, ir_btn_3, ir_btn_4, ir_btn_5, ir_btn_6, ir_btn_7, ir_btn_0);
+  Serial.printf("[SLAVE] Ma phim: 1=0x%02X 2=0x%02X 3=0x%02X 4=0x%02X 5=0x%02X 6=0x%02X 7=0x%02X 8=0x%02X 0=0x%02X\n",
+                ir_btn_1, ir_btn_2, ir_btn_3, ir_btn_4, ir_btn_5, ir_btn_6, ir_btn_7, ir_btn_8, ir_btn_0);
 }
 
 // ===================== HÀM LOOP =====================
@@ -215,6 +217,10 @@ void handleIR() {
     } else if (command == ir_btn_7) {
       startFeeding();
       Serial.println("[SLAVE] Cho an!");
+    } else if (command == ir_btn_8) {
+      bool newFilter = !(pumpState && drainState);
+      pumpState = drainState = newFilter;
+      Serial.printf("[SLAVE] Loc Nuoc (Song song) -> %s\n", newFilter ? "BAT" : "TAT");
     } else if (command == ir_btn_0) {
       heaterState = fanState = pumpState = oxyState = drainState = ledState = false;
       oxyModeContinuous = false;
@@ -343,10 +349,11 @@ void handleMasterCommand() {
       if(doc.containsKey("ir5")) { const char* s = doc["ir5"]; if (s) { ir_btn_5 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir5", ir_btn_5); } }
       if(doc.containsKey("ir6")) { const char* s = doc["ir6"]; if (s) { ir_btn_6 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir6", ir_btn_6); } }
       if(doc.containsKey("ir7")) { const char* s = doc["ir7"]; if (s) { ir_btn_7 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir7", ir_btn_7); } }
+      if(doc.containsKey("ir8")) { const char* s = doc["ir8"]; if (s) { ir_btn_8 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir8", ir_btn_8); } }
       if(doc.containsKey("ir0")) { const char* s = doc["ir0"]; if (s) { ir_btn_0 = (uint8_t)strtoul(s, NULL, 16); prefs.putUChar("ir0", ir_btn_0); } }
       prefs.end();
-      Serial.printf("[SLAVE] Da cap nhat ma IR: 1=0x%02X 2=0x%02X 3=0x%02X 4=0x%02X 5=0x%02X 6=0x%02X 7=0x%02X 0=0x%02X\n",
-                    ir_btn_1, ir_btn_2, ir_btn_3, ir_btn_4, ir_btn_5, ir_btn_6, ir_btn_7, ir_btn_0);
+      Serial.printf("[SLAVE] Da cap nhat ma IR: 1=0x%02X 2=0x%02X 3=0x%02X 4=0x%02X 5=0x%02X 6=0x%02X 7=0x%02X 8=0x%02X 0=0x%02X\n",
+                    ir_btn_1, ir_btn_2, ir_btn_3, ir_btn_4, ir_btn_5, ir_btn_6, ir_btn_7, ir_btn_8, ir_btn_0);
       return;
     }
 

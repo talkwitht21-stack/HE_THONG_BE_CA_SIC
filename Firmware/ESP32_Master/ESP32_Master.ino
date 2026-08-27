@@ -126,7 +126,7 @@ bool systemEnabled = true; // false = tat toan bo relay, khoa khong cho bat
 
 // Ma phím IR Remote (Hex)
 String ir1 = "45", ir2 = "46", ir3 = "47", ir4 = "44";
-String ir5 = "40", ir6 = "43", ir7 = "07", ir0 = "16";
+String ir5 = "40", ir6 = "43", ir7 = "07", ir8 = "15", ir0 = "16";
 
 // ===================== BIEN THOI GIAN & HE THONG =====================
 unsigned long start_heater    = 0;
@@ -351,7 +351,7 @@ void setupWeb() {
     d["wip"]    = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
 
     d["ir1"]    = ir1; d["ir2"] = ir2; d["ir3"] = ir3; d["ir4"] = ir4;
-    d["ir5"]    = ir5; d["ir6"] = ir6; d["ir7"] = ir7; d["ir0"] = ir0;
+    d["ir5"]    = ir5; d["ir6"] = ir6; d["ir7"] = ir7; d["ir8"] = ir8; d["ir0"] = ir0;
     d["last_ir"]= last_ir;
 
     String resp;
@@ -384,30 +384,28 @@ void setupWeb() {
       if (dev == "heater") {
         heaterState = !heaterState;
         timer_heater_active = false;
-        heater_auto_triggered = false; // Nguoi dung chu dong bat/tat -> Auto khong tu y can thiep
         if (heaterState) start_heater = millis();
       }
       else if (dev == "fan") {
         fanState = !fanState;
         timer_fan_active = false;
-        fan_auto_triggered = false;
         if (fanState) start_fan = millis();
       }
       else if (dev == "pump") {
         pumpState = !pumpState;
-        if (!pumpState && filterMode) filterMode = false;
+        if (!pumpState && filterMode) { filterMode = false; timer_filter_active = false; }
       }
       else if (dev == "drain") {
         drainState = !drainState;
         timer_drain_active = false;
-        if (!drainState && filterMode) filterMode = false;
+        if (!drainState && filterMode) { filterMode = false; timer_filter_active = false; }
         if (drainState) start_drain = millis();
       }
       else if (dev == "filter") {
         filterMode = !filterMode;
         timer_filter_active = false;
         drainState = pumpState = filterMode; // Bật hoặc tắt đồng thời cả 2 bơm
-        if (filterMode) { start_drain = start_pump = millis(); }
+        if (filterMode) { start_drain = start_pump = start_filter = millis(); }
       }
       else if (dev == "led") {
         ledState = !ledState;
@@ -542,6 +540,7 @@ void setupWeb() {
     if (d.containsKey("ir5")) { ir5 = d["ir5"].as<String>(); irChanged = true; }
     if (d.containsKey("ir6")) { ir6 = d["ir6"].as<String>(); irChanged = true; }
     if (d.containsKey("ir7")) { ir7 = d["ir7"].as<String>(); irChanged = true; }
+    if (d.containsKey("ir8")) { ir8 = d["ir8"].as<String>(); irChanged = true; }
     if (d.containsKey("ir0")) { ir0 = d["ir0"].as<String>(); irChanged = true; }
 
     saveSettings();
@@ -620,6 +619,7 @@ void loadSettings() {
   ir5 = prefs.getString("ir5", "40");
   ir6 = prefs.getString("ir6", "43");
   ir7 = prefs.getString("ir7", "07");
+  ir8 = prefs.getString("ir8", "15");
   ir0 = prefs.getString("ir0", "16");
   prefs.end();
 
@@ -677,6 +677,7 @@ void saveSettings() {
   prefs.putString("ir5", ir5);
   prefs.putString("ir6", ir6);
   prefs.putString("ir7", ir7);
+  prefs.putString("ir8", ir8);
   prefs.putString("ir0", ir0);
   prefs.end();
 
@@ -736,7 +737,7 @@ void sendIRMapToSlave() {
   StaticJsonDocument<256> cmd;
   cmd["cmd"] = "ir_map";
   cmd["ir1"] = ir1; cmd["ir2"] = ir2; cmd["ir3"] = ir3; cmd["ir4"] = ir4;
-  cmd["ir5"] = ir5; cmd["ir6"] = ir6; cmd["ir7"] = ir7; cmd["ir0"] = ir0;
+  cmd["ir5"] = ir5; cmd["ir6"] = ir6; cmd["ir7"] = ir7; cmd["ir8"] = ir8; cmd["ir0"] = ir0;
 
   String js;
   serializeJson(cmd, js);
@@ -788,8 +789,9 @@ void handleSlave() {
       drainState  = sd; timer_drain_active  = false; if (sd) start_drain  = millis();
       ledState    = sl; timer_led_active    = false; if (sl) start_led    = millis();
       oxyModeContinuous = som;
+      filterMode  = (sp && sd); // Dong bo filterMode khi ca 2 bom deu bat
 
-      Serial.printf("[MASTER] Nhan su kien IR tu Slave: %s -> Da dong bo relay\n", last_ir.c_str());
+      Serial.printf("[MASTER] Nhan su kien IR tu Slave: %s -> Da dong bo relay (Filter: %d)\n", last_ir.c_str(), filterMode);
     }
 
     Serial.printf("[SLAVE -> MASTER] Nuoc=%.1fC KK=%.1fC Am=%.1f%% MucNuoc=%.1fcm\n",

@@ -246,6 +246,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="ir-row"><span class="ir-lbl">5 - Bom Rut Nuoc:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir5"><button class="ir-btn" onclick="ganIR('s-ir5')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">6 - Den LED:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir6"><button class="ir-btn" onclick="ganIR('s-ir6')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">7 - Cho An (Servo):</span><div style="display:flex;gap:6px"><input type="text" id="s-ir7"><button class="ir-btn" onclick="ganIR('s-ir7')">GAN</button></div></div>
+        <div class="ir-row"><span class="ir-lbl">8 - Loc Nuoc:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir8"><button class="ir-btn" onclick="ganIR('s-ir8')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">0 - Tat Tat Ca:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir0"><button class="ir-btn" onclick="ganIR('s-ir0')">GAN</button></div></div>
       </div>
       <button class="save-btn" onclick="saveSettings()">LUU CAI DAT</button>
@@ -435,6 +436,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             document.getElementById('s-ir5').value   = d.ir5;
             document.getElementById('s-ir6').value   = d.ir6;
             document.getElementById('s-ir7').value   = d.ir7;
+            document.getElementById('s-ir8').value   = d.ir8;
             document.getElementById('s-ir0').value   = d.ir0;
           }
         })
@@ -535,6 +537,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         ir5:    document.getElementById('s-ir5').value,
         ir6:    document.getElementById('s-ir6').value,
         ir7:    document.getElementById('s-ir7').value,
+        ir8:    document.getElementById('s-ir8').value,
         ir0:    document.getElementById('s-ir0').value
       };
       fetch('/api/set', {
