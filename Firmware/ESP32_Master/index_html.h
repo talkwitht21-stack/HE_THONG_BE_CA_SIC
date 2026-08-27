@@ -33,6 +33,8 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     .btn { padding: 8px 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; min-width: 62px; text-align: center; font-size: 0.85em; }
     .btn.on  { background: #16a34a; }
     .btn.off { background: #334155; }
+    .btn.timer-btn { background: #4f46e5; font-size: 0.78em; padding: 8px 8px; min-width: 66px; }
+    .btn.timer-btn.active { background: #9333ea; }
     .sys-btn { width: 100%; margin-bottom: 12px; padding: 12px; font-size: 0.95em; letter-spacing: 1px; }
     .feed-btn { background: #2563eb; width: 100%; padding: 13px; margin-top: 8px; font-size: 0.95em; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; }
     .timer-wrap { display: flex; align-items: center; gap: 2px; }
@@ -73,7 +75,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       <div class="card">
         <div class="card-title">Dieu Khien Thiet Bi</div>
         <button class="btn on sys-btn" id="b-sys" onclick="toggle('system')">HE THONG: BAT</button>
-        <p class="hint">Nhap Gio:Phut:Giay tu tat roi bam BAT de bat dau hen gio.</p>
+        <p class="hint">Nhap Gio:Phut:Giay roi bam HEN GIO de tu tat, hoac bam BAT/TAT de bat tat thu cong.</p>
         <div class="row">
           <div class="row-info">
             <span class="row-label">May Suoi Nhiet</span>
@@ -85,6 +87,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
               <input type="number" class="timer-input" id="th-m" min="0" max="59" value="0"><span class="timer-unit">p</span>
               <input type="number" class="timer-input" id="th-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
             </div>
+            <button class="btn timer-btn" id="bt-heater" onclick="startTimer('heater')">HEN GIO</button>
             <button class="btn off" id="b-heater" onclick="toggle('heater')">TAT</button>
           </div>
         </div>
@@ -99,6 +102,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
               <input type="number" class="timer-input" id="tf-m" min="0" max="59" value="0"><span class="timer-unit">p</span>
               <input type="number" class="timer-input" id="tf-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
             </div>
+            <button class="btn timer-btn" id="bt-fan" onclick="startTimer('fan')">HEN GIO</button>
             <button class="btn off" id="b-fan" onclick="toggle('fan')">TAT</button>
           </div>
         </div>
@@ -125,6 +129,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
               <input type="number" class="timer-input" id="td-m" min="0" max="59" value="3"><span class="timer-unit">p</span>
               <input type="number" class="timer-input" id="td-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
             </div>
+            <button class="btn timer-btn" id="bt-drain" onclick="startTimer('drain')">HEN GIO</button>
             <button class="btn off" id="b-drain" onclick="toggle('drain')">TAT</button>
           </div>
         </div>
@@ -139,6 +144,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
               <input type="number" class="timer-input" id="tl-m" min="0" max="59" value="0"><span class="timer-unit">p</span>
               <input type="number" class="timer-input" id="tl-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
             </div>
+            <button class="btn timer-btn" id="bt-led" onclick="startTimer('led')">HEN GIO</button>
             <button class="btn off" id="b-led" onclick="toggle('led')">TAT</button>
           </div>
         </div>
@@ -327,6 +333,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           ub('b-heater', d.h); ub('b-fan', d.f); ub('b-pump', d.p);
           ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-led', d.l);
 
+          // Cap nhat trang thai nut HEN GIO (Active khi dang dem lui)
+          let bth = document.getElementById('bt-heater'); if (bth) bth.className = 'btn timer-btn' + (d.th_a ? ' active' : '');
+          let btf = document.getElementById('bt-fan');    if (btf) btf.className = 'btn timer-btn' + (d.tf_a ? ' active' : '');
+          let btd = document.getElementById('bt-drain');  if (btd) btd.className = 'btn timer-btn' + (d.td_a ? ' active' : '');
+          let btl = document.getElementById('bt-led');    if (btl) btl.className = 'btn timer-btn' + (d.tl_a ? ' active' : '');
+
           // Cap nhat bo dem nguoc tu Master
           _rem.heater = d.th_r || 0;
           _rem.fan    = d.tf_r || 0;
@@ -420,6 +432,21 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
     const timerMap = { heater: {pre:'th', key:'ths'}, fan: {pre:'tf', key:'tfs'}, drain: {pre:'td', key:'tds'}, led: {pre:'tl', key:'tls'} };
 
+    function startTimer(dev) {
+      if (timerMap[dev]) {
+        let sec = hmsToSec(timerMap[dev].pre);
+        if (sec <= 0) {
+          alert('Hay nhap so Gio / Phut / Giay can hen gio truoc!');
+          return;
+        }
+        fetch('/api/timer', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({d: dev, sec: sec})
+        }).then(() => { _fetching = false; f(); });
+      }
+    }
+
     function toggle(dev) {
       if (dev === 'system') {
         sendCtrl('system');
@@ -431,19 +458,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         let b = document.getElementById(btnId[dev]);
         ub(btnId[dev], !b.classList.contains('on'));
       }
-
-      if (timerMap[dev]) {
-        let sec = hmsToSec(timerMap[dev].pre);
-        let payload = {};
-        payload[timerMap[dev].key] = sec;
-        fetch('/api/set', {
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(payload)
-        }).then(() => sendCtrl(dev));
-      } else {
-        sendCtrl(dev);
-      }
+      sendCtrl(dev);
     }
 
     function sendCtrl(dev) {
