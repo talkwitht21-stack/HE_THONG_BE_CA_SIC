@@ -457,12 +457,15 @@ void setupWeb() {
       return;
     }
 
+    unsigned long ms = millis();
+
     if (dev == "heater") {
       heaterState = true;
+      timer_heater_active = (sec > 0);
+      heater_auto_triggered = false;
       timer_heater_sec = sec;
-      timer_heater_active = true;
-      start_heater = millis();
-      saveSettings();
+      start_heater = ms;
+      Serial.printf("[TIMER] Bat Hen Gio Suoi: %u giay\n", sec);
     }
     else if (dev == "fan") {
       fanState = true;
@@ -478,11 +481,12 @@ void setupWeb() {
       start_drain = ms;
       Serial.printf("[TIMER] Bat Hen Gio Bom Rut: %u giay\n", sec);
     } else if (dev == "filter") {
+      filterCycleMode = false;
       filterMode = true;
       drainState = pumpState = true; // Chay song song ca 2 bom
       timer_filter_active = (sec > 0);
       timer_filter_sec = sec;
-      start_filter = ms;
+      start_filter = start_pump = start_drain = ms;
       Serial.printf("[TIMER] Bat Hen Gio Loc Nuoc Song Song: %u giay\n", sec);
     } else if (dev == "led") {
       ledState = true;
