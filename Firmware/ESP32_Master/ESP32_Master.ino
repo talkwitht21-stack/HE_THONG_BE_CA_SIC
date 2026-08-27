@@ -845,44 +845,39 @@ void checkLogic() {
   }
 
   // ===================== 2. AUTO LOGIC NHIET DO (KHI DUOI 35C) =====================
-  if (waterTemp > -50.0 && airTemp > -50.0 && !is_overheat && !is_empty) {
-    float tempDiff = abs(waterTemp - airTemp);
-
-    // Kiem tra do chenh lech hop ly (Plausibility check <= 15C de loc cam bien bi hong/troi)
-    if (tempDiff <= 15.0) {
-      // --- DIEU KHIEN SUOI TU DONG (Dua tren nhiet do NUOC) ---
-      if (waterTemp < th_heater_on && !heaterState && !timer_heater_active) {
+  if (waterTemp > 0.0 && waterTemp < 55.0 && !is_overheat && !is_empty) {
+    // --- DIEU KHIEN SUOI TU DONG (Dua tren nhiet do NUOC DS18B20) ---
+    if (waterTemp < th_heater_on) {
+      if (!heaterState && !timer_heater_active) {
         heaterState = true;
-        heater_auto_triggered = true; // Danh dau do he thong tu dong bat
         start_heater = ms;
         stateChanged = true;
         Serial.printf("[LOGIC AUTO] Nuoc lanh (%.1fC < %.1fC) -> Tu dong BAT Suoi\n", waterTemp, th_heater_on);
       }
-      // Chi tu dong TAT suoi neu chinh logic auto da tu bat truoc do
-      if (waterTemp >= th_heater_off && heaterState && heater_auto_triggered) {
+    } else if (waterTemp >= th_heater_off) {
+      if (heaterState) {
         heaterState = false;
-        heater_auto_triggered = false;
+        timer_heater_active = false;
         stateChanged = true;
-        Serial.printf("[LOGIC AUTO] Nuoc da am (%.1fC >= %.1fC) -> Tu dong TAT Suoi\n", waterTemp, th_heater_off);
+        Serial.printf("[LOGIC AUTO] Nuoc da du am (%.1fC >= %.1fC) -> Tu dong TAT Suoi\n", waterTemp, th_heater_off);
       }
+    }
 
-      // --- DIEU KHIEN QUAT TU DONG (Dua tren nhiet do NUOC) ---
-      if (waterTemp > th_fan_on && !fanState && !timer_fan_active) {
+    // --- DIEU KHIEN QUAT TU DONG (Dua tren nhiet do NUOC DS18B20) ---
+    if (waterTemp > th_fan_on) {
+      if (!fanState && !timer_fan_active) {
         fanState = true;
-        fan_auto_triggered = true;
         start_fan = ms;
         stateChanged = true;
         Serial.printf("[LOGIC AUTO] Nuoc nong (%.1fC > %.1fC) -> Tu dong BAT Quat\n", waterTemp, th_fan_on);
       }
-      if (waterTemp <= th_fan_off && fanState && fan_auto_triggered) {
+    } else if (waterTemp <= th_fan_off) {
+      if (fanState) {
         fanState = false;
-        fan_auto_triggered = false;
+        timer_fan_active = false;
         stateChanged = true;
-        Serial.printf("[LOGIC AUTO] Nuoc mat (%.1fC <= %.1fC) -> Tu dong TAT Quat\n", waterTemp, th_fan_off);
+        Serial.printf("[LOGIC AUTO] Nuoc da mat (%.1fC <= %.1fC) -> Tu dong TAT Quat\n", waterTemp, th_fan_off);
       }
-    } else {
-      Serial.printf("[LOGIC CANH BAO] Chenh lech nhiet do bat thuong: Nuoc=%.1fC, KK=%.1fC (Diff=%.1fC > 15C)\n",
-                    waterTemp, airTemp, tempDiff);
     }
   }
 
