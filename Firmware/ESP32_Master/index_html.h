@@ -93,7 +93,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           <div class="row-ctrl"><button class="btn off" id="b-oxy" onclick="toggle('oxy')">TAT</button></div>
         </div>
         <div class="row">
-          <span class="row-label">Bom Thay Nuoc</span>
+          <span class="row-label">Bom Rut Nuoc (Thu Cong)</span>
           <div class="row-ctrl">
             <div class="timer-wrap"><input type="number" class="timer-input" id="t-drain" min="0" max="999" value="0"><span class="timer-unit">phut</span></div>
             <button class="btn off" id="b-drain" onclick="toggle('drain')">TAT</button>
@@ -118,13 +118,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="form-group"><span>Tat Quat khi &lt;=</span><input type="number" id="s-ff" step="0.5"></div>
       </div>
       <div class="card">
-        <div class="card-title">Nguong Muc Nuoc Sieu Am (cm)</div>
+        <div class="card-title">Nguong Muc Nuoc Sieu Am (cm tu cam bien)</div>
         <div class="form-group"><span>Chieu cao be:</span><input type="number" id="s-thh" step="1"></div>
-        <div class="form-group"><span>Muc can (&lt;):</span><input type="number" id="s-twe" step="1"></div>
-        <div class="form-group"><span>Muc thap (&lt;):</span><input type="number" id="s-twl" step="1"></div>
-        <div class="form-group"><span>Muc day (&gt;=):</span><input type="number" id="s-twf" step="1"></div>
+        <div class="form-group"><span>Nuoc DAY khi &lt;=</span><input type="number" id="s-twf" step="1"></div>
+        <div class="form-group"><span>Nuoc THAP khi &gt;=</span><input type="number" id="s-twl" step="1"></div>
+        <div class="form-group"><span>Nuoc CAN khi &gt;= (Cat bom rut, tat suoi)</span><input type="number" id="s-twe" step="1"></div>
         <div class="form-group"><span>Tu dong Bom Bu:</span><select id="s-ap"><option value="1">BAT</option><option value="0">TAT</option></select></div>
-        <div class="form-group"><span>Tu dong Bom Thay:</span><select id="s-ad"><option value="1">BAT</option><option value="0">TAT</option></select></div>
       </div>
       <div class="card">
         <div class="card-title">Suc Oxy &amp; Hen Gio Den LED</div>
@@ -253,7 +252,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             document.getElementById('s-twl').value   = d.th_wl;
             document.getElementById('s-twf').value   = d.th_wf;
             document.getElementById('s-ap').value    = d.sap ? 1 : 0;
-            document.getElementById('s-ad').value    = d.sad ? 1 : 0;
             document.getElementById('s-om').value    = d.om  ? 1 : 0;
             document.getElementById('s-lm').value    = d.slm ? 1 : 0;
             document.getElementById('s-lon').value   = d.sl_on;
@@ -326,7 +324,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         th_wl:  parseFloat(document.getElementById('s-twl').value),
         th_wf:  parseFloat(document.getElementById('s-twf').value),
         sap:  document.getElementById('s-ap').value == 1,
-        sad:  document.getElementById('s-ad').value == 1,
         om:   document.getElementById('s-om').value == 1,
         slm:  document.getElementById('s-lm').value == 1,
         sl_on:  document.getElementById('s-lon').value,

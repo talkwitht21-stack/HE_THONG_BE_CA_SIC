@@ -74,13 +74,14 @@ float th_heater_off   = 28.0;
 float th_fan_on       = 30.0;
 float th_fan_off      = 28.0;
 
-// Nguong muc nuoc sieu am
+// Nguong muc nuoc sieu am (HC-SR04 do tu tren xuong)
+// Nuoc CANG DAY -> khoang cach CANG NHO
+// Nuoc CANG CAN -> khoang cach CANG LON
 float th_tank_height  = 40.0; // Chieu cao be (cm)
-float th_water_empty  = 10.0; // Khoang cach toi mat nuoc khi can (cm)
-float th_water_low    = 15.0; // Khoang cach toi mat nuoc khi thap (cm)
-float th_water_full   = 35.0; // Khoang cach toi mat nuoc khi day (cm)
+float th_water_full   = 10.0; // Khoang cach cam bien khi nuoc DAY (cm) -> Tat bom bu, dung rut nuoc
+float th_water_low    = 18.0; // Khoang cach cam bien khi nuoc THAP (cm) -> Bat bom bu tu dong
+float th_water_empty  = 28.0; // Khoang cach cam bien khi nuoc CAN NGUY HIEM (cm) -> Cat khan cap bom rut, tat suoi
 bool  auto_pump       = true;  // Tu dong bom bu
-bool  auto_drain      = true;  // Tu dong bom thay
 
 // Hen gio Den LED
 bool   led_timer_mode = false;
@@ -259,7 +260,6 @@ void setupWeb() {
     d["th_wl"]  = th_water_low;
     d["th_wf"]  = th_water_full;
     d["sap"]    = auto_pump;
-    d["sad"]    = auto_drain;
 
     d["slm"]    = led_timer_mode;
     d["sl_on"]  = led_on_time;
@@ -323,7 +323,6 @@ void setupWeb() {
     if (d.containsKey("th_wl"))  th_water_low  = d["th_wl"];
     if (d.containsKey("th_wf"))  th_water_full = d["th_wf"];
     if (d.containsKey("sap"))    auto_pump     = d["sap"];
-    if (d.containsKey("sad"))    auto_drain    = d["sad"];
 
     if (d.containsKey("om"))     oxyModeContinuous = d["om"];
     if (d.containsKey("slm"))    led_timer_mode    = d["slm"];
@@ -401,11 +400,10 @@ void loadSettings() {
   th_fan_off      = prefs.getFloat("f_off", 28.0);
 
   th_tank_height  = prefs.getFloat("th_h", 40.0);
-  th_water_empty  = prefs.getFloat("th_we", 10.0);
-  th_water_low    = prefs.getFloat("th_wl", 15.0);
-  th_water_full   = prefs.getFloat("th_wf", 35.0);
+  th_water_full   = prefs.getFloat("th_wf", 10.0);
+  th_water_low    = prefs.getFloat("th_wl", 18.0);
+  th_water_empty  = prefs.getFloat("th_we", 28.0);
   auto_pump       = prefs.getBool("ap", true);
-  auto_drain      = prefs.getBool("ad", true);
 
   oxyModeContinuous = prefs.getBool("om", false);
   led_timer_mode  = prefs.getBool("lm", false);
@@ -450,7 +448,6 @@ void saveSettings() {
   prefs.putFloat("th_wl", th_water_low);
   prefs.putFloat("th_wf", th_water_full);
   prefs.putBool("ap", auto_pump);
-  prefs.putBool("ad", auto_drain);
 
   prefs.putBool("om", oxyModeContinuous);
   prefs.putBool("lm", led_timer_mode);
@@ -623,39 +620,52 @@ void checkLogic() {
     }
   }
 
-  // 2. Logic Muc Nuoc Sieu Am (HC-SR04)
+  // 2. Logic Muc Nuoc Sieu Am (HC-SR04 do tu tren xuong)
+  // Khoang cach NHO = nuoc DAY | Khoang cach LON = nuoc CAN
   if (waterLevelCm > 0) {
-    bool is_empty = (waterLevelCm < th_water_empty);
-    bool is_low   = (waterLevelCm < th_water_low);
-    bool is_full  = (waterLevelCm >= th_water_full);
+    bool is_empty = (waterLevelCm >= th_water_empty); // Qua xa -> nuoc can NGUY HIEM
+    bool is_low   = (waterLevelCm >= th_water_low);   // Xa vua -> nuoc thap, can bom bu
+    bool is_full  = (waterLevelCm <= th_water_full);  // Rat gan -> nuoc day, dung bom bu
 
-    // Tu dong bom bu
+    // [BẢOVỆ KHẨN CẤP] Nuoc can nguy hiem:
+    // -> Cat ngay bom rut (neu dang chay) de tranh hut can be
+    // -> Tat suoi (neu dang bat) de chong chay/no thanh nhiet khi lo nuoc
+    if (is_empty) {
+      if (drainState) {
+        drainState = false;
+        stateChanged = true;
+        Serial.println("[LOGIC] !!! Nuoc CAN NGUY HIEM -> CAT KHAN CAP Bom Rut !!!");
+      }
+      if (heaterState) {
+        heaterState = false;
+        stateChanged = true;
+        Serial.println("[LOGIC] !!! Nuoc CAN NGUY HIEM -> TAT SUOI bao ve thanh nhiet !!!");
+      }
+    }
+
+    // Tu dong bom bu nuoc (chong can do bay hoi)
     if (auto_pump) {
-      if (is_empty && !pumpState) {
+      if (is_low && !pumpState) {
         pumpState = true;
         stateChanged = true;
-        Serial.println("[LOGIC] Nuoc can -> BAT Bom Bu");
+        Serial.println("[LOGIC] Nuoc thap -> BAT Bom Bu");
       } else if (is_full && pumpState) {
         pumpState = false;
         stateChanged = true;
-        Serial.println("[LOGIC] Nuoc day -> TAT Bom Bu");
+        Serial.println("[LOGIC] Nuoc day -> TAT Bom Bu (chong tran)");
       }
     }
 
-    // Tu dong bom thay
-    if (auto_drain) {
-      if (is_low && !drainState) {
-        drainState = true;
-        start_drain = ms;
-        stateChanged = true;
-        Serial.println("[LOGIC] Nuoc thap -> BAT Bom Thay");
-      } else if (is_full && drainState) {
-        drainState = false;
-        stateChanged = true;
-        Serial.println("[LOGIC] Nuoc day -> TAT Bom Thay");
-      }
+    // Bom rut nuoc (BOM THAY NUOC): Chi bat thu cong / timer, KHONG tu dong bat.
+    // He thong chi tu dong TAT (failsafe) khi nuoc cham nguong can nguy hiem (xu ly o tren).
+    // Ngoai ra: Tu dong tat khi nuoc da DAY de tranh tran khi bom bu dang chay song song
+    if (drainState && is_full) {
+      drainState = false;
+      stateChanged = true;
+      Serial.println("[LOGIC] Nuoc da DAY -> TAT Bom Rut (bao ve tran be)");
     }
   }
+
 
   // 3. Hen gio Den LED theo lich (Time Window)
   if (led_timer_mode) {
