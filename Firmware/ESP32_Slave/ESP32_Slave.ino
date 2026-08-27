@@ -79,12 +79,18 @@ const unsigned long FEED_DURATION_MS = 2000; // 2 giây
 // Logic Sục Oxy
 bool oxyModeContinuous = false; // false = chu kỳ, true = liên tục
 unsigned long oxyLastChange = 0;
-const unsigned long OXY_ON_TIME  = 5 * 60 * 1000UL;  // 5 phút
-const unsigned long OXY_OFF_TIME = 15 * 60 * 1000UL; // 15 phút
+uint16_t oxy_on_min  = 5;       // 5 phút
+uint16_t oxy_off_min = 15;      // 15 phút
 
 // Logic phím 4 (Triple press)
 unsigned long lastPress4Time = 0;
 int press4Count = 0;
+
+// Heartbeat voi Master (PING/PONG moi 15s)
+const unsigned long PING_INTERVAL_MS = 15000UL;
+unsigned long lastPingSent   = 0;
+bool          pongReceived   = true;  // true lúc đầu để không ngắt ngay khi boot
+bool          masterAlive    = true;
 
 // Giao tiếp UART
 unsigned long lastSendTime = 0;
@@ -146,6 +152,7 @@ void loop() {
   handleFeeding();
   handleOxyCycle();
   handleMasterCommand();
+  checkHeartbeat();
 
   unsigned long now = millis();
   if (now - lastSendTime >= SEND_INTERVAL_MS || forceStatusUpdate) {
@@ -249,21 +256,48 @@ void handleOxyCycle() {
   }
   
   unsigned long now = millis();
+  unsigned long onMs  = (unsigned long)oxy_on_min * 60000UL;
+  unsigned long offMs = (unsigned long)oxy_off_min * 60000UL;
+
   if (oxyState) {
-    if (now - oxyLastChange >= OXY_ON_TIME) {
+    if (now - oxyLastChange >= onMs) {
       oxyState = false;
       oxyLastChange = now;
       applyRelayStates();
       forceStatusUpdate = true;
     }
   } else {
-    if (now - oxyLastChange >= OXY_OFF_TIME) {
+    if (now - oxyLastChange >= offMs) {
       oxyState = true;
       oxyLastChange = now;
       applyRelayStates();
       forceStatusUpdate = true;
     }
   }
+}
+
+void emergencyOff() {
+  heaterState = fanState = pumpState = drainState = ledState = false;
+  oxyModeContinuous = false; // Ve che do chu ky an toan
+  applyRelayStates();
+  Serial.println("[SLAVE] !!! MAT PONG TU MASTER -> NGAT DIEN AN TOAN NGAY LAP TUC !!!");
+}
+
+void checkHeartbeat() {
+  unsigned long now = millis();
+  if (now - lastPingSent < PING_INTERVAL_MS) return;
+
+  // Neu lan ping truoc (sau 15s) chua nhan duoc PONG tu Master -> Ngat dien ngay lap tuc!
+  if (!pongReceived && masterAlive) {
+    masterAlive = false;
+    emergencyOff();
+  }
+
+  // Gui PING moi len Master
+  Serial2.println("{\"cmd\":\"ping\"}");
+  lastPingSent = now;
+  pongReceived = false;
+  Serial.println("[SLAVE -> MASTER] PING?");
 }
 
 void applyRelayStates() {
@@ -291,6 +325,14 @@ void handleMasterCommand() {
     StaticJsonDocument<512> doc;
     DeserializationError err = deserializeJson(doc, incoming);
     if (err) return;
+
+    // Nhan phan hoi PONG tu Master
+    if (doc.containsKey("cmd") && doc["cmd"].as<String>() == "pong") {
+      pongReceived = true;
+      masterAlive  = true;
+      Serial.println("[SLAVE] Da nhan PONG <- Master OK");
+      return;
+    }
 
     if (doc.containsKey("cmd") && doc["cmd"].as<String>() == "ir_map") {
       prefs.begin("beca", false);
@@ -322,6 +364,8 @@ void handleMasterCommand() {
       if (doc.containsKey("oxy_mode")) {
         oxyModeContinuous = doc["oxy_mode"].as<bool>();
       }
+      if (doc.containsKey("oo")) oxy_on_min  = doc["oo"];
+      if (doc.containsKey("of")) oxy_off_min = doc["of"];
 
       applyRelayStates();
       

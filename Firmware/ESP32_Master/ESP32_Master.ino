@@ -88,11 +88,24 @@ bool   led_timer_mode = false;
 String led_on_time    = "07:00";
 String led_off_time   = "21:00";
 
-// Timer countdown tu tat (phut). 0 = khong dung
-int timer_heater      = 0;
-int timer_fan         = 0;
-int timer_drain       = 30;
-int timer_led         = 0;
+// Timer countdown tu tat (GIAY). 0 = khong dung
+uint32_t timer_heater_sec = 0;
+uint32_t timer_fan_sec    = 0;
+uint32_t timer_drain_sec  = 180; // Mac dinh 3 phut
+uint32_t timer_led_sec    = 0;
+
+// Cau hinh chu ky Suc Oxy (phut)
+uint16_t oxy_on_min  = 5;
+uint16_t oxy_off_min = 15;
+
+// Lich hen gio cho an tu dong (toi da 3 moc/ngay, dinh dang HH:MM:SS)
+bool   feed_en_1 = false;  String feed_time_1 = "08:00:00";
+bool   feed_en_2 = false;  String feed_time_2 = "12:00:00";
+bool   feed_en_3 = false;  String feed_time_3 = "18:00:00";
+int    feed_last_min = -1; // Phut trong ngay cua lan cho an cuoi (chong trung lap)
+
+// Cong tac tong he thong
+bool systemEnabled = true; // false = tat toan bo relay, khoa khong cho bat
 
 // Ma phím IR Remote (Hex)
 String ir1 = "45", ir2 = "46", ir3 = "47", ir4 = "44";
@@ -103,6 +116,7 @@ unsigned long start_heater    = 0;
 unsigned long start_fan       = 0;
 unsigned long start_drain     = 0;
 unsigned long start_led       = 0;
+unsigned long lastSlaveContact= 0;
 
 unsigned long lastWifiAttempt = 0;
 unsigned long lastLedBlink    = 0;
@@ -235,7 +249,7 @@ void setupWeb() {
   });
 
   server.on("/api/data", HTTP_GET, []() {
-    StaticJsonDocument<768> d;
+    StaticJsonDocument<1536> d;
     d["wt"]   = waterTemp;
     d["at"]   = airTemp;
     d["ah"]   = airHum;
@@ -249,6 +263,7 @@ void setupWeb() {
     d["d"]    = drainState;
     d["l"]    = ledState;
     d["om"]   = oxyModeContinuous;
+    d["sys"]  = systemEnabled;
 
     d["sh_on"]  = th_heater_on;
     d["sh_off"] = th_heater_off;
@@ -265,10 +280,25 @@ void setupWeb() {
     d["sl_on"]  = led_on_time;
     d["sl_off"] = led_off_time;
 
-    d["th"]     = timer_heater;
-    d["tf"]     = timer_fan;
-    d["td"]     = timer_drain;
-    d["tl"]     = timer_led;
+    // Timer countdown (giay) + thoi gian con lai (giay)
+    d["ths"]  = timer_heater_sec;
+    d["tfs"]  = timer_fan_sec;
+    d["tds"]  = timer_drain_sec;
+    d["tls"]  = timer_led_sec;
+    unsigned long ms = millis();
+    d["th_r"] = (heaterState && timer_heater_sec > 0) ? (long)max(0L, (long)timer_heater_sec - (long)((ms - start_heater)/1000)) : 0;
+    d["tf_r"] = (fanState    && timer_fan_sec    > 0) ? (long)max(0L, (long)timer_fan_sec    - (long)((ms - start_fan)   /1000)) : 0;
+    d["td_r"] = (drainState  && timer_drain_sec  > 0) ? (long)max(0L, (long)timer_drain_sec  - (long)((ms - start_drain) /1000)) : 0;
+    d["tl_r"] = (ledState    && timer_led_sec    > 0) ? (long)max(0L, (long)timer_led_sec    - (long)((ms - start_led)   /1000)) : 0;
+
+    // Cau hinh chu ky Suc Oxy
+    d["oo"]   = oxy_on_min;
+    d["of"]   = oxy_off_min;
+
+    // Lich hen gio cho an
+    d["fen1"] = feed_en_1; d["ft1"] = feed_time_1;
+    d["fen2"] = feed_en_2; d["ft2"] = feed_time_2;
+    d["fen3"] = feed_en_3; d["ft3"] = feed_time_3;
 
     d["ssid"]   = sta_ssid;
     d["pass"]   = sta_password;
@@ -297,20 +327,34 @@ void setupWeb() {
     String dev = d["d"].as<String>();
     bool feed = false;
 
-    if (dev == "heater") { heaterState = !heaterState; if (heaterState) start_heater = millis(); }
-    else if (dev == "fan") { fanState = !fanState; if (fanState) start_fan = millis(); }
-    else if (dev == "pump") { pumpState = !pumpState; }
-    else if (dev == "drain") { drainState = !drainState; if (drainState) start_drain = millis(); }
-    else if (dev == "led") { ledState = !ledState; if (ledState) start_led = millis(); }
-    else if (dev == "oxy") { oxyModeContinuous = false; oxyState = !oxyState; }
-    else if (dev == "feed") { feed = true; }
+    if (dev == "system") {
+      systemEnabled = !systemEnabled;
+      if (!systemEnabled) {
+        heaterState = fanState = pumpState = drainState = ledState = false;
+        oxyModeContinuous = false;
+      }
+      saveSettings();
+    } else {
+      if (!systemEnabled && dev != "feed") {
+        // Neu he thong bi tat, chi cho phep bat lai he thong hoac cho an khan cap
+        server.send(200, "application/json", "{}");
+        return;
+      }
+      if (dev == "heater") { heaterState = !heaterState; if (heaterState) start_heater = millis(); }
+      else if (dev == "fan") { fanState = !fanState; if (fanState) start_fan = millis(); }
+      else if (dev == "pump") { pumpState = !pumpState; }
+      else if (dev == "drain") { drainState = !drainState; if (drainState) start_drain = millis(); }
+      else if (dev == "led") { ledState = !ledState; if (ledState) start_led = millis(); }
+      else if (dev == "oxy") { oxyModeContinuous = false; oxyState = !oxyState; }
+      else if (dev == "feed") { feed = true; }
+    }
 
     sendToSlave(feed);
     server.send(200, "application/json", "{}");
   });
 
   server.on("/api/set", HTTP_POST, []() {
-    StaticJsonDocument<768> d;
+    StaticJsonDocument<1024> d;
     deserializeJson(d, server.arg("plain"));
 
     if (d.containsKey("sh_on"))  th_heater_on  = d["sh_on"];
@@ -325,14 +369,26 @@ void setupWeb() {
     if (d.containsKey("sap"))    auto_pump     = d["sap"];
 
     if (d.containsKey("om"))     oxyModeContinuous = d["om"];
+    if (d.containsKey("oo"))     oxy_on_min        = d["oo"];
+    if (d.containsKey("of"))     oxy_off_min       = d["of"];
+
     if (d.containsKey("slm"))    led_timer_mode    = d["slm"];
     if (d.containsKey("sl_on"))  led_on_time       = d["sl_on"].as<String>();
     if (d.containsKey("sl_off")) led_off_time      = d["sl_off"].as<String>();
 
-    if (d.containsKey("th"))     timer_heater      = d["th"];
-    if (d.containsKey("tf"))     timer_fan         = d["tf"];
-    if (d.containsKey("td"))     timer_drain       = d["td"];
-    if (d.containsKey("tl"))     timer_led         = d["tl"];
+    if (d.containsKey("fen1"))   feed_en_1         = d["fen1"];
+    if (d.containsKey("ft1"))    feed_time_1       = d["ft1"].as<String>();
+    if (d.containsKey("fen2"))   feed_en_2         = d["fen2"];
+    if (d.containsKey("ft2"))    feed_time_2       = d["ft2"].as<String>();
+    if (d.containsKey("fen3"))   feed_en_3         = d["fen3"];
+    if (d.containsKey("ft3"))    feed_time_3       = d["ft3"].as<String>();
+
+    if (d.containsKey("ths"))    timer_heater_sec  = d["ths"];
+    if (d.containsKey("tfs"))    timer_fan_sec     = d["tfs"];
+    if (d.containsKey("tds"))    timer_drain_sec   = d["tds"];
+    if (d.containsKey("tls"))    timer_led_sec     = d["tls"];
+
+    if (d.containsKey("sys"))    systemEnabled     = d["sys"];
 
     if (d.containsKey("cam"))    cameraIP          = d["cam"].as<String>();
 
@@ -365,6 +421,8 @@ void setupWeb() {
     if (irChanged) {
       sendIRMapToSlave();
     }
+    // Cap nhat cau hinh Oxy va Relay xuong Slave
+    sendToSlave(false);
 
     server.send(200, "application/json", "{}");
 
@@ -394,6 +452,8 @@ void loadSettings() {
   mqtt_server     = prefs.getString("mqs", "demo.thingsboard.io");
   mqtt_token      = prefs.getString("mqt", "");
 
+  systemEnabled   = prefs.getBool("sys", true);
+
   th_heater_on    = prefs.getFloat("h_on", 24.0);
   th_heater_off   = prefs.getFloat("h_off", 28.0);
   th_fan_on       = prefs.getFloat("f_on", 30.0);
@@ -406,14 +466,24 @@ void loadSettings() {
   auto_pump       = prefs.getBool("ap", true);
 
   oxyModeContinuous = prefs.getBool("om", false);
+  oxy_on_min      = prefs.getUShort("oo", 5);
+  oxy_off_min     = prefs.getUShort("of", 15);
+
   led_timer_mode  = prefs.getBool("lm", false);
   led_on_time     = prefs.getString("lon", "07:00");
   led_off_time    = prefs.getString("loff", "21:00");
 
-  timer_heater    = prefs.getInt("th", 0);
-  timer_fan       = prefs.getInt("tf", 0);
-  timer_drain     = prefs.getInt("td", 30);
-  timer_led       = prefs.getInt("tl", 0);
+  feed_en_1       = prefs.getBool("fe1", false);
+  feed_time_1     = prefs.getString("ft1", "08:00:00");
+  feed_en_2       = prefs.getBool("fe2", false);
+  feed_time_2     = prefs.getString("ft2", "12:00:00");
+  feed_en_3       = prefs.getBool("fe3", false);
+  feed_time_3     = prefs.getString("ft3", "18:00:00");
+
+  timer_heater_sec= prefs.getUInt("ths", 0);
+  timer_fan_sec   = prefs.getUInt("tfs", 0);
+  timer_drain_sec = prefs.getUInt("tds", 180);
+  timer_led_sec   = prefs.getUInt("tls", 0);
 
   ir1 = prefs.getString("ir1", "45");
   ir2 = prefs.getString("ir2", "46");
@@ -438,6 +508,8 @@ void saveSettings() {
   prefs.putString("mqs", mqtt_server);
   prefs.putString("mqt", mqtt_token);
 
+  prefs.putBool("sys", systemEnabled);
+
   prefs.putFloat("h_on", th_heater_on);
   prefs.putFloat("h_off", th_heater_off);
   prefs.putFloat("f_on", th_fan_on);
@@ -450,14 +522,24 @@ void saveSettings() {
   prefs.putBool("ap", auto_pump);
 
   prefs.putBool("om", oxyModeContinuous);
+  prefs.putUShort("oo", oxy_on_min);
+  prefs.putUShort("of", oxy_off_min);
+
   prefs.putBool("lm", led_timer_mode);
   prefs.putString("lon", led_on_time);
   prefs.putString("loff", led_off_time);
 
-  prefs.putInt("th", timer_heater);
-  prefs.putInt("tf", timer_fan);
-  prefs.putInt("td", timer_drain);
-  prefs.putInt("tl", timer_led);
+  prefs.putBool("fe1", feed_en_1);
+  prefs.putString("ft1", feed_time_1);
+  prefs.putBool("fe2", feed_en_2);
+  prefs.putString("ft2", feed_time_2);
+  prefs.putBool("fe3", feed_en_3);
+  prefs.putString("ft3", feed_time_3);
+
+  prefs.putUInt("ths", timer_heater_sec);
+  prefs.putUInt("tfs", timer_fan_sec);
+  prefs.putUInt("tds", timer_drain_sec);
+  prefs.putUInt("tls", timer_led_sec);
 
   prefs.putString("ir1", ir1);
   prefs.putString("ir2", ir2);
@@ -511,6 +593,8 @@ void sendToSlave(bool feed) {
   d["drain"]    = drainState;
   d["led"]      = ledState;
   d["oxy_mode"] = oxyModeContinuous;
+  d["oo"]       = oxy_on_min;
+  d["of"]       = oxy_off_min;
   if (feed) d["feed"] = true;
 
   String js;
@@ -539,6 +623,16 @@ void handleSlave() {
 
     StaticJsonDocument<512> d;
     if (deserializeJson(d, s)) return;
+
+    // Kiem tra neu Slave gui PING Heartbeat (kiem tra 15s)
+    if (d.containsKey("cmd") && d["cmd"].as<String>() == "ping") {
+      Serial2.println("{\"cmd\":\"pong\"}");
+      lastSlaveContact = millis();
+      Serial.println("[MASTER] Nhan PING tu Slave -> Da tra PONG ngay lap tuc");
+      return;
+    }
+
+    lastSlaveContact = millis();
 
     waterTemp     = d["water_temp"];
     airTemp       = d["air_temp"];
@@ -574,6 +668,17 @@ void handleSlave() {
 void checkLogic() {
   bool stateChanged = false;
   unsigned long ms = millis();
+
+  // 0. Neu HE THONG BI TAT (Kill Switch), khoa tat ca relay
+  if (!systemEnabled) {
+    if (heaterState || fanState || pumpState || drainState || ledState) {
+      heaterState = fanState = pumpState = drainState = ledState = false;
+      oxyModeContinuous = false;
+      sendToSlave(false);
+      Serial.println("[LOGIC] He thong dang bi KHOA -> Tat tat ca relay");
+    }
+    return;
+  }
 
   // 1. Cross-check Nhiet Do (Chi chay khi CA 2 cam bien hop le, loc ca -999 lan -127)
   if (waterTemp > -50.0 && airTemp > -50.0) {
@@ -627,7 +732,7 @@ void checkLogic() {
     bool is_low   = (waterLevelCm >= th_water_low);   // Xa vua -> nuoc thap, can bom bu
     bool is_full  = (waterLevelCm <= th_water_full);  // Rat gan -> nuoc day, dung bom bu
 
-    // [BẢOVỆ KHẨN CẤP] Nuoc can nguy hiem:
+    // [BẢO VỆ KHẨN CẤP] Nuoc can nguy hiem:
     // -> Cat ngay bom rut (neu dang chay) de tranh hut can be
     // -> Tat suoi (neu dang bat) de chong chay/no thanh nhiet khi lo nuoc
     if (is_empty) {
@@ -657,7 +762,6 @@ void checkLogic() {
     }
 
     // Bom rut nuoc (BOM THAY NUOC): Chi bat thu cong / timer, KHONG tu dong bat.
-    // He thong chi tu dong TAT (failsafe) khi nuoc cham nguong can nguy hiem (xu ly o tren).
     // Ngoai ra: Tu dong tat khi nuoc da DAY de tranh tran khi bom bu dang chay song song
     if (drainState && is_full) {
       drainState = false;
@@ -665,7 +769,6 @@ void checkLogic() {
       Serial.println("[LOGIC] Nuoc da DAY -> TAT Bom Rut (bao ve tran be)");
     }
   }
-
 
   // 3. Hen gio Den LED theo lich (Time Window)
   if (led_timer_mode) {
@@ -686,23 +789,54 @@ void checkLogic() {
     }
   }
 
-  // 4. Timer Countdown tu tat
-  if (timer_heater > 0 && heaterState && (ms - start_heater >= timer_heater * 60000UL)) {
+  // 4. Hen gio Cho An Tu Dong (3 moc/ngay)
+  struct tm ti;
+  if (getLocalTime(&ti)) {
+    int curTotalMin = ti.tm_hour * 60 + ti.tm_min;
+    int curSec = ti.tm_sec;
+
+    auto checkFeed = [&](bool en, String tStr, int slot) {
+      if (!en) return;
+      int colon1 = tStr.indexOf(':');
+      if (colon1 == -1) return;
+      int colon2 = tStr.indexOf(':', colon1 + 1);
+      int h = tStr.substring(0, colon1).toInt();
+      int m = (colon2 != -1) ? tStr.substring(colon1 + 1, colon2).toInt() : tStr.substring(colon1 + 1).toInt();
+      int s = (colon2 != -1) ? tStr.substring(colon2 + 1).toInt() : 0;
+
+      int fMin = h * 60 + m;
+      if (curTotalMin == fMin && curSec >= s && curSec < s + 10 && feed_last_min != fMin) {
+        feed_last_min = fMin;
+        sendToSlave(true);
+        Serial.printf("[LOGIC] Hen gio Cho An Buoi %d (%02d:%02d:%02d) -> Kich hoat Servo\n", slot, h, m, s);
+      }
+    };
+
+    checkFeed(feed_en_1, feed_time_1, 1);
+    checkFeed(feed_en_2, feed_time_2, 2);
+    checkFeed(feed_en_3, feed_time_3, 3);
+
+    // Reset co qua ngay moi luc 00:00
+    if (curTotalMin == 0 && curSec < 5) feed_last_min = -1;
+  }
+
+  // 5. Timer Countdown tu tat (GIAY)
+  if (timer_heater_sec > 0 && heaterState && (ms - start_heater >= timer_heater_sec * 1000UL)) {
     heaterState = false;
     stateChanged = true;
     Serial.println("[LOGIC] Suoi het timer -> TAT");
   }
-  if (timer_fan > 0 && fanState && (ms - start_fan >= timer_fan * 60000UL)) {
+  if (timer_fan_sec > 0 && fanState && (ms - start_fan >= timer_fan_sec * 1000UL)) {
     fanState = false;
     stateChanged = true;
     Serial.println("[LOGIC] Quat het timer -> TAT");
   }
-  if (timer_drain > 0 && drainState && (ms - start_drain >= timer_drain * 60000UL)) {
+  if (timer_drain_sec > 0 && drainState && (ms - start_drain >= timer_drain_sec * 1000UL)) {
     drainState = false;
     stateChanged = true;
-    Serial.println("[LOGIC] Bom thay het timer -> TAT");
+    Serial.println("[LOGIC] Bom rut het timer -> TAT");
   }
-  if (timer_led > 0 && ledState && !led_timer_mode && (ms - start_led >= timer_led * 60000UL)) {
+  if (timer_led_sec > 0 && ledState && !led_timer_mode && (ms - start_led >= timer_led_sec * 1000UL)) {
     ledState = false;
     stateChanged = true;
     Serial.println("[LOGIC] Den LED het timer -> TAT");

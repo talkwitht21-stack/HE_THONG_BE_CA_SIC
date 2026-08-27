@@ -26,15 +26,18 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     .val { font-size: 1.4em; font-weight: bold; color: #f8fafc; }
     .lbl { font-size: 0.72em; color: #64748b; margin-top: 4px; }
     .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 9px 10px; background: #0f172a; border-radius: 8px; border: 1px solid #1e293b; }
-    .row-label { font-size: 0.88em; color: #cbd5e1; flex: 1; }
-    .row-ctrl { display: flex; align-items: center; gap: 7px; }
-    .btn { padding: 8px 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; min-width: 66px; text-align: center; font-size: 0.87em; }
+    .row-info { flex: 1; display: flex; flex-direction: column; }
+    .row-label { font-size: 0.88em; color: #cbd5e1; font-weight: 600; }
+    .countdown-lbl { font-size: 0.72em; color: #38bdf8; margin-top: 2px; }
+    .row-ctrl { display: flex; align-items: center; gap: 6px; }
+    .btn { padding: 8px 14px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: white; min-width: 62px; text-align: center; font-size: 0.85em; }
     .btn.on  { background: #16a34a; }
     .btn.off { background: #334155; }
+    .sys-btn { width: 100%; margin-bottom: 12px; padding: 12px; font-size: 0.95em; letter-spacing: 1px; }
     .feed-btn { background: #2563eb; width: 100%; padding: 13px; margin-top: 8px; font-size: 0.95em; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; }
-    .timer-wrap { display: flex; align-items: center; gap: 3px; }
-    .timer-input { width: 46px; padding: 6px 4px; background: #1e293b; border: 1px solid #334155; color: #38bdf8; border-radius: 5px; text-align: center; font-size: 0.83em; }
-    .timer-unit { font-size: 0.7em; color: #475569; }
+    .timer-wrap { display: flex; align-items: center; gap: 2px; }
+    .timer-input { width: 34px; padding: 5px 2px; background: #1e293b; border: 1px solid #334155; color: #38bdf8; border-radius: 4px; text-align: center; font-size: 0.8em; }
+    .timer-unit { font-size: 0.68em; color: #64748b; margin-right: 2px; }
     .form-group { margin-bottom: 9px; display: flex; justify-content: space-between; align-items: center; font-size: 0.88em; }
     .form-group input { width: 88px; padding: 6px 8px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 5px; text-align: center; }
     .form-group input.wide { width: 175px; text-align: left; }
@@ -44,7 +47,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     .ir-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
     .ir-row input { width: 52px; padding: 5px 6px; background: #0f172a; border: 1px solid #334155; color: #38bdf8; border-radius: 4px; text-align: center; font-size: 0.88em; font-weight: bold; }
     .ir-btn { padding: 5px 10px; background: #1d4ed8; border: none; border-radius: 4px; color: white; font-size: 0.78em; font-weight: bold; cursor: pointer; }
-    .hint { font-size: 0.72em; color: #475569; margin-top: -6px; margin-bottom: 10px; }
+    .hint { font-size: 0.72em; color: #64748b; margin-top: -4px; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -62,47 +65,80 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           <div class="box"><div class="val" id="v-wt">--</div><div class="lbl">Nhiet Do Nuoc (C)</div></div>
           <div class="box"><div class="val" id="v-at">--</div><div class="lbl">Nhiet Do KKhi (C)</div></div>
           <div class="box"><div class="val" id="v-ah">--</div><div class="lbl">Do Am KKhi (%)</div></div>
-          <div class="box"><div class="val" id="v-wl">--</div><div class="lbl">Muc Nuoc (cm)</div></div>
+          <div class="box"><div class="val" id="v-wl">--</div><div class="lbl">Muc nuoc cach mat be (cm)</div></div>
           <div class="box"><div class="val" id="v-time" style="font-size:1.1em">--:--</div><div class="lbl">Gio He Thong</div></div>
           <div class="box"><div class="val" id="v-net" style="font-size:0.9em;color:#22c55e">ONLINE</div><div class="lbl">Ket Noi Web</div></div>
         </div>
       </div>
       <div class="card">
         <div class="card-title">Dieu Khien Thiet Bi</div>
-        <p class="hint">So phut tu tat (0 = khong dung). Nhap so phut roi bam BAT de kich hoat hen gio.</p>
+        <button class="btn on sys-btn" id="b-sys" onclick="toggle('system')">HE THONG: BAT</button>
+        <p class="hint">Nhap Gio:Phut:Giay tu tat roi bam BAT de bat dau hen gio.</p>
         <div class="row">
-          <span class="row-label">May Suoi Nhiet</span>
+          <div class="row-info">
+            <span class="row-label">May Suoi Nhiet</span>
+            <span class="countdown-lbl" id="c-heater"></span>
+          </div>
           <div class="row-ctrl">
-            <div class="timer-wrap"><input type="number" class="timer-input" id="t-heater" min="0" max="999" value="0"><span class="timer-unit">phut</span></div>
+            <div class="timer-wrap">
+              <input type="number" class="timer-input" id="th-h" min="0" max="99" value="0"><span class="timer-unit">g</span>
+              <input type="number" class="timer-input" id="th-m" min="0" max="59" value="0"><span class="timer-unit">p</span>
+              <input type="number" class="timer-input" id="th-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
+            </div>
             <button class="btn off" id="b-heater" onclick="toggle('heater')">TAT</button>
           </div>
         </div>
         <div class="row">
-          <span class="row-label">Quat Lam Mat</span>
+          <div class="row-info">
+            <span class="row-label">Quat Lam Mat</span>
+            <span class="countdown-lbl" id="c-fan"></span>
+          </div>
           <div class="row-ctrl">
-            <div class="timer-wrap"><input type="number" class="timer-input" id="t-fan" min="0" max="999" value="0"><span class="timer-unit">phut</span></div>
+            <div class="timer-wrap">
+              <input type="number" class="timer-input" id="tf-h" min="0" max="99" value="0"><span class="timer-unit">g</span>
+              <input type="number" class="timer-input" id="tf-m" min="0" max="59" value="0"><span class="timer-unit">p</span>
+              <input type="number" class="timer-input" id="tf-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
+            </div>
             <button class="btn off" id="b-fan" onclick="toggle('fan')">TAT</button>
           </div>
         </div>
         <div class="row">
-          <span class="row-label">Bom Bu Nuoc</span>
+          <div class="row-info">
+            <span class="row-label">Bom Bu Nuoc</span>
+          </div>
           <div class="row-ctrl"><button class="btn off" id="b-pump" onclick="toggle('pump')">TAT</button></div>
         </div>
         <div class="row">
-          <span class="row-label">Suc Oxy (<span id="oxy-mode-lbl">Chu ky</span>)</span>
+          <div class="row-info">
+            <span class="row-label">Suc Oxy (<span id="oxy-mode-lbl">Chu ky</span>)</span>
+          </div>
           <div class="row-ctrl"><button class="btn off" id="b-oxy" onclick="toggle('oxy')">TAT</button></div>
         </div>
         <div class="row">
-          <span class="row-label">Bom Rut Nuoc (Thu Cong)</span>
+          <div class="row-info">
+            <span class="row-label">Bom Rut Nuoc (Thu Cong)</span>
+            <span class="countdown-lbl" id="c-drain"></span>
+          </div>
           <div class="row-ctrl">
-            <div class="timer-wrap"><input type="number" class="timer-input" id="t-drain" min="0" max="999" value="0"><span class="timer-unit">phut</span></div>
+            <div class="timer-wrap">
+              <input type="number" class="timer-input" id="td-h" min="0" max="99" value="0"><span class="timer-unit">g</span>
+              <input type="number" class="timer-input" id="td-m" min="0" max="59" value="3"><span class="timer-unit">p</span>
+              <input type="number" class="timer-input" id="td-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
+            </div>
             <button class="btn off" id="b-drain" onclick="toggle('drain')">TAT</button>
           </div>
         </div>
         <div class="row">
-          <span class="row-label">Den LED Chieu Sang</span>
+          <div class="row-info">
+            <span class="row-label">Den LED Chieu Sang</span>
+            <span class="countdown-lbl" id="c-led"></span>
+          </div>
           <div class="row-ctrl">
-            <div class="timer-wrap"><input type="number" class="timer-input" id="t-led" min="0" max="999" value="0"><span class="timer-unit">phut</span></div>
+            <div class="timer-wrap">
+              <input type="number" class="timer-input" id="tl-h" min="0" max="99" value="0"><span class="timer-unit">g</span>
+              <input type="number" class="timer-input" id="tl-m" min="0" max="59" value="0"><span class="timer-unit">p</span>
+              <input type="number" class="timer-input" id="tl-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
+            </div>
             <button class="btn off" id="b-led" onclick="toggle('led')">TAT</button>
           </div>
         </div>
@@ -118,7 +154,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="form-group"><span>Tat Quat khi &lt;=</span><input type="number" id="s-ff" step="0.5"></div>
       </div>
       <div class="card">
-        <div class="card-title">Nguong Muc Nuoc Sieu Am (cm tu cam bien)</div>
+        <div class="card-title">Nguong Muc Nuoc (cm cach mat be)</div>
         <div class="form-group"><span>Chieu cao be:</span><input type="number" id="s-thh" step="1"></div>
         <div class="form-group"><span>Nuoc DAY khi &lt;=</span><input type="number" id="s-twf" step="1"></div>
         <div class="form-group"><span>Nuoc THAP khi &gt;=</span><input type="number" id="s-twl" step="1"></div>
@@ -126,11 +162,40 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="form-group"><span>Tu dong Bom Bu:</span><select id="s-ap"><option value="1">BAT</option><option value="0">TAT</option></select></div>
       </div>
       <div class="card">
-        <div class="card-title">Suc Oxy &amp; Hen Gio Den LED</div>
-        <div class="form-group"><span>Che do Suc Oxy:</span><select id="s-om"><option value="0">Chu ky (5p/15p)</option><option value="1">Lien tuc</option></select></div>
-        <div class="form-group"><span>Hen gio Den LED:</span><select id="s-lm"><option value="0">TAT</option><option value="1">BAT</option></select></div>
+        <div class="card-title">Suc Oxy</div>
+        <div class="form-group"><span>Che do Suc Oxy:</span><select id="s-om"><option value="0">Chu ky</option><option value="1">Lien tuc</option></select></div>
+        <div class="form-group"><span>Thoi gian BAT (phut):</span><input type="number" id="s-oo" min="1" max="999" step="1"></div>
+        <div class="form-group"><span>Thoi gian TAT (phut):</span><input type="number" id="s-of" min="1" max="999" step="1"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Hen Gio Den LED</div>
+        <div class="form-group"><span>Kich hoat Hen gio:</span><select id="s-lm"><option value="0">TAT</option><option value="1">BAT</option></select></div>
         <div class="form-group"><span>Den Bat luc:</span><input type="time" id="s-lon"></div>
         <div class="form-group"><span>Den Tat luc:</span><input type="time" id="s-loff"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Hen Gio Cho An Tu Dong (HH:MM:SS)</div>
+        <div class="form-group">
+          <span>Buoi 1:</span>
+          <div style="display:flex;gap:6px">
+            <select id="s-fe1" style="width:75px"><option value="0">TAT</option><option value="1">BAT</option></select>
+            <input type="text" id="s-ft1" style="width:85px" placeholder="08:00:00">
+          </div>
+        </div>
+        <div class="form-group">
+          <span>Buoi 2:</span>
+          <div style="display:flex;gap:6px">
+            <select id="s-fe2" style="width:75px"><option value="0">TAT</option><option value="1">BAT</option></select>
+            <input type="text" id="s-ft2" style="width:85px" placeholder="12:00:00">
+          </div>
+        </div>
+        <div class="form-group">
+          <span>Buoi 3:</span>
+          <div style="display:flex;gap:6px">
+            <select id="s-fe3" style="width:75px"><option value="0">TAT</option><option value="1">BAT</option></select>
+            <input type="text" id="s-ft3" style="width:85px" placeholder="18:00:00">
+          </div>
+        </div>
       </div>
       <div class="card">
         <div class="card-title">Ket Noi WiFi</div>
@@ -156,7 +221,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="ir-row"><span class="ir-lbl">2 - Quat Lam Mat:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir2"><button class="ir-btn" onclick="ganIR('s-ir2')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">3 - Bom Bu Nuoc:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir3"><button class="ir-btn" onclick="ganIR('s-ir3')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">4 - Suc Oxy:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir4"><button class="ir-btn" onclick="ganIR('s-ir4')">GAN</button></div></div>
-        <div class="ir-row"><span class="ir-lbl">5 - Bom Thay Nuoc:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir5"><button class="ir-btn" onclick="ganIR('s-ir5')">GAN</button></div></div>
+        <div class="ir-row"><span class="ir-lbl">5 - Bom Rut Nuoc:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir5"><button class="ir-btn" onclick="ganIR('s-ir5')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">6 - Den LED:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir6"><button class="ir-btn" onclick="ganIR('s-ir6')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">7 - Cho An (Servo):</span><div style="display:flex;gap:6px"><input type="text" id="s-ir7"><button class="ir-btn" onclick="ganIR('s-ir7')">GAN</button></div></div>
         <div class="ir-row"><span class="ir-lbl">0 - Tat Tat Ca:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir0"><button class="ir-btn" onclick="ganIR('s-ir0')">GAN</button></div></div>
@@ -168,6 +233,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     let _fetching = false;
     let _currentTab = 'dash';
     let _settingsLoaded = false;
+    let _rem = { heater: 0, fan: 0, drain: 0, led: 0 };
 
     function switchTab(id, el) {
       _currentTab = id;
@@ -191,6 +257,46 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       }
     }
 
+    function formatSec(s) {
+      if (s <= 0) return '';
+      let h = Math.floor(s / 3600);
+      let m = Math.floor((s % 3600) / 60);
+      let sec = s % 60;
+      let pad = (n) => n < 10 ? '0' + n : n;
+      if (h > 0) return '(con: ' + pad(h) + ':' + pad(m) + ':' + pad(sec) + ')';
+      return '(con: ' + pad(m) + ':' + pad(sec) + ')';
+    }
+
+    // Tick dem nguoc client-side moi giay
+    setInterval(() => {
+      ['heater', 'fan', 'drain', 'led'].forEach(k => {
+        if (_rem[k] > 0) {
+          _rem[k]--;
+          let el = document.getElementById('c-' + k);
+          if (el) el.textContent = formatSec(_rem[k]);
+        } else {
+          let el = document.getElementById('c-' + k);
+          if (el) el.textContent = '';
+        }
+      });
+    }, 1000);
+
+    function secToHms(totalSec, pre) {
+      let h = Math.floor(totalSec / 3600);
+      let m = Math.floor((totalSec % 3600) / 60);
+      let s = totalSec % 60;
+      if (document.getElementById(pre + '-h')) document.getElementById(pre + '-h').value = h;
+      if (document.getElementById(pre + '-m')) document.getElementById(pre + '-m').value = m;
+      if (document.getElementById(pre + '-s')) document.getElementById(pre + '-s').value = s;
+    }
+
+    function hmsToSec(pre) {
+      let h = parseInt(document.getElementById(pre + '-h').value) || 0;
+      let m = parseInt(document.getElementById(pre + '-m').value) || 0;
+      let s = parseInt(document.getElementById(pre + '-s').value) || 0;
+      return h * 3600 + m * 60 + s;
+    }
+
     function f(forceSettings) {
       if (_fetching) return;
       _fetching = true;
@@ -210,9 +316,26 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           document.getElementById('v-time').textContent = d.time;
           document.getElementById('oxy-mode-lbl').textContent = d.om ? 'Lien tuc' : 'Chu ky';
 
-          // Relay
+          // Cong tac tong he thong
+          let bSys = document.getElementById('b-sys');
+          if (bSys) {
+            bSys.textContent = d.sys ? 'HE THONG: BAT' : 'HE THONG: TAT';
+            bSys.className = 'btn sys-btn ' + (d.sys ? 'on' : 'off');
+          }
+
+          // Relay buttons
           ub('b-heater', d.h); ub('b-fan', d.f); ub('b-pump', d.p);
           ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-led', d.l);
+
+          // Cap nhat bo dem nguoc tu Master
+          _rem.heater = d.th_r || 0;
+          _rem.fan    = d.tf_r || 0;
+          _rem.drain  = d.td_r || 0;
+          _rem.led    = d.tl_r || 0;
+          ['heater', 'fan', 'drain', 'led'].forEach(k => {
+            let el = document.getElementById('c-' + k);
+            if (el) el.textContent = formatSec(_rem[k]);
+          });
 
           // WiFi
           let wstEl = document.getElementById('s-wst');
@@ -226,21 +349,20 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           else if (d.mqc) { mqEl.textContent = 'Da ket noi';   mqEl.style.color = '#22c55e'; }
           else            { mqEl.textContent = 'Chua ket noi'; mqEl.style.color = '#f59e0b'; }
 
-          // Last IR (luon cap nhat de nguoi dung thay ma phiem vua bam)
+          // Last IR
           if (d.last_ir && d.last_ir.length > 0) {
             document.getElementById('s-last-ir').textContent = d.last_ir;
           }
 
-          // Cap nhat Timer Dashboard neu khong dang go
+          // Cap nhat Timer Dashboard neu khong dang go focus
           if (_currentTab === 'dash' && !document.querySelector('.timer-input:focus')) {
-            if (document.getElementById('t-heater')) document.getElementById('t-heater').value = d.th;
-            if (document.getElementById('t-fan'))    document.getElementById('t-fan').value    = d.tf;
-            if (document.getElementById('t-drain'))  document.getElementById('t-drain').value  = d.td;
-            if (document.getElementById('t-led'))    document.getElementById('t-led').value    = d.tl;
+            secToHms(d.ths, 'th');
+            secToHms(d.tfs, 'tf');
+            secToHms(d.tds, 'td');
+            secToHms(d.tls, 'tl');
           }
 
-          // Cap nhat Settings inputs: CHI cap nhat lan dau hoac sau khi Luu
-          // KHONG tu y ghi de khi dang o Tab Cai Dat de tranh mat ma IR vua gan!
+          // Cap nhat Settings inputs khi vao tab lan dau hoac sau khi luu
           if (!_settingsLoaded || forceSettings) {
             _settingsLoaded = true;
             document.getElementById('s-ho').value    = d.sh_on;
@@ -252,16 +374,29 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             document.getElementById('s-twl').value   = d.th_wl;
             document.getElementById('s-twf').value   = d.th_wf;
             document.getElementById('s-ap').value    = d.sap ? 1 : 0;
+            
             document.getElementById('s-om').value    = d.om  ? 1 : 0;
+            document.getElementById('s-oo').value    = d.oo  || 5;
+            document.getElementById('s-of').value    = d.of  || 15;
+
             document.getElementById('s-lm').value    = d.slm ? 1 : 0;
             document.getElementById('s-lon').value   = d.sl_on;
             document.getElementById('s-loff').value  = d.sl_off;
+
+            document.getElementById('s-fe1').value   = d.fen1 ? 1 : 0;
+            document.getElementById('s-ft1').value   = d.ft1  || '08:00:00';
+            document.getElementById('s-fe2').value   = d.fen2 ? 1 : 0;
+            document.getElementById('s-ft2').value   = d.ft2  || '12:00:00';
+            document.getElementById('s-fe3').value   = d.fen3 ? 1 : 0;
+            document.getElementById('s-ft3').value   = d.ft3  || '18:00:00';
+
             document.getElementById('s-ssid').value  = d.ssid;
             document.getElementById('s-pass').value  = d.pass;
             document.getElementById('s-cam').value   = d.cam;
             document.getElementById('s-mqe').value   = d.mqe ? 1 : 0;
             document.getElementById('s-mqs').value   = d.mqs;
             document.getElementById('s-mqt').value   = d.mqt;
+
             document.getElementById('s-ir1').value   = d.ir1;
             document.getElementById('s-ir2').value   = d.ir2;
             document.getElementById('s-ir3').value   = d.ir3;
@@ -278,23 +413,29 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
     function ub(id, s) {
       let b = document.getElementById(id);
+      if (!b) return;
       b.textContent = s ? 'BAT' : 'TAT';
       b.className   = 'btn ' + (s ? 'on' : 'off');
     }
 
-    const timerKey = { heater: {inp:'t-heater', key:'th'}, fan: {inp:'t-fan', key:'tf'}, drain: {inp:'t-drain', key:'td'}, led: {inp:'t-led', key:'tl'} };
+    const timerMap = { heater: {pre:'th', key:'ths'}, fan: {pre:'tf', key:'tfs'}, drain: {pre:'td', key:'tds'}, led: {pre:'tl', key:'tls'} };
 
     function toggle(dev) {
+      if (dev === 'system') {
+        sendCtrl('system');
+        return;
+      }
+
       const btnId = {heater:'b-heater', fan:'b-fan', pump:'b-pump', oxy:'b-oxy', drain:'b-drain', led:'b-led'};
       if (btnId[dev]) {
         let b = document.getElementById(btnId[dev]);
         ub(btnId[dev], !b.classList.contains('on'));
       }
 
-      if (timerKey[dev]) {
-        let tVal = parseInt(document.getElementById(timerKey[dev].inp).value) || 0;
+      if (timerMap[dev]) {
+        let sec = hmsToSec(timerMap[dev].pre);
         let payload = {};
-        payload[timerKey[dev].key] = tVal;
+        payload[timerMap[dev].key] = sec;
         fetch('/api/set', {
           method:'POST',
           headers:{'Content-Type':'application/json'},
@@ -323,29 +464,43 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         th_we:  parseFloat(document.getElementById('s-twe').value),
         th_wl:  parseFloat(document.getElementById('s-twl').value),
         th_wf:  parseFloat(document.getElementById('s-twf').value),
-        sap:  document.getElementById('s-ap').value == 1,
-        om:   document.getElementById('s-om').value == 1,
-        slm:  document.getElementById('s-lm').value == 1,
+        sap:    document.getElementById('s-ap').value == 1,
+        
+        om:     document.getElementById('s-om').value == 1,
+        oo:     parseInt(document.getElementById('s-oo').value) || 5,
+        of:     parseInt(document.getElementById('s-of').value) || 15,
+
+        slm:    document.getElementById('s-lm').value == 1,
         sl_on:  document.getElementById('s-lon').value,
         sl_off: document.getElementById('s-loff').value,
-        th: parseInt(document.getElementById('t-heater').value) || 0,
-        tf: parseInt(document.getElementById('t-fan').value)    || 0,
-        td: parseInt(document.getElementById('t-drain').value)  || 0,
-        tl: parseInt(document.getElementById('t-led').value)    || 0,
-        ssid: document.getElementById('s-ssid').value,
-        pass: document.getElementById('s-pass').value,
-        cam:  document.getElementById('s-cam').value,
-        mqe:  document.getElementById('s-mqe').value == 1,
-        mqs:  document.getElementById('s-mqs').value,
-        mqt:  document.getElementById('s-mqt').value,
-        ir1:  document.getElementById('s-ir1').value,
-        ir2:  document.getElementById('s-ir2').value,
-        ir3:  document.getElementById('s-ir3').value,
-        ir4:  document.getElementById('s-ir4').value,
-        ir5:  document.getElementById('s-ir5').value,
-        ir6:  document.getElementById('s-ir6').value,
-        ir7:  document.getElementById('s-ir7').value,
-        ir0:  document.getElementById('s-ir0').value
+
+        fen1:   document.getElementById('s-fe1').value == 1,
+        ft1:    document.getElementById('s-ft1').value,
+        fen2:   document.getElementById('s-fe2').value == 1,
+        ft2:    document.getElementById('s-ft2').value,
+        fen3:   document.getElementById('s-fe3').value == 1,
+        ft3:    document.getElementById('s-ft3').value,
+
+        ths:    hmsToSec('th'),
+        tfs:    hmsToSec('tf'),
+        tds:    hmsToSec('td'),
+        tls:    hmsToSec('tl'),
+
+        ssid:   document.getElementById('s-ssid').value,
+        pass:   document.getElementById('s-pass').value,
+        cam:    document.getElementById('s-cam').value,
+        mqe:    document.getElementById('s-mqe').value == 1,
+        mqs:    document.getElementById('s-mqs').value,
+        mqt:    document.getElementById('s-mqt').value,
+
+        ir1:    document.getElementById('s-ir1').value,
+        ir2:    document.getElementById('s-ir2').value,
+        ir3:    document.getElementById('s-ir3').value,
+        ir4:    document.getElementById('s-ir4').value,
+        ir5:    document.getElementById('s-ir5').value,
+        ir6:    document.getElementById('s-ir6').value,
+        ir7:    document.getElementById('s-ir7').value,
+        ir0:    document.getElementById('s-ir0').value
       };
       fetch('/api/set', {
         method:'POST',
