@@ -224,6 +224,10 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             <input type="text" id="s-ft3" style="width:85px" placeholder="18:00:00">
           </div>
         </div>
+        <div class="form-group">
+          <span>Goc Quay Cho An (10-180 do):</span>
+          <input type="number" id="s-fa" min="10" max="180" value="180" style="width:75px">
+        </div>
       </div>
       <div class="card">
         <div class="card-title">Ket Noi WiFi &amp; Ten Mien Local</div>
@@ -441,6 +445,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             document.getElementById('s-ft2').value   = d.ft2  || '12:00:00';
             document.getElementById('s-fe3').value   = d.fen3 ? 1 : 0;
             document.getElementById('s-ft3').value   = d.ft3  || '18:00:00';
+            document.getElementById('s-fa').value    = d.fa   || 180;
 
             document.getElementById('s-ssid').value  = d.ssid;
             document.getElementById('s-pass').value  = d.pass;
@@ -539,6 +544,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         ft2:    document.getElementById('s-ft2').value,
         fen3:   document.getElementById('s-fe3').value == 1,
         ft3:    document.getElementById('s-ft3').value,
+        fa:     parseInt(document.getElementById('s-fa').value) || 180,
 
         ths:    hmsToSec('th'),
         tfs:    hmsToSec('tf'),

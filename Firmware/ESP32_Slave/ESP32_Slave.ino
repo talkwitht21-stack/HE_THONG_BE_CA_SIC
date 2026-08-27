@@ -76,6 +76,7 @@ float waterLevelCm = 0.0; // Khoảng cách siêu âm
 bool feedingActive     = false;
 unsigned long feedStart = 0;
 const unsigned long FEED_DURATION_MS = 2000; // 2 giây
+uint8_t feed_angle     = 180; // Góc quay cho ăn (10-180 độ)
 
 // Logic Sục Oxy
 bool oxyModeContinuous = false; // false = chu kỳ, true = liên tục
@@ -108,6 +109,8 @@ void setup() {
   Serial2.begin(9600, SERIAL_8N1, 16, 17);
 
   ds18b20.begin();
+  ds18b20.setWaitForConversion(false); // Non-blocking: 0ms delay thay vi block 750ms
+  ds18b20.requestTemperatures();       // Khoi tao lan doc dau tien
   dht.begin();
   
   pinMode(HC_TRIG_PIN, OUTPUT);
@@ -127,8 +130,9 @@ void setup() {
   servoFeed.attach(SERVO_FEED_PIN);
   servoFeed.write(0);
 
-  // Load ma phim IR tu Flash (neu da tu gan truoc do)
+  // Load ma phim IR & Goc quay tu Flash
   prefs.begin("beca", false);
+  feed_angle = prefs.getUChar("fa", 180);
   ir_btn_1 = prefs.getUChar("ir1", 0x45);
   ir_btn_2 = prefs.getUChar("ir2", 0x46);
   ir_btn_3 = prefs.getUChar("ir3", 0x47);
@@ -240,10 +244,10 @@ void handleIR() {
 
 void startFeeding() {
   if (!feedingActive) {
-    Serial.println("[SLAVE] Servo: Cho an START");
+    Serial.printf("[SLAVE] Servo: Cho an START (Goc: %d do)\n", feed_angle);
     feedingActive = true;
     feedStart = millis();
-    servoFeed.write(180);
+    servoFeed.write(feed_angle);
   }
 }
 
@@ -383,6 +387,13 @@ void handleMasterCommand() {
       if (doc.containsKey("oo")) oxy_on_min  = doc["oo"];
       if (doc.containsKey("of")) oxy_off_min = doc["of"];
 
+      if (doc.containsKey("fa")) {
+        feed_angle = constrain(doc["fa"].as<int>(), 10, 180);
+        prefs.begin("beca", false);
+        prefs.putUChar("fa", feed_angle);
+        prefs.end();
+      }
+
       applyRelayStates();
       
       if (doc.containsKey("feed") && doc["feed"].as<bool>()) {
@@ -394,8 +405,8 @@ void handleMasterCommand() {
 }
 
 void sendStatusToMaster() {
-  ds18b20.requestTemperatures();
-  float wt  = ds18b20.getTempCByIndex(0);
+  float wt  = ds18b20.getTempCByIndex(0); // Doc gia tri da chuyen doi o lan truoc (0ms non-blocking)
+  ds18b20.requestTemperatures();          // Yeu cau chuyen doi ngam cho lan sau
   float at  = dht.readTemperature();
   float ah  = dht.readHumidity();
 

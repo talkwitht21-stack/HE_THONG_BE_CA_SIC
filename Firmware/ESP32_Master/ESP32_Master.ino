@@ -125,6 +125,7 @@ bool   feed_en_1 = false;  String feed_time_1 = "08:00:00";
 bool   feed_en_2 = false;  String feed_time_2 = "12:00:00";
 bool   feed_en_3 = false;  String feed_time_3 = "18:00:00";
 int    feed_last_min = -1; // Phut trong ngay cua lan cho an cuoi (chong trung lap)
+uint8_t feed_angle   = 180; // Goc quay cho an (10-180 do)
 
 // Cong tac tong he thong
 bool systemEnabled = true; // false = tat toan bo relay, khoa khong cho bat
@@ -343,6 +344,7 @@ void setupWeb() {
     d["fen1"] = feed_en_1; d["ft1"] = feed_time_1;
     d["fen2"] = feed_en_2; d["ft2"] = feed_time_2;
     d["fen3"] = feed_en_3; d["ft3"] = feed_time_3;
+    d["fa"]   = feed_angle;
 
     d["ssid"]   = sta_ssid;
     d["pass"]   = sta_password;
@@ -533,6 +535,7 @@ void setupWeb() {
     if (d.containsKey("ft2"))    feed_time_2       = d["ft2"].as<String>();
     if (d.containsKey("fen3"))   feed_en_3         = d["fen3"];
     if (d.containsKey("ft3"))    feed_time_3       = d["ft3"].as<String>();
+    if (d.containsKey("fa"))     feed_angle        = constrain(d["fa"].as<int>(), 10, 180);
 
     if (d.containsKey("ths"))    timer_heater_sec  = d["ths"];
     if (d.containsKey("tfs"))    timer_fan_sec     = d["tfs"];
@@ -632,6 +635,7 @@ void loadSettings() {
   feed_time_2     = prefs.getString("ft2", "12:00:00");
   feed_en_3       = prefs.getBool("fe3", false);
   feed_time_3     = prefs.getString("ft3", "18:00:00");
+  feed_angle      = prefs.getUChar("fa", 180);
 
   timer_heater_sec= prefs.getUInt("ths", 0);
   timer_fan_sec   = prefs.getUInt("tfs", 0);
@@ -694,6 +698,7 @@ void saveSettings() {
   prefs.putString("ft2", feed_time_2);
   prefs.putBool("fe3", feed_en_3);
   prefs.putString("ft3", feed_time_3);
+  prefs.putUChar("fa", feed_angle);
 
   prefs.putUInt("ths", timer_heater_sec);
   prefs.putUInt("tfs", timer_fan_sec);
@@ -760,6 +765,7 @@ void sendToSlave(bool feed) {
   d["oxy_mode"] = oxyModeContinuous;
   d["oo"]       = oxy_on_min;
   d["of"]       = oxy_off_min;
+  d["fa"]       = feed_angle;
   if (feed) d["feed"] = true;
 
   String js;
