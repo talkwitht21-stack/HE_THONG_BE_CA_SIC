@@ -1,252 +1,309 @@
 # DỰ ÁN: HỆ THỐNG GIÁM SÁT VÀ ĐIỀU KHIỂN TỰ ĐỘNG BỂ CÁ ỨNG DỤNG IOT VÀ TRÍ TUỆ NHÂN TẠO
 
-Dự án nghiên cứu và ứng dụng nền tảng Vạn vật kết nối (IoT) kết hợp với Trí tuệ nhân tạo (AI) nhằm xây dựng một hệ thống giám sát và điều khiển tự động toàn diện cho môi trường thủy sinh. Hệ thống được thiết kế để duy trì môi trường sống ổn định cho sinh vật, đồng thời tích hợp thị giác máy tính (Computer Vision) để phân tích hành vi và trạng thái sức khỏe của sinh vật theo thời gian thực.
+> **Đề tài Nghiên cứu & Ứng dụng:** Xây dựng hệ sinh thái bể cá thông minh tự vận hành toàn diện, kết hợp mạng lưới cảm biến **IoT Đa Tầng (ESP32 Master - Slave)**, **Thị giác Máy tính Edge AI (Raspberry Pi 5)**, **Giao diện Web mDNS Local** và **Nền tảng Đám mây ThingsBoard**.
 
 ---
 
-## MỤC LỤC
-1. [Mục tiêu nghiên cứu](#1-mục-tiêu-nghiên-cứu)
-2. [Đặt vấn đề và Đối tượng nghiên cứu](#2-đặt-vấn-đề-và-đối-tượng-nghiên-cứu)
-3. [Khảo sát hiện trạng và Điểm mới của đề tài](#3-khảo-sát-hiện-trạng-và-điểm-mới-của-đề-tài)
-4. [Các tính năng cốt lõi](#4-các-tính-năng-cốt-lõi)
-5. [Quy trình hoạt động và Kiến trúc hệ thống](#5-quy-trình-hoạt-động-và-kiến-trúc-hệ-thống)
-6. [Cấu trúc phần cứng và phần mềm](#6-cấu-trúc-phần-cứng-và-phần-mềm)
+## 📑 MỤC LỤC
+1. [Giới thiệu và Mục tiêu nghiên cứu](#1-giới-thiệu-và-mục-tiêu-nghiên-cứu)
+2. [Điểm mới và Tính đột phá của Đề tài](#2-điểm-mới-và-tính-đột-phá-của-đề-tài)
+3. [Kiến trúc Tổng thể Hệ thống](#3-kiến-trúc-tổng-thể-hệ-thống)
+4. [Các Tính Năng Cốt Lõi Chi Tiết](#4-các-tính-năng-cốt-lõi-chi-tiết)
+5. [Sơ Đồ Kết Nối Phần Cứng & Pinout](#5-sơ-đồ-kết-nối-phần-cứng--pinout)
+6. [Giao Thức Giao Tiếp Master - Slave (UART)](#6-giao-thức-giao-tiếp-master---slave-uart)
+7. [Bảng Mã Điều Khiển Remote Hồng Ngoại IR](#7-bảng-mã-điều-khiển-remote-hồng-ngoại-ir)
+8. [Giao Diện Web Dashboard & mDNS Local](#8-giao-diện-web-dashboard--mdns-local)
+9. [Hướng Dẫn Cài Đặt & Nạp Firmware](#9-hướng-dẫn-cài-đặt--nạp-firmware)
 
 ---
 
-## 1. MỤC TIÊU NGHIÊN CỨU
-Mục tiêu cốt lõi của dự án là nghiên cứu, thiết kế và chế tạo một hệ thống sinh thái thủy sinh thông minh tự vận hành, có khả năng tự động điều tiết các yếu tố môi trường (nhiệt độ, mức nước, độ trong của nước) thông qua mạng lưới Vạn vật kết nối (IoT). Song song với việc duy trì chất lượng nước ở trạng thái lý tưởng, nghiên cứu này đặt tham vọng tích hợp hệ thống Trí tuệ Nhân tạo tại biên (Edge AI) để thực hiện giám sát trực tiếp "thực thể" sinh học. Cụ thể, hệ thống sẽ liên tục phân tích hình ảnh từ camera để trích xuất dữ liệu về tần suất bơi lội, tập tính ăn và trạng thái sức khỏe của sinh vật, qua đó phát hiện sớm các rủi ro (chẳng hạn như sinh vật mắc bệnh, lờ đờ, hay tử vong) mà các cảm biến hóa lý truyền thống không thể nhận diện được. Sự kết hợp giữa IoT và AI hướng tới việc thay thế hoàn toàn phương thức chăm sóc thủ công, giảm thiểu tối đa rủi ro hao hụt sinh vật và cung cấp một nền tảng quản trị từ xa toàn diện, độ trễ thấp thông qua Web Server và các ứng dụng di động.
+## 1. GIỚI THIỆU VÀ MỤC TIÊU NGHIÊN CỨU
 
-## 2. ĐẶT VẤN ĐỀ VÀ ĐỐI TƯỢNG NGHIÊN CỨU
+Hệ thống được thiết kế nhằm giải quyết triệt để các rủi ro trong việc nuôi và bảo tồn sinh vật thủy sinh:
+- **Tự động hóa hoàn toàn các chu trình sống:** Kiểm soát nhiệt độ nước chính xác, tự động bơm bù nước chống cạn/tràn, tuần hoàn lọc nước song song, sục khí oxy theo chu kỳ và cho ăn tự động đúng giờ với định lượng chính xác.
+- **Bảo vệ an toàn tuyệt đối (Multi-level Failsafe):** Tự động cắt sưởi khi quá nhiệt ($\ge 35^\circ\text{C}$), ngắt bơm rút và sưởi khi cạn nước, cơ chế Heartbeat giám sát liên tục giữa các vi điều khiển để ngắt điện khẩn cấp khi xảy ra sự cố.
+- **Giám sát trực tiếp sinh vật bằng AI tại Biên (Edge AI):** Phân tích hình ảnh thời gian thực từ Camera thông qua **Raspberry Pi 5** để nhận diện độ vẩn đục của nước, phát hiện cá mắc bệnh, bơi lờ đờ hoặc tử vong nhằm đưa ra cảnh báo sớm qua Email/Cloud.
+- **Vận hành độc lập Offline & Điều khiển đa kênh:** Cho phép điều khiển tức thời qua **Remote Hồng ngoại IR**, mạng nội bộ **Local Web Server (`http://beca.local`)** ngay cả khi mất Internet, và đồng bộ dữ liệu giám sát từ xa qua **ThingsBoard Cloud**.
 
-### 2.1. Đối tượng nghiên cứu và ứng dụng
-Nghiên cứu tập trung giải quyết bài toán chăm sóc thủy sinh cho ba nhóm đối tượng chính:
+---
 
-\+ **Người nuôi cá cảnh gia đình:** Những cá nhân thiếu kiến thức chuyên sâu về hóa sinh môi trường nước, thường gặp khó khăn trong việc thiết lập chu trình vi sinh và duy trì nhiệt độ ổn định.  
+## 2. ĐIỂM MỚI VÀ TÍNH ĐỘT PHÁ CỦA ĐỀ TÀI
 
-\+ **Cơ sở kinh doanh và bảo tồn thủy sinh:** Các mô hình kinh doanh quy mô vừa và nhỏ cần tự động hóa việc theo dõi tình trạng của hàng loạt bể chứa nhằm tối ưu hóa chi phí nhân sự và hạn chế lây lan dịch bệnh.  
+| Tiêu chí | Bể cá truyền thống trên thị trường | Hệ thống của Đề tài |
+|---|---|---|
+| **Đối tượng giám sát** | Chỉ đo môi trường vật lý (nhiệt độ) | **Giám sát kép:** Môi trường vật lý + Trạng thái thực thể sống (AI Vision) |
+| **Phát hiện cá chết / bệnh** | Không có (chỉ biết khi nước bị ô nhiễm nặng) | **Edge AI trên Raspberry Pi 5** nhận diện hành vi, đếm số lượng, phát hiện cá lật bụng |
+| **Kiến trúc phần cứng** | 1 vi điều khiển duy nhất (dễ treo khi lỗi) | **Phân lớp Master - Slave:** Tách biệt Gateway xử lý mạng/logic và Node điều khiển cảm biến/relay |
+| **Độ trễ điều khiển** | Phụ thuộc hoàn toàn vào Cloud (1-3 giây) | **Phản hồi tức thì < 50ms:** Remote IR 0ms (non-blocking), Web LAN `beca.local` |
+| **An toàn điện & phần cứng** | Ngắt rơ-le đơn giản | **Failsafe đa tầng:** Cắt cưỡng bức khi cạn/quá nhiệt, Heartbeat PING/PONG 15s tự ngắt khi mất kết nối |
 
-\+ **Cá nhân có lịch trình bận rộn:** Những người thường xuyên đi công tác, không có khả năng túc trực 24/7 để cho ăn định kỳ hoặc thay nước kịp thời khi có sự cố bộ lọc.  
+---
 
-### 2.2. Vấn đề thực tiễn
-Theo các nghiên cứu về nuôi trồng thủy sản, sinh vật thủy sinh có độ nhạy cảm sinh học cực kỳ cao với sự dao động của môi trường. Các vấn đề cấp thiết hiện nay bao gồm:
-
-\+ **Biến động thông số hóa lý (Physicochemical Fluctuations):** Sự biến thiên đột ngột về nhiệt độ (chênh lệch quá 2-3°C trong ngày) hoặc sự tích tụ của các hợp chất độc hại (Amoniac, Nitrat) do thức ăn thừa sẽ trực tiếp gây sốc phản vệ, làm suy giảm hệ miễn dịch của sinh vật.  
-
-\+ **Rủi ro trong quá trình chăm sóc thủ công:** Việc cung cấp thức ăn dư thừa hoặc thiếu tính chu kỳ không chỉ gây ô nhiễm nguồn nước mà còn làm suy giảm tuổi thọ của vi sinh vật có lợi trong hệ thống lọc.  
-
-\+ **Khoảng trống trong giám sát thời gian thực:** Đa số người dùng chỉ phát hiện sự cố (như rò rỉ nước, thiết bị sưởi chập cháy, cá chết lây lan) khi hậu quả đã trở nên nghiêm trọng do thiếu một hệ thống cảnh báo tức thời theo thời gian thực (Real-time alerting).  
-
-### 2.3. Giải pháp đề xuất
-Để giải quyết triệt để các vấn đề trên, đề tài đề xuất một giải pháp công nghệ đa tầng (Multi-layer Architecture) kết hợp giữa Cảm biến IoT (IoT Sensors) và Thị giác máy tính (Computer Vision). Hệ thống sẽ chủ động thu thập các biến số môi trường và hình ảnh thời gian thực, tiến hành phân tích đa biến trên bộ vi xử lý biên (Raspberry Pi 5) và đám mây (ThingsBoard). Khi hệ thống phát hiện các bất thường—chẳng hạn như nhiệt độ giảm sâu kết hợp với dấu hiệu cá bơi lờ đờ—nó sẽ lập tức kích hoạt chuỗi hành động cơ học (bật sưởi, kích hoạt sủi oxy) và tự động phát tín hiệu cảnh báo khẩn cấp tới quản trị viên mà không cần chờ sự can thiệp từ con người.
-
-## 3. KHẢO SÁT HIỆN TRẠNG VÀ ĐIỂM MỚI CỦA ĐỀ TÀI
-
-### 3.1. Hiện trạng các sản phẩm trên thị trường
-Thị trường bể cá thông minh hiện tại (Smart Aquarium Market) đang có sự phát triển mạnh mẽ với các dòng sản phẩm tiêu biểu như Xiaomi Mijia (10L/20L MYG100, MYG200), DINGSMART Mini Wi-Fi Tank, hay Hygger Smart Aquarium Kit. Phân tích kiến trúc của các thiết bị này cho thấy chúng hầu hết đều chia sẻ một mô hình quản lý tập trung vào "môi trường nước", bao gồm:
-
-\+ **Tự động hóa phần cứng cơ bản:** Tích hợp bơm nước, bộ lọc đa tầng và đèn LED RGB mô phỏng chu kỳ ánh sáng tự nhiên.  
-
-\+ **Điều khiển từ xa (Remote Control):** Giao tiếp qua giao thức Wi-Fi/Bluetooth, cho phép người dùng bật/tắt thiết bị hoặc thiết lập lịch trình cho ăn thông qua ứng dụng di động độc quyền.  
-
-\+ **Điều tiết cơ học (Actuation):** Có khả năng tự động cân bằng nhiệt độ qua hệ thống sưởi tích hợp.  
-
-Tuy nhiên, theo các nghiên cứu về IoT trong nuôi trồng thủy sản, các hệ thống này mắc phải một **điểm mù công nghệ lớn**: Chúng hoàn toàn "mù" trước sinh vật sống trong bể. Việc kiểm soát nước tốt không đảm bảo sinh vật không bị bệnh, và hệ thống không thể tự nhận biết khi có cá chết để phát cảnh báo nhằm vớt ra trước khi nước bị nhiễm độc amoniac.
-
-### 3.2. Điểm đóng góp và Tính đột phá
-Tính đột phá (Novelty) của nghiên cứu này nằm ở việc vượt qua ranh giới của các hệ thống IoT truyền thống bằng cách tích hợp **Trí tuệ Nhân tạo dựa trên Thị giác máy tính (Computer Vision-based AI)**. Sự khác biệt cụ thể bao gồm:
-
-\+ **Giám sát trực tiếp "Thực thể sống":** Chuyển dịch từ việc đo lường "môi trường" (IoT truyền thống) sang theo dõi trực tiếp "sinh vật". Hệ thống Camera liên tục thu thập luồng dữ liệu hình ảnh (Video stream) để phân tích hành vi sinh học.  
-
-\+ **Mô hình AI dự báo rủi ro:** Triển khai các mạng nơ-ron học sâu (Deep Learning) trên phần cứng Raspberry Pi 5 để định vị quỹ đạo bơi, tốc độ di chuyển, và thống kê mật độ đàn. Từ đó, AI có thể phân loại và phát hiện các cá thể có biểu hiện bơi bất thường, mang mầm bệnh, hoặc lật ngửa bụng (tử vong).  
-
-\+ **Quyết định ngữ cảnh đa biến (Context-aware Decision Making):** Khác với các hệ thống tự động thông thường (chỉ bật sưởi khi nước lạnh), hệ thống này kết hợp chéo dữ liệu từ AI Camera (nước chuyển màu đục) và cảm biến (mực nước thay đổi) để đưa ra phán đoán khẩn cấp (Critical Alarm), tự động gửi Email đính kèm ảnh chụp hiện trường để quản trị viên có phương án xử lý tức thời.  
-
-## 4. CÁC TÍNH NĂNG CỐT LÕI
-1. **Theo dõi thông số môi trường 24/7:** Đo đạc nhiệt độ, mực nước (có khả năng mở rộng tích hợp cảm biến pH, TDS).
-2. **AI Camera phân tích hành vi và môi trường:** Đánh giá mức độ vẩn đục của nước, nhận diện tình trạng sinh vật (chết, mắc bệnh, bơi lờ đờ).
-3. **Tự động hóa chuỗi hành động:**
-
-   \- Kích hoạt quạt tản nhiệt hoặc máy sưởi dựa trên mức chênh lệch nhiệt độ.  
-
-   \- Điều khiển bơm/thay nước khi mực nước suy giảm hoặc AI phân tích hình ảnh phát hiện nước bị đục.  
-
-   \- Kích hoạt máy sủi oxy theo điều kiện thiết lập.  
-
-   \- Cung cấp thức ăn theo định mức và lịch trình.  
-
-4. **Nền tảng Quản trị (Hỗ trợ Offline):** Cho phép quản lý từ xa, xem video trực tiếp, và hiển thị trạng thái hoạt động thực của toàn bộ thiết bị (bơm, sưởi, quạt, đèn). Hệ thống hỗ trợ khả năng điều khiển thiết bị thủ công thông qua Mạng cục bộ (LAN), đảm bảo duy trì hoạt động ngay cả khi gián đoạn kết nối Internet.
-
-## 5. QUY TRÌNH HOẠT ĐỘNG VÀ KIẾN TRÚC HỆ THỐNG
-
-### 5.1. Thu thập và Xử lý dữ liệu (Kiến trúc Master - Slave)
-
-\+ **ESP32-Slave (Cụm Cảm biến):** Chịu trách nhiệm trực tiếp thu thập dữ liệu từ cảm biến nhiệt độ nước, cảm biến nhiệt đới - độ ẩm không khí và truyền tín hiệu trạng thái về nút trung tâm.  
-
-\+ **ESP32-Master (Nút Gateway Trung tâm):** Đóng vai trò là bộ vi điều khiển chính. Nút này tiếp nhận toàn bộ dữ liệu từ ESP32-Slave qua giao thức UART, đồng thời nhận tín hiệu và dữ liệu đếm số lượng sinh vật từ Raspberry Pi 5. Nút Gateway có nhiệm vụ tổng hợp và truyền tải dữ liệu lên nền tảng ThingsBoard.  
-
-\+ **Thuật toán kích hoạt sưởi/quạt (Kiểm tra chéo - Cross-validation):** ESP32-Master chỉ phát lệnh chuyển đổi trạng thái của máy sưởi hoặc quạt tản nhiệt khi **đồng thời cả hai cảm biến** (nhiệt độ nước và nhiệt độ/độ ẩm môi trường) ghi nhận sự biến thiên tương quan. Thuật toán này ngăn chặn các lỗi kích hoạt giả (false positive) phát sinh do sự cố phần cứng của một cảm biến đơn lẻ.  
-
-\+ **Cơ chế dự phòng (Failover) với Pi 5:** Trong tình huống phát sinh lỗi phần cứng làm gián đoạn liên kết UART giữa ESP32-Slave và ESP32-Master, Raspberry Pi 5 sẽ tự động đảm nhận vai trò dự phòng (Backup Gateway). Thiết bị này sẽ kích hoạt giao diện Wi-Fi để tiếp tục truyền tải toàn bộ dữ liệu lên nền tảng ThingsBoard, đảm bảo tính sẵn sàng cao (High Availability) cho hệ thống.  
-
-### 5.2. Xử lý ảnh bằng Trí tuệ Nhân tạo (Computer Vision)
-
-\+ Thiết bị thu hình (IP Camera/Smartphone) được bố trí tại vị trí quan sát bể, đảm nhiệm việc thu nhận và truyền luồng video về thiết bị điện toán biên **Raspberry Pi 5**.  
-
-\+ **Vai trò chuyên biệt của Pi 5:** Pi 5 chuyên trách xử lý mô hình Trí tuệ Nhân tạo (AI) (tiến hành chụp ảnh chu kỳ 2 phút/lần để phân tích mức độ vẩn đục và trạng thái sinh vật). Kết quả phân tích sẽ được luân chuyển về **ESP32-Master**.  
-
-\+ **Quy trình xác minh:** Khi mô hình phân loại phát hiện trạng thái bất thường (sinh vật lật ngửa), hệ thống tự động chuyển đổi sang cơ chế chụp và phân tích liên tục tần số cao nhằm xác thực tình trạng tử vong.  
-
-\+ Sau quá trình xác thực, hệ thống tiến hành tính toán lại số lượng cá thể, truyền dữ liệu về ESP32-Master để đồng bộ hóa với cơ sở dữ liệu lưu trữ.  
-
-### 5.3. Quản trị và Đánh giá cảnh báo (AI trên Web Server)
-
-\+ **Giám sát và Điều khiển (Offline Support):** Web Server thu nhận và lưu trữ chính xác trạng thái logic (Bật/Tắt) của từng thiết bị trong hệ thống. Quản trị viên có đặc quyền can thiệp thủ công thông qua giao diện Web. Việc triển khai Web Server cho phép người dùng thao tác thông qua mạng nội bộ (LAN), đảm bảo tính toàn vẹn của việc điều khiển ngoại tuyến khi xảy ra sự cố mạng diện rộng.  
-
-\+ **Mô hình AI Đánh giá Tổng quát:** Dữ liệu môi trường (từ ESP32) và dữ liệu thị giác máy tính (từ Raspberry Pi 5) được tổng hợp tại Web Server. Web Server triển khai một mô hình AI phân tích để đánh giá toàn diện, phân loại xem trạng thái hệ thống có đạt ngưỡng **"Cảnh báo Khẩn cấp" (Critical Alarm)** hay không.  
-
-\+ Nếu thuật toán đánh giá phân loại trạng thái ở mức rủi ro cao (ví dụ: nhiệt độ vượt ngưỡng an toàn kết hợp với độ đục cao và sinh vật lờ đờ), hệ thống sẽ lập tức khởi tạo tiến trình gửi Email khẩn cấp đến quản trị viên.  
-
-### 5.4. Sơ đồ khối quy trình (Workflow Diagram)
+## 3. KIẾN TRÚC TỔNG THỂ HỆ THỐNG
 
 ```mermaid
 graph TD
-    %% Khối Cảm biến & ESP32
-    subgraph Hardware ["Thu thập & Điều khiển (Hardware)"]
-        S1["Cảm biến nhiệt độ nước"] -->|"Dữ liệu"| ESPSlave{"ESP32-Slave"}
-        S2["Cảm biến nhiệt/độ ẩm MT"] -->|"Dữ liệu"| ESPSlave
-        ESPSlave -->|"Truyền tín hiệu"| ESPMaster{"ESP32-Master<br/>(Gateway)"}
+    %% Khối Cảm biến & Cơ cấu chấp hành
+    subgraph HardwareLayer ["LỚP THIẾT BỊ NGOẠI VI (Hardware / Actuators)"]
+        DS18B20["Cảm biến Nhiệt Nước (DS18B20)"]
+        DHT22["Cảm biến Nhiệt/Ẩm Không Khí (DHT22)"]
+        HCSR04["Cảm biến Siêu Âm Đo Nước (HC-SR04)"]
+        IR_REC["Mắt Thu Hồng Ngoại (IR 38kHz)"]
         
-        ESPMaster -->|"Đồng thời biến thiên"| Check{"Kiểm định chéo (Cross-check)"}
-        Check -->|"Biến thiên Lạnh"| H_ON["Kích hoạt máy sưởi"]
-        Check -->|"Biến thiên Nóng"| F_ON["Kích hoạt quạt tản nhiệt"]
+        RELAYS["6 Kênh Relay:<br/>- Sưởi (220V/12V)<br/>- Quạt Làm Mát<br/>- Bơm Bù Nước<br/>- Bơm Rút Nước<br/>- Sục Oxy<br/>- Đèn LED Chiếu Sáng"]
+        SERVO["Servo Cho Ăn (SG90/MG90S)<br/>Góc quay tùy chỉnh 10° - 180°"]
     end
 
-    %% Khối AI Camera & Pi 5
-    subgraph EdgeAI ["Xử lý Hình ảnh & Điện toán Biên (Edge AI)"]
-        IPCam["Thiết bị thu hình (IP Camera)"] -->|"Chụp 2 phút/lần"| Pi5{"Raspberry Pi 5 (AI Edge)"}
-        Pi5 -->|"Phân loại Độ đục / Tử vong"| Verify{"Phân tích & Thống kê sinh vật"}
-        Verify -->|"Truyền tín hiệu & Dữ liệu"| ESPMaster
+    %% Khối Vi Điều Khiển
+    subgraph ControllerLayer ["LỚP ĐIỀU KHIỂN & GATEWAY (Dual ESP32 Architecture)"]
+        ESPSlave["ESP32-Slave (Sensor & Relay Node)<br/>- Đọc cảm biến Non-blocking 0ms<br/>- Giải mã Remote IR tức thì<br/>- Đóng ngắt Relay & Kéo Servo<br/>- Heartbeat PING/PONG 15s"]
+        ESPMaster["ESP32-Master (IoT Gateway & Server)<br/>- Web Server SPA + mDNS: http://beca.local<br/>- Logic Failsafe & Thermostat độc lập<br/>- Quản lý Chu kỳ Lọc nước & Sục Oxy<br/>- Lưu trữ cấu hình Flash NVS (Preferences)"]
     end
 
-    %% Khối Cảnh báo & Lưu trữ
-    ESPMaster -->|"Đồng bộ dữ liệu"| Cloud[("Nền tảng ThingsBoard (Cloud)")]
-    Pi5 -.->|"Kích hoạt Failover (Lỗi UART)"| Cloud
+    %% Khối AI & Đám mây
+    subgraph CloudAndAI ["LỚP TRÍ TUỆ NHÂN TẠO & ĐÁM MÂY (Edge AI & Cloud)"]
+        IPCam["IP Camera / Smartphone Stream"]
+        RPi5["Raspberry Pi 5 (Edge AI)<br/>- Phân tích độ đục nước<br/>- Nhận diện cá bệnh / cá chết<br/>- Cơ chế Dự phòng Failover"]
+        ThingsBoard["ThingsBoard Cloud (MQTT IoT Platform)<br/>- Telemetry 5s/lần<br/>- Điều khiển RPC từ xa<br/>- Cảnh báo Email khẩn cấp"]
+    end
+
+    %% Kết nối vật lý và truyền thông
+    DS18B20 -->|"Đọc nhiệt độ nước"| ESPSlave
+    DHT22 -->|"Đọc nhiệt/ẩm không khí"| ESPSlave
+    HCSR04 -->|"Đo khoảng cách mực nước"| ESPSlave
+    IR_REC -->|"Nhận tín hiệu phím bấm"| ESPSlave
     
-    Cloud --> WebServer{"Web Server (Phân tích Tổng quát)"}
-    WebServer -->|"Đánh giá đa biến"| AI_Check{"Trạng thái Khẩn cấp?"}
-    AI_Check -->|"Đạt ngưỡng Cảnh báo"| Alert(("Web Server gửi Email khẩn cấp"))
+    ESPSlave -->|"Điều khiển điện"| RELAYS
+    ESPSlave -->|"Kéo góc thức ăn"| SERVO
+
+    ESPSlave <==>|"Giao tiếp UART JSON (9600 baud)<br/>GPIO 16/17"| ESPMaster
+    IPCam -->|"Luồng RTSP/HTTP Video"| RPi5
+    RPi5 -.->|"Đồng bộ kết quả AI"| ESPMaster
+
+    ESPMaster <==>|"WiFi / mDNS Local"| WebClient["Người dùng (Web Browser / Smartphone)"]
+    ESPMaster <==>|"MQTT Protocol (Port 1883)"| ThingsBoard
+    RPi5 -.->|"Failover Backup"| ThingsBoard
 ```
 
-## 6. CẤU TRÚC PHẦN CỨNG VÀ PHẦN MỀM
+---
 
-\+ **Phần cứng viễn thông & Điều khiển (Hardware/IoT):** Hệ thống triển khai 02 module ESP32 (cấu trúc Master-Slave) / Arduino và 01 thiết bị Raspberry Pi 5 (đảm nhiệm Edge AI).  
+## 4. CÁC TÍNH NĂNG CỐT LÕI CHI TIẾT
 
-\+ **Thiết bị Cảm biến & Cơ cấu chấp hành:** Cảm biến đo nhiệt độ dung dịch (DS18B20), Cảm biến siêu âm/Phao từ (HC-SR04), Cảm biến nhiệt đới - độ ẩm môi trường (DHT11/DHT22), Động cơ Servo (Cấp thức ăn).  
+### 4.1. Điều Khiển Nhiệt Độ Thông Minh (Thermostat)
+- **Tự động Bật/Tắt Sưởi:** Bật sưởi khi nhiệt độ nước $< 18.0^\circ\text{C}$, Tắt sưởi khi nước $\ge 20.0^\circ\text{C}$ (các ngưỡng nhiệt độ tùy chỉnh linh hoạt từ $10^\circ\text{C} - 40^\circ\text{C}$).
+- **Tự động Bật/Tắt Quạt Làm Mát:** Bật quạt khi nước $> 30.0^\circ\text{C}$, Tắt quạt khi nước $\le 28.0^\circ\text{C}$.
+- **Độc lập 100% theo cảm biến nước DS18B20:** Loại bỏ hoàn toàn sự phụ thuộc sai lệch vào cảm biến môi trường không khí.
+- **Failsafe Quá Nhiệt Tuyệt Đối:** Bất kể thiết bị được bật bằng tay, hẹn giờ hay tự động, khi nhiệt độ nước $\ge 35.0^\circ\text{C}$ $\rightarrow$ Hệ thống lập tức ngắt sưởi cưỡng bức để bảo vệ cá.
 
-\+ **Hệ thống Thị giác máy tính (AI Camera):** IP Camera / ESP32-CAM / Webcam tích hợp kết nối cùng Raspberry Pi.  
+---
 
-\+ **Kiến trúc Dữ liệu và Đám mây (Backend & Cloud):** Nền tảng ThingsBoard (đóng vai trò lưu trữ cơ sở dữ liệu và MQTT Broker) kết hợp cùng Web Server (phát triển trên nền tảng Node.js/Python có tích hợp mô hình AI) để phục vụ tác vụ phân tích và gửi thông báo.  
+### 4.2. Quản Lý Mực Nước & Failsafe Cạn Nước (HC-SR04)
+- **Tự động Bơm Bù Nước:** Khi mực nước tụt xuống ngưỡng thấp (`th_water_low`), hệ thống tự động kích hoạt Bơm Bù Nước và ngắt khi nước đầy (`th_water_full`) để chống tràn.
+- **Failsafe Cạn Nước Nguy Hiểm (`is_empty`):** Khi mực nước vượt ngưỡng cạn (`th_water_empty`), Master lập tức ngắt khẩn cấp **Máy Sưởi**, **Bơm Rút Nước** và **Chế Độ Lọc Nước** để chống cháy thanh sưởi và cháy động cơ bơm.
 
-\+ **Giao diện Người dùng (Frontend):** Bảng điều khiển (Dashboard) của nền tảng ThingsBoard, hỗ trợ mở rộng bằng Ứng dụng di động tùy chỉnh (React Native / Flutter).  
+---
 
-### 6.1. Sơ đồ Hình khối Phân lớp Vật lý (Cross-sectional Hardware Diagram)
-Sơ đồ dưới đây mô phỏng cấu trúc vật lý và các không gian (mặt cắt) của bể cá, chia rõ các thiết bị theo vị trí lắp đặt thực tế nhằm đảm bảo tính an toàn điện và tối ưu hiệu suất:
+### 4.3. Chế Độ Lọc Nước Song Song (Water Filter) & Chu Kỳ Tự Động
+- **Lọc Nước Tuần Hoàn Đồng Thời:** Kích hoạt đồng thời cả 2 bơm (**Bơm Rút** và **Bơm Bù**) giúp luân chuyển nước qua hệ thống lọc liên tục.
+- **Hẹn Giờ Đếm Lùi (Countdown Timer):** Hẹn giờ chạy lọc theo số Giờ - Phút - Giây (mặc định 15 phút), hết giờ tự động ngắt cả 2 bơm.
+- **Chế Độ Chu Kỳ Lọc Nước Tự Động (Filter Cycle Mode):**
+  - Tự động luân phiên **Chạy $X$ phút** (mặc định 15p) / **Nghỉ $Y$ phút** (mặc định 45p) liên tục 24/7.
+  - Tùy chỉnh số phút Chạy và Nghỉ linh hoạt trên Web, lưu vĩnh viễn vào bộ nhớ Flash NVS.
+  - Bấm phím **8** trên Remote IR hoặc bấm nút trên Web để chuyển đổi tức thì giữa chế độ thủ công và tự động.
 
-```mermaid
-graph TD
-    %% Khối Điện toán (Bên ngoài bể)
-    subgraph Box ["Tủ Điện / Khu Vực Điều Khiển (Bên ngoài)"]
-        direction TB
-        Pi["Raspberry Pi 5 (Edge AI)"]
-        ESPM["ESP32-Master (Gateway + Web Server)"]
-        ESPS["ESP32-Slave (Sensor Node & IR)"]
-        
-        Pi <-->|Giao tiếp| ESPM
-        ESPM <-->|UART| ESPS
-        ESPM -.->|Đẩy dữ liệu MQTT| Cloud[("ThingsBoard Cloud")]
-    end
+---
 
-    %% Khối Thiết bị Gắn Mép Bể (Trên Cạn)
-    subgraph SurfaceDry ["Trên Cạn (Kẹp mép bể / Để trên nắp)"]
-        direction LR
-        Cam["IP Camera (Quay dọc thành bể)"]
-        Feed["Máy Cho Ăn Tự Động (Servo)"]
-        Fan["Quạt Tản Nhiệt Bề Mặt"]
-        DHT["Cảm biến Nhiệt Ẩm (DHT22)"]
-        LED["Đèn LED Chiếu Sáng"]
-        AirPump["Máy Sục Oxy (Air Pump)"]
-        IR["Mắt thu Hồng ngoại (IR MH-R38)"]
-    end
+### 4.4. Hệ Thống Sục Khí Oxy (Air Pump)
+- **Chế độ Bật Liên Tục (Continuous):** Sục khí 24/7.
+- **Chế độ Bật Theo Chu Kỳ (Cycle):** Luân phiên **5 phút BẬT / 15 phút TẮT** (tùy chỉnh số phút linh hoạt trên Web).
+- **Phản hồi Remote IR thông minh:** Bấm phím **4** 1 lần $\rightarrow$ Bật/Tắt chu kỳ; Bấm phím **4** 3 lần liên tiếp trong 3s $\rightarrow$ Bật sủi liên tục.
 
-    %% Khối Bề Mặt Nước
-    subgraph SurfaceWater ["Bề Mặt Nước"]
-        direction LR
-        HCSR04["Cảm biến Siêu âm (Đo mực nước)"]
-        DrainPump["Bơm Thay Nước (Hút nước cũ)"]
-    end
+---
 
-    %% Khối Ngập Nước
-    subgraph Underwater ["Lòng Bể (Ngập Nước)"]
-        direction LR
-        Temp["Cảm biến Nhiệt độ (DS18B20)"]
-        Heater["Thanh Sưởi Nhiệt"]
-        Pump["Máy Bơm Bù Nước"]
-    end
+### 4.5. Hệ Thống Cho Ăn Tự Động Với Góc Quay Tùy Chỉnh (Servo Feeder)
+- **Hẹn giờ 3 mốc/ngày:** Định dạng chính xác `HH:MM:SS` (ví dụ: `08:00:00`, `12:00:00`, `18:00:00`).
+- **Tùy Chỉnh Góc Quay Rotor Cho Ăn ($10^\circ - 180^\circ$):** Cho phép người dùng chỉnh góc mở Servo trên Web để định lượng thức ăn rơi ra chính xác cho từng loại cá.
+- Khi kích hoạt (theo lịch, bấm Web, hoặc bấm phím **7** Remote): Servo quay đúng góc đã cài đặt, giữ 2 giây rồi tự động quay về $0^\circ$.
 
-    %% Kết nối vật lý
-    Cam -->|"Truyền luồng Video"| Pi
-    ESPS -->|"Đọc tín hiệu"| DHT
-    ESPS -->|"Đọc tín hiệu"| HCSR04
-    ESPS -->|"Đọc tín hiệu"| Temp
-    ESPS -->|"Nhận lệnh Remote"| IR
-    
-    ESPS -->|"Cấp điện (Relay)"| Feed
-    ESPS -->|"Cấp điện (Relay)"| Fan
-    ESPS -->|"Cấp điện (Relay)"| Heater
-    ESPS -->|"Cấp điện (Relay)"| Pump
-    ESPS -->|"Cấp điện (Relay)"| AirPump
-    ESPS -->|"Cấp điện (Relay)"| DrainPump
-    ESPS -->|"Cấp điện (Relay)"| LED
-    
-    %% Định dạng màu sắc để dễ nhìn
-    style Pi fill:#f9f,stroke:#333,stroke-width:2px
-    style ESPM fill:#bbf,stroke:#333,stroke-width:2px
-    style ESPS fill:#bbf,stroke:#333,stroke-width:2px
-    style Cloud fill:#fbb,stroke:#333,stroke-width:2px
-    
-    style Cam fill:#ff9,stroke:#333,stroke-width:1px
-    style Feed fill:#eee,stroke:#333,stroke-width:1px
-    style Fan fill:#eee,stroke:#333,stroke-width:1px
-    style LED fill:#ffa,stroke:#333,stroke-width:1px
-    style AirPump fill:#eee,stroke:#333,stroke-width:1px
-    style IR fill:#dfd,stroke:#333,stroke-width:1px
-    
-    style Temp fill:#9cf,stroke:#333,stroke-width:1px
-    style Heater fill:#f99,stroke:#333,stroke-width:1px
-    style Pump fill:#9cf,stroke:#333,stroke-width:1px
-    style DrainPump fill:#9cf,stroke:#333,stroke-width:1px
-    style HCSR04 fill:#9cf,stroke:#333,stroke-width:1px
+---
+
+### 4.6. Chiếu Sáng Đèn LED & Hẹn Giờ Khung Giờ
+- Bật/Tắt thủ công, hẹn giờ đếm lùi tự tắt, hoặc chạy tự động theo khung giờ trong ngày (ví dụ: Tự bật lúc `07:00` và tự tắt lúc `21:00`).
+
+---
+
+### 4.7. Công Tắc Tổng Khẩn Cấp (Kill Switch)
+- Nút **`[HE THONG: BAT / TAT]`** trên Web Dashboard và phím **0** trên Remote IR.
+- Khi Tắt Hệ Thống: **Lập tức ngắt 100% toàn bộ 7 Relay, Sục Oxy, Chế độ Lọc nước, Chu kỳ Lọc nước và khóa các timer**.
+
+---
+
+## 5. SƠ ĐỒ KẾT NỐI PHẦN CỨNG & PINOUT
+
+### 5.1. ESP32-Master (Nút Gateway & Web Server)
+| Chân ESP32-Master | Chức năng | Kết nối tới |
+|---|---|---|
+| **GPIO 16 (RX2)** | Nhận dữ liệu UART | Chân **TX2 (GPIO 17)** của ESP32-Slave |
+| **GPIO 17 (TX2)** | Truyền dữ liệu UART | Chân **RX2 (GPIO 16)** của ESP32-Slave |
+| **GPIO 0 (BOOT)** | Nút bấm vật lý | Giữ 3 giây để **Factory Reset Flash NVS** |
+| **GPIO 2** | Đèn LED tích hợp | Báo trạng thái hoạt động |
+| **GND** | Nối đất chung | Nối chung với GND của Slave và nguồn 5V |
+
+---
+
+### 5.2. ESP32-Slave (Nút Cảm Biến & Rơ-le Ngoại Vi)
+| Chân ESP32-Slave | Thiết bị ngoại vi | Loại tín hiệu | Ghi chú |
+|---|---|---|---|
+| **GPIO 23** | Relay 1: Máy Sưởi | Output Digital (Active HIGH) | Đóng cắt nguồn điện sưởi |
+| **GPIO 22** | Relay 2: Quạt Tản Nhiệt | Output Digital (Active HIGH) | Quạt làm mát bề mặt |
+| **GPIO 19** | Relay 3: Bơm Bù Nước | Output Digital (Active HIGH) | Bơm nước sạch vào bể |
+| **GPIO 21** | Relay 4: Máy Sục Oxy | Output Digital (Active HIGH) | Bơm khí oxy |
+| **GPIO 26** | Relay 5: Bơm Rút Nước | Output Digital (Active HIGH) | Bơm hút xả nước cũ |
+| **GPIO 27** | Relay 6: Đèn LED | Output Digital (Active HIGH) | Đèn chiếu sáng bể |
+| **GPIO 13** | Động cơ Servo Cho Ăn | Output PWM | SG90 / MG90S (Góc $10^\circ - 180^\circ$) |
+| **GPIO 4** | Mắt Thu Hồng Ngoại (IR) | Input Digital (38kHz) | MH-R38 (Giao thức NEC) |
+| **GPIO 18** | Cảm biến Nhiệt Nước DS18B20 | Input 1-Wire Digital | Trở kéo 4.7kΩ lên 3.3V/5V (Non-blocking) |
+| **GPIO 25** | Cảm biến Nhiệt Ẩm DHT22 | Input Single-bus Digital | Đo nhiệt độ & độ ẩm không khí |
+| **GPIO 5** | Cảm biến Siêu Âm HC-SR04 (Trig) | Output Digital | Phát xung siêu âm 10µs |
+| **GPIO 34** | Cảm biến Siêu Âm HC-SR04 (Echo) | Input Digital (Chỉ đọc) | Nhận sóng phản xạ đo mực nước |
+| **GPIO 16 (RX2)** | Nhận lệnh UART | Input UART | Nối vào **TX2 (GPIO 17)** của Master |
+| **GPIO 17 (TX2)** | Gửi Telemetry UART | Output UART | Nối vào **RX2 (GPIO 16)** của Master |
+
+---
+
+## 6. GIAO THỨC GIAO TIẾP MASTER - SLAVE (UART)
+
+Tốc độ baud: **`9600 baud`**, định dạng dữ liệu: **JSON UTF-8**, kết thúc bằng ký tự xuống dòng `\n`.
+
+### 6.1. Bản tin Dữ liệu Cảm biến & Trạng thái (Slave $\rightarrow$ Master)
+Định kỳ gửi mỗi **2 giây/lần** (hoặc gửi ngay lập tức khi có sự kiện Remote IR):
+```json
+{
+  "water_temp": 25.4,
+  "air_temp": 28.2,
+  "air_hum": 70.5,
+  "water_cm": 15.3,
+  "heater": 0,
+  "fan": 0,
+  "pump": 1,
+  "oxy": 1,
+  "drain": 1,
+  "led": 0,
+  "oxy_mode": 0,
+  "last_ir": "15"
+}
 ```
 
-### 6.2. Phân tích chi tiết các lớp không gian vật lý
+### 6.2. Bản tin Điều Khiển Relay & Thiết Bị (Master $\rightarrow$ Slave)
+```json
+{
+  "cmd": "relay",
+  "heater": false,
+  "fan": false,
+  "pump": true,
+  "oxy": true,
+  "drain": true,
+  "led": false,
+  "oxy_mode": false,
+  "oo": 5,
+  "of": 15,
+  "fa": 180,
+  "feed": false
+}
+```
 
-1. **Lớp Tủ điện / Khu vực điều khiển (Bên ngoài bể):**
+### 6.3. Bản tin Đồng Bộ Bảng Mã Phím IR (Master $\rightarrow$ Slave)
+```json
+{
+  "cmd": "ir_map",
+  "ir1": "45",
+  "ir2": "46",
+  "ir3": "47",
+  "ir4": "44",
+  "ir5": "40",
+  "ir6": "43",
+  "ir7": "07",
+  "ir8": "15",
+  "ir0": "16"
+}
+```
 
-   \- Không gian này được thiết kế hoàn toàn cách ly với môi trường nước nhằm đảm bảo an toàn điện tĩnh và ngăn chặn sự cố chập cháy.  
+### 6.4. Cơ Chế Heartbeat Giám Sát An Toàn (PING / PONG)
+- **Slave gửi mỗi 15 giây:** `{"cmd":"ping"}`
+- **Master phản hồi ngay lập tức:** `{"cmd":"pong"}`
+- Nếu sau 15 giây Slave không nhận được phản hồi từ Master $\rightarrow$ Slave kích hoạt chế độ **`emergencyOff()`**, lập tức cắt nguồn toàn bộ Relay để đảm bảo an toàn tuyệt đối.
 
-   \- Đây là nơi chứa bộ não của hệ thống bao gồm: Raspberry Pi 5 (xử lý mô hình học sâu) và 02 vi điều khiển ESP32 (Master/Slave).  
+---
 
-   \- Sự cách ly vật lý này giúp tối ưu hóa khả năng tản nhiệt cho các vi xử lý (đặc biệt là Pi 5 khi chạy các tác vụ AI liên tục), đồng thời bảo vệ tín hiệu viễn thông (Wi-Fi/Bluetooth) không bị nhiễu do môi trường nước.  
+## 7. BẢNG MÃ ĐIỀU KHIỂN REMOTE HỒNG NGOẠI IR
 
-2. **Lớp Trên cạn (Gắn tại mép bể hoặc nắp bể):**
+Hệ thống sử dụng chuẩn giao thức **NEC (20 phím tiêu chuẩn)**. Người dùng có thể xem mã vừa bấm và gán lại mã phím tùy ý trong tab **CÀI ĐẶT** trên Web:
 
-   \- Không gian này bao gồm các thiết bị yêu cầu hoạt động trong môi trường thoáng khí nhưng phải tương tác trực tiếp với bề mặt bể.  
+| Nút bấm Remote | Mã Hex mặc định | Chức năng điều khiển | Hành vi chi tiết |
+|:---:|:---:|---|---|
+| **1** | `0x45` | **Máy Sưởi** | Bật / Tắt máy sưởi thủ công |
+| **2** | `0x46` | **Quạt Làm Mát** | Bật / Tắt quạt tản nhiệt thủ công |
+| **3** | `0x47` | **Bơm Bù Nước** | Bật / Tắt bơm cấp nước sạch |
+| **4** | `0x44` | **Sục Khí Oxy** | - **Bấm 1 lần:** Bật/Tắt chu kỳ (5p Bật / 15p Tắt)<br/>- **Bấm 3 lần liên tiếp:** Bật sục Oxy liên tục 24/7 |
+| **5** | `0x40` | **Bơm Rút Nước** | Bật / Tắt bơm hút xả nước |
+| **6** | `0x43` | **Đèn LED** | Bật / Tắt đèn chiếu sáng bể |
+| **7** | `0x07` | **Cho Ăn (Servo)** | Kích hoạt quay Servo đến góc đã cài đặt ($10^\circ - 180^\circ$) trong 2 giây |
+| **8** | `0x15` | **Chế Độ Lọc Nước** | Bật / Tắt đồng thời cả Bơm Rút & Bơm Bù để tuần hoàn lọc nước |
+| **0** | `0x16` | **TẮT TẤT CẢ (Emergency)** | Ngắt toàn bộ 6 Relay và hủy tất cả chế độ ngay lập tức |
 
-   \- **Thiết bị tiêu biểu:** IP Camera (được cố định ở góc nhìn bao quát toàn bộ lòng bể phục vụ phân tích thị giác máy tính), Máy cho ăn tự động bằng động cơ Servo (bố trí phía trên để thức ăn rơi tự do), Quạt tản nhiệt bề mặt, và Cảm biến nhiệt đới - độ ẩm (DHT22) để đo lường vi khí hậu xung quanh bể.  
+---
 
-3. **Lớp Ngập nước (Bề mặt và Lòng bể):**
+## 8. GIAO DIỆN WEB DASHBOARD & mDNS LOCAL
 
-   \- Không gian này chứa các linh kiện, cảm biến và thiết bị cơ điện đạt tiêu chuẩn chống nước cao (IP67/IP68), được thiết kế để ngâm trực tiếp hoặc tiếp xúc liên tục với môi trường dung dịch thủy sinh.  
+Hệ thống tích hợp máy chủ Web trực tiếp trên ESP32-Master với công nghệ Single Page Application (SPA), không cần kết nối Internet vẫn hoạt động đầy đủ 100%:
 
-   \- **Thiết bị tiêu biểu:** Đầu dò cảm biến nhiệt độ (DS18B20) đo chính xác nhiệt dung, Cảm biến mực nước (Phao từ) dùng để phát tín hiệu cảnh báo tràn hoặc cạn, Thanh sưởi nhiệt, và hệ thống Máy bơm/Lọc nước (duy trì luân chuyển dòng chảy sinh thái).  
+- **Tên miền truy cập cố định (mDNS):**
+  - **`http://beca.local`** (hoặc `http://beca/` trên Windows).
+  - Hoặc truy cập qua địa chỉ IP cục bộ được cấp phát bởi Router WiFi.
+
+### Các Phân Hệ Trên Giao Diện Web:
+1. **Tab BẢNG ĐIỀU KHIỂN (Dashboard):**
+   - Giám sát các chỉ số cảm biến: Nhiệt độ nước, Nhiệt độ & Độ ẩm không khí, Mực nước (cm), Đồng hồ thời gian thực NTP.
+   - Luồng Video Camera trực tiếp (nhúng luồng IP Camera).
+   - Nút bật/tắt thủ công cho từng thiết bị có đèn báo trạng thái `ON`/`OFF`.
+   - Cụm Hẹn giờ đếm lùi độc lập (Giờ - Phút - Giây) cho Sưởi, Quạt, Bơm Rút, Lọc Nước và Đèn LED.
+   - Nút kích hoạt **Chu Kỳ Lọc Nước Tự Động** (`[CHU KY: BAT / TAT]`).
+   - Công tắc Tổng Hệ Thống (Kill Switch).
+2. **Tab CÀI ĐẶT (Settings):**
+   - Thiết lập ngưỡng nhiệt độ sưởi và quạt làm mát.
+   - Thiết lập các mốc khoảng cách mực nước siêu âm (Đầy, Thấp, Cạn).
+   - Cài đặt số phút Bật/Nghỉ của **Chu Kỳ Sục Oxy** và **Chu Kỳ Lọc Nước**.
+   - Cài đặt khung giờ bật/tắt đèn LED tự động.
+   - Cài đặt 3 mốc thời gian cho ăn tự động (`HH:MM:SS`) và **Góc Quay Rotor Cho Ăn ($10^\circ - 180^\circ$)**.
+   - Cấu hình thông tin WiFi, IP Camera và Access Token kết nối **ThingsBoard MQTT**.
+   - Bảng học mã và gán mã phím Remote IR linh hoạt.
+3. **Tab THÔNG TIN HỆ THỐNG:**
+   - Xem thông số cấu hình phần cứng, bộ nhớ Flash, trạng thái liên lạc UART giữa Master và Slave.
+
+---
+
+## 9. HƯỚNG DẪN CÀI ĐẶT & NẠP FIRMWARE
+
+### 9.1. Chuẩn bị Môi trường Lập trình
+- Cài đặt **Arduino IDE (bản 1.8.19 hoặc 2.x)** hoặc **VS Code với PlatformIO**.
+- Cài đặt ESP32 Board Package (bản `2.0.x` hoặc `3.x`).
+- **Các thư viện cần thiết:**
+  - `ArduinoJson` (v6.x)
+  - `PubSubClient` (kết nối MQTT ThingsBoard)
+  - `OneWire` & `DallasTemperature` (đo cảm biến DS18B20)
+  - `DHT sensor library` (đo cảm biến DHT22)
+  - `IRremote` (v4.x)
+  - `ESP32Servo` (điều khiển Servo MG90S/SG90)
+  - `ESPmDNS` & `Preferences` (có sẵn trong ESP32 Core)
+
+### 9.2. Quy trình nạp Firmware
+1. **Nạp Firmware cho ESP32-Master:**
+   - Mở file [`Firmware/ESP32_Master/ESP32_Master.ino`](file:///F:/BECA_SIC/Firmware/ESP32_Master/ESP32_Master.ino).
+   - Chọn Board: `DOIT ESP32 DEVKIT V1` (hoặc `ESP32 Dev Module`).
+   - Bấm **Upload**.
+2. **Nạp Firmware cho ESP32-Slave:**
+   - Mở file [`Firmware/ESP32_Slave/ESP32_Slave.ino`](file:///F:/BECA_SIC/Firmware/ESP32_Slave/ESP32_Slave.ino).
+   - Chọn Board: `DOIT ESP32 DEVKIT V1`.
+   - Bấm **Upload**.
+3. **Kết nối và Trải nghiệm:**
+   - Bật nguồn cho cả 2 ESP32 và mở trình duyệt truy cập vào **`http://beca.local`** để bắt đầu sử dụng!
