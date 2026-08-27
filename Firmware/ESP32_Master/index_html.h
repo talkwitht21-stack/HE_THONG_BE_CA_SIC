@@ -222,13 +222,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="card-title">Ket Noi WiFi &amp; Ten Mien Local</div>
         <div class="form-group"><span>WiFi SSID:</span><input type="text" id="s-ssid" class="wide"></div>
         <div class="form-group"><span>Mat Khau:</span><input type="text" id="s-pass" class="wide"></div>
-        <div class="form-group">
-          <span>Ten Mien Local:</span>
-          <div style="display:flex;align-items:center;gap:4px">
-            <input type="text" id="s-hn" style="width:115px;text-align:right" value="beca">
-            <span style="color:#38bdf8;font-size:0.85em;font-weight:bold">.local</span>
-          </div>
-        </div>
+        <div class="form-group"><span>Ten Mien Local:</span><span style="color:#38bdf8;font-weight:bold;font-size:0.9em">http://beca.local</span></div>
         <div class="form-group"><span>IP Camera:</span><input type="text" id="s-cam" class="wide"></div>
         <div class="form-group"><span>Trang thai WiFi:</span><span id="s-wst" style="font-weight:bold;font-size:0.85em">--</span></div>
       </div>
@@ -429,7 +423,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
             document.getElementById('s-ssid').value  = d.ssid;
             document.getElementById('s-pass').value  = d.pass;
-            document.getElementById('s-hn').value    = d.hn || 'beca';
             document.getElementById('s-cam').value   = d.cam;
             document.getElementById('s-mqe').value   = d.mqe ? 1 : 0;
             document.getElementById('s-mqs').value   = d.mqs;
@@ -530,7 +523,6 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
         ssid:   document.getElementById('s-ssid').value,
         pass:   document.getElementById('s-pass').value,
-        hn:     (document.getElementById('s-hn').value || 'beca').trim(),
         cam:    document.getElementById('s-cam').value,
         mqe:    document.getElementById('s-mqe').value == 1,
         mqs:    document.getElementById('s-mqs').value,
