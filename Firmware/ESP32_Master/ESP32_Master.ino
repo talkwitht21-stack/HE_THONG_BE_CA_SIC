@@ -767,26 +767,30 @@ void handleSlave() {
     airTemp       = d["air_temp"];
     airHum        = d["air_hum"];
     if (d.containsKey("water_cm")) waterLevelCm = d["water_cm"];
+
+    // CHI DONG BO RELAY TU SLAVE KHI CO SU KIEN BAM PHIM REMOTE IR
+    // (Tranh viec cac ban tin cam bien dinh ky 2s ghi de trang thai relay cua Master)
     if (d.containsKey("last_ir") && d["last_ir"].as<String>().length() > 0) {
       last_ir = d["last_ir"].as<String>();
+
+      bool sh = d["heater"];
+      bool sf = d["fan"];
+      bool sp = d["pump"];
+      bool so = d["oxy"];
+      bool sd = d["drain"];
+      bool sl = d["led"];
+      bool som = d["oxy_mode"];
+
+      heaterState = sh; timer_heater_active = false; heater_auto_triggered = false; if (sh) start_heater = millis();
+      fanState    = sf; timer_fan_active    = false; fan_auto_triggered    = false; if (sf) start_fan    = millis();
+      pumpState   = sp;
+      oxyState    = so;
+      drainState  = sd; timer_drain_active  = false; if (sd) start_drain  = millis();
+      ledState    = sl; timer_led_active    = false; if (sl) start_led    = millis();
+      oxyModeContinuous = som;
+
+      Serial.printf("[MASTER] Nhan su kien IR tu Slave: %s -> Da dong bo relay\n", last_ir.c_str());
     }
-
-    bool sh = d["heater"];
-    bool sf = d["fan"];
-    bool sp = d["pump"];
-    bool so = d["oxy"];
-    bool sd = d["drain"];
-    bool sl = d["led"];
-    bool som = d["oxy_mode"];
-
-    // Cap nhat neu co su thay doi tu nut bam Remote IR o phia Slave (Huy timer de chay thu cong binh thuong)
-    if (sh != heaterState) { heaterState = sh; timer_heater_active = false; heater_auto_triggered = false; if (sh) start_heater = millis(); }
-    if (sf != fanState)    { fanState = sf;    timer_fan_active = false;    fan_auto_triggered = false;    if (sf) start_fan = millis(); }
-    if (sd != drainState)  { drainState = sd;  timer_drain_active = false;  if (sd) start_drain = millis(); }
-    if (sl != ledState)    { ledState = sl;    timer_led_active = false;    if (sl) start_led = millis(); }
-    pumpState = sp;
-    oxyState = so;
-    oxyModeContinuous = som;
 
     Serial.printf("[SLAVE -> MASTER] Nuoc=%.1fC KK=%.1fC Am=%.1f%% MucNuoc=%.1fcm\n",
                   waterTemp, airTemp, airHum, waterLevelCm);
@@ -813,7 +817,8 @@ void checkLogic() {
 
   // ===================== 1. FAILSAFE NGUY HIEM TUYET DOI =====================
   // KHI NGUY HIEM: DU NGUOI DUNG CO BAT BANG TAY / REMOTE / WEB CUNG PHAI CAT NGAY LAP TUC!
-  bool is_empty = (waterLevelCm >= th_water_empty && waterLevelCm > 0);
+  // Gioi han <= th_tank_height + 5.0cm de tranh truong hop de board tren ban test ngoai phong
+  bool is_empty = (waterLevelCm >= th_water_empty && waterLevelCm > 0 && waterLevelCm <= th_tank_height + 5.0);
   bool is_overheat = (waterTemp >= 35.0);
 
   // [FAILSAFE NGUY HIEM]: Qua nhiet >= 35C hoac Can nuoc -> BAT BUOC CAT SUOI NGAY DANG BAT BANG BAT KY CACH NAO
