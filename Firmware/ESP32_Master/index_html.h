@@ -135,6 +135,21 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         </div>
         <div class="row">
           <div class="row-info">
+            <span class="row-label">Che Do Loc Nuoc (Song Song)</span>
+            <span class="countdown-lbl" id="c-filter"></span>
+          </div>
+          <div class="row-ctrl">
+            <div class="timer-wrap">
+              <input type="number" class="timer-input" id="tfl-h" min="0" max="99" value="0"><span class="timer-unit">g</span>
+              <input type="number" class="timer-input" id="tfl-m" min="0" max="59" value="15"><span class="timer-unit">p</span>
+              <input type="number" class="timer-input" id="tfl-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
+            </div>
+            <button class="btn timer-btn" id="bt-filter" onclick="startTimer('filter')">HEN GIO</button>
+            <button class="btn off" id="b-filter" onclick="toggle('filter')">TAT</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="row-info">
             <span class="row-label">Den LED Chieu Sang</span>
             <span class="countdown-lbl" id="c-led"></span>
           </div>
@@ -331,20 +346,22 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
           // Relay buttons
           ub('b-heater', d.h); ub('b-fan', d.f); ub('b-pump', d.p);
-          ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-led', d.l);
+          ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-filter', d.fl); ub('b-led', d.l);
 
           // Cap nhat trang thai nut HEN GIO (Active khi dang dem lui)
-          let bth = document.getElementById('bt-heater'); if (bth) bth.className = 'btn timer-btn' + (d.th_a ? ' active' : '');
-          let btf = document.getElementById('bt-fan');    if (btf) btf.className = 'btn timer-btn' + (d.tf_a ? ' active' : '');
-          let btd = document.getElementById('bt-drain');  if (btd) btd.className = 'btn timer-btn' + (d.td_a ? ' active' : '');
-          let btl = document.getElementById('bt-led');    if (btl) btl.className = 'btn timer-btn' + (d.tl_a ? ' active' : '');
+          let bth  = document.getElementById('bt-heater'); if (bth)  bth.className  = 'btn timer-btn' + (d.th_a  ? ' active' : '');
+          let btf  = document.getElementById('bt-fan');    if (btf)  btf.className  = 'btn timer-btn' + (d.tf_a  ? ' active' : '');
+          let btd  = document.getElementById('bt-drain');  if (btd)  btd.className  = 'btn timer-btn' + (d.td_a  ? ' active' : '');
+          let btfl = document.getElementById('bt-filter'); if (btfl) btfl.className = 'btn timer-btn' + (d.tfl_a ? ' active' : '');
+          let btl  = document.getElementById('bt-led');    if (btl)  btl.className  = 'btn timer-btn' + (d.tl_a  ? ' active' : '');
 
           // Cap nhat bo dem nguoc tu Master
-          _rem.heater = d.th_r || 0;
-          _rem.fan    = d.tf_r || 0;
-          _rem.drain  = d.td_r || 0;
-          _rem.led    = d.tl_r || 0;
-          ['heater', 'fan', 'drain', 'led'].forEach(k => {
+          _rem.heater = d.th_r  || 0;
+          _rem.fan    = d.tf_r  || 0;
+          _rem.drain  = d.td_r  || 0;
+          _rem.filter = d.tfl_r || 0;
+          _rem.led    = d.tl_r  || 0;
+          ['heater', 'fan', 'drain', 'filter', 'led'].forEach(k => {
             let el = document.getElementById('c-' + k);
             if (el) el.textContent = formatSec(_rem[k]);
           });
@@ -371,6 +388,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             secToHms(d.ths, 'th');
             secToHms(d.tfs, 'tf');
             secToHms(d.tds, 'td');
+            secToHms(d.tfls, 'tfl');
             secToHms(d.tls, 'tl');
           }
 
@@ -430,7 +448,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       b.className   = 'btn ' + (s ? 'on' : 'off');
     }
 
-    const timerMap = { heater: {pre:'th', key:'ths'}, fan: {pre:'tf', key:'tfs'}, drain: {pre:'td', key:'tds'}, led: {pre:'tl', key:'tls'} };
+    const timerMap = { heater: {pre:'th', key:'ths'}, fan: {pre:'tf', key:'tfs'}, drain: {pre:'td', key:'tds'}, filter: {pre:'tfl', key:'tfls'}, led: {pre:'tl', key:'tls'} };
 
     function startTimer(dev) {
       if (timerMap[dev]) {
@@ -453,7 +471,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         return;
       }
 
-      const btnId = {heater:'b-heater', fan:'b-fan', pump:'b-pump', oxy:'b-oxy', drain:'b-drain', led:'b-led'};
+      const btnId = {heater:'b-heater', fan:'b-fan', pump:'b-pump', oxy:'b-oxy', drain:'b-drain', filter:'b-filter', led:'b-led'};
       if (btnId[dev]) {
         let b = document.getElementById(btnId[dev]);
         ub(btnId[dev], !b.classList.contains('on'));
@@ -499,6 +517,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         ths:    hmsToSec('th'),
         tfs:    hmsToSec('tf'),
         tds:    hmsToSec('td'),
+        tfls:   hmsToSec('tfl'),
         tls:    hmsToSec('tl'),
 
         ssid:   document.getElementById('s-ssid').value,

@@ -100,6 +100,15 @@ bool timer_fan_active     = false;
 bool timer_drain_active   = false;
 bool timer_led_active     = false;
 
+// Che do Loc Nuoc (Chay song song ca Bom Rut & Bom Bu)
+bool filterMode           = false;
+bool timer_filter_active  = false;
+uint32_t timer_filter_sec = 900; // Mac dinh 15 phut (900s)
+
+// Co ghi nho do Logic Tu Dong bat (de Auto chi tat nhung gi do chinh no tu bat)
+bool heater_auto_triggered= false;
+bool fan_auto_triggered   = false;
+
 // Cau hinh chu ky Suc Oxy (phut)
 uint16_t oxy_on_min  = 5;
 uint16_t oxy_off_min = 15;
@@ -122,6 +131,7 @@ unsigned long start_heater    = 0;
 unsigned long start_fan       = 0;
 unsigned long start_drain     = 0;
 unsigned long start_led       = 0;
+unsigned long start_filter    = 0;
 unsigned long lastSlaveContact= 0;
 
 unsigned long lastWifiAttempt = 0;
@@ -270,6 +280,7 @@ void setupWeb() {
     d["l"]    = ledState;
     d["om"]   = oxyModeContinuous;
     d["sys"]  = systemEnabled;
+    d["fl"]   = filterMode;
 
     d["sh_on"]  = th_heater_on;
     d["sh_off"] = th_heater_off;
@@ -291,15 +302,20 @@ void setupWeb() {
     d["tfs"]  = timer_fan_sec;
     d["tds"]  = timer_drain_sec;
     d["tls"]  = timer_led_sec;
+    d["tfls"] = timer_filter_sec;
+
     d["th_a"] = timer_heater_active;
     d["tf_a"] = timer_fan_active;
     d["td_a"] = timer_drain_active;
     d["tl_a"] = timer_led_active;
+    d["tfl_a"]= timer_filter_active;
+
     unsigned long ms = millis();
     d["th_r"] = (heaterState && timer_heater_active && timer_heater_sec > 0) ? (long)max(0L, (long)timer_heater_sec - (long)((ms - start_heater)/1000)) : 0;
     d["tf_r"] = (fanState    && timer_fan_active    && timer_fan_sec    > 0) ? (long)max(0L, (long)timer_fan_sec    - (long)((ms - start_fan)   /1000)) : 0;
     d["td_r"] = (drainState  && timer_drain_active  && timer_drain_sec  > 0) ? (long)max(0L, (long)timer_drain_sec  - (long)((ms - start_drain) /1000)) : 0;
     d["tl_r"] = (ledState    && timer_led_active    && timer_led_sec    > 0) ? (long)max(0L, (long)timer_led_sec    - (long)((ms - start_led)   /1000)) : 0;
+    d["tfl_r"]= (filterMode  && timer_filter_active && timer_filter_sec > 0) ? (long)max(0L, (long)timer_filter_sec - (long)((ms - start_filter)/1000)) : 0;
 
     // Cau hinh chu ky Suc Oxy
     d["oo"]   = oxy_on_min;
@@ -340,8 +356,9 @@ void setupWeb() {
     if (dev == "system") {
       systemEnabled = !systemEnabled;
       if (!systemEnabled) {
-        heaterState = fanState = pumpState = drainState = ledState = false;
-        timer_heater_active = timer_fan_active = timer_drain_active = timer_led_active = false;
+        heaterState = fanState = pumpState = drainState = ledState = filterMode = false;
+        timer_heater_active = timer_fan_active = timer_drain_active = timer_led_active = timer_filter_active = false;
+        heater_auto_triggered = fan_auto_triggered = false;
         oxyModeContinuous = false;
       }
       saveSettings();
@@ -351,14 +368,47 @@ void setupWeb() {
         server.send(200, "application/json", "{}");
         return;
       }
-      // Dieu khien Thu Cong: Luon HUY hen gio dem lui de chay binh thuong
-      if (dev == "heater") { heaterState = !heaterState; timer_heater_active = false; if (heaterState) start_heater = millis(); }
-      else if (dev == "fan") { fanState = !fanState; timer_fan_active = false; if (fanState) start_fan = millis(); }
-      else if (dev == "pump") { pumpState = !pumpState; }
-      else if (dev == "drain") { drainState = !drainState; timer_drain_active = false; if (drainState) start_drain = millis(); }
-      else if (dev == "led") { ledState = !ledState; timer_led_active = false; if (ledState) start_led = millis(); }
-      else if (dev == "oxy") { oxyModeContinuous = false; oxyState = !oxyState; }
-      else if (dev == "feed") { feed = true; }
+      // Dieu khien Thu Cong: Luon HUY hen gio dem lui de chay thu cong
+      if (dev == "heater") {
+        heaterState = !heaterState;
+        timer_heater_active = false;
+        heater_auto_triggered = false; // Nguoi dung chu dong bat/tat -> Auto khong tu y can thiep
+        if (heaterState) start_heater = millis();
+      }
+      else if (dev == "fan") {
+        fanState = !fanState;
+        timer_fan_active = false;
+        fan_auto_triggered = false;
+        if (fanState) start_fan = millis();
+      }
+      else if (dev == "pump") {
+        pumpState = !pumpState;
+        if (!pumpState && filterMode) filterMode = false;
+      }
+      else if (dev == "drain") {
+        drainState = !drainState;
+        timer_drain_active = false;
+        if (!drainState && filterMode) filterMode = false;
+        if (drainState) start_drain = millis();
+      }
+      else if (dev == "filter") {
+        filterMode = !filterMode;
+        timer_filter_active = false;
+        drainState = pumpState = filterMode; // Bật hoặc tắt đồng thời cả 2 bơm
+        if (filterMode) { start_drain = start_pump = millis(); }
+      }
+      else if (dev == "led") {
+        ledState = !ledState;
+        timer_led_active = false;
+        if (ledState) start_led = millis();
+      }
+      else if (dev == "oxy") {
+        oxyModeContinuous = false;
+        oxyState = !oxyState;
+      }
+      else if (dev == "feed") {
+        feed = true;
+      }
     }
 
     sendToSlave(feed);
@@ -381,12 +431,14 @@ void setupWeb() {
     if (dev == "heater") {
       heaterState = true;
       timer_heater_active = (sec > 0);
+      heater_auto_triggered = false;
       timer_heater_sec = sec;
       start_heater = ms;
       Serial.printf("[TIMER] Bat Hen Gio Suoi: %u giay\n", sec);
     } else if (dev == "fan") {
       fanState = true;
       timer_fan_active = (sec > 0);
+      fan_auto_triggered = false;
       timer_fan_sec = sec;
       start_fan = ms;
       Serial.printf("[TIMER] Bat Hen Gio Quat: %u giay\n", sec);
@@ -396,6 +448,13 @@ void setupWeb() {
       timer_drain_sec = sec;
       start_drain = ms;
       Serial.printf("[TIMER] Bat Hen Gio Bom Rut: %u giay\n", sec);
+    } else if (dev == "filter") {
+      filterMode = true;
+      drainState = pumpState = true; // Chay song song ca 2 bom
+      timer_filter_active = (sec > 0);
+      timer_filter_sec = sec;
+      start_filter = ms;
+      Serial.printf("[TIMER] Bat Hen Gio Loc Nuoc Song Song: %u giay\n", sec);
     } else if (dev == "led") {
       ledState = true;
       timer_led_active = (sec > 0);
@@ -441,6 +500,7 @@ void setupWeb() {
     if (d.containsKey("ths"))    timer_heater_sec  = d["ths"];
     if (d.containsKey("tfs"))    timer_fan_sec     = d["tfs"];
     if (d.containsKey("tds"))    timer_drain_sec   = d["tds"];
+    if (d.containsKey("tfls"))   timer_filter_sec  = d["tfls"];
     if (d.containsKey("tls"))    timer_led_sec     = d["tls"];
 
     if (d.containsKey("sys"))    systemEnabled     = d["sys"];
@@ -538,6 +598,7 @@ void loadSettings() {
   timer_heater_sec= prefs.getUInt("ths", 0);
   timer_fan_sec   = prefs.getUInt("tfs", 0);
   timer_drain_sec = prefs.getUInt("tds", 180);
+  timer_filter_sec= prefs.getUInt("tfls", 900);
   timer_led_sec   = prefs.getUInt("tls", 0);
 
   ir1 = prefs.getString("ir1", "45");
@@ -594,6 +655,7 @@ void saveSettings() {
   prefs.putUInt("ths", timer_heater_sec);
   prefs.putUInt("tfs", timer_fan_sec);
   prefs.putUInt("tds", timer_drain_sec);
+  prefs.putUInt("tfls", timer_filter_sec);
   prefs.putUInt("tls", timer_led_sec);
 
   prefs.putString("ir1", ir1);
@@ -706,8 +768,8 @@ void handleSlave() {
     bool som = d["oxy_mode"];
 
     // Cap nhat neu co su thay doi tu nut bam Remote IR o phia Slave (Huy timer de chay thu cong binh thuong)
-    if (sh != heaterState) { heaterState = sh; timer_heater_active = false; if (sh) start_heater = millis(); }
-    if (sf != fanState)    { fanState = sf;    timer_fan_active = false;    if (sf) start_fan = millis(); }
+    if (sh != heaterState) { heaterState = sh; timer_heater_active = false; heater_auto_triggered = false; if (sh) start_heater = millis(); }
+    if (sf != fanState)    { fanState = sf;    timer_fan_active = false;    fan_auto_triggered = false;    if (sf) start_fan = millis(); }
     if (sd != drainState)  { drainState = sd;  timer_drain_active = false;  if (sd) start_drain = millis(); }
     if (sl != ledState)    { ledState = sl;    timer_led_active = false;    if (sl) start_led = millis(); }
     pumpState = sp;
@@ -726,9 +788,10 @@ void checkLogic() {
 
   // 0. Neu HE THONG BI TAT (Kill Switch), khoa tat ca relay
   if (!systemEnabled) {
-    if (heaterState || fanState || pumpState || drainState || ledState) {
-      heaterState = fanState = pumpState = drainState = ledState = false;
-      timer_heater_active = timer_fan_active = timer_drain_active = timer_led_active = false;
+    if (heaterState || fanState || pumpState || drainState || ledState || filterMode) {
+      heaterState = fanState = pumpState = drainState = ledState = filterMode = false;
+      timer_heater_active = timer_fan_active = timer_drain_active = timer_led_active = timer_filter_active = false;
+      heater_auto_triggered = fan_auto_triggered = false;
       oxyModeContinuous = false;
       sendToSlave(false);
       Serial.println("[LOGIC] He thong dang bi KHOA -> Tat tat ca relay");
@@ -736,8 +799,36 @@ void checkLogic() {
     return;
   }
 
-  // 1. Cross-check Nhiet Do (Kiem tra tinh hop le cua ca 2 cam bien)
-  if (waterTemp > -50.0 && airTemp > -50.0) {
+  // ===================== 1. FAILSAFE NGUY HIEM TUYET DOI =====================
+  // KHI NGUY HIEM: DU NGUOI DUNG CO BAT BANG TAY / REMOTE / WEB CUNG PHAI CAT NGAY LAP TUC!
+  bool is_empty = (waterLevelCm >= th_water_empty && waterLevelCm > 0);
+  bool is_overheat = (waterTemp >= 35.0);
+
+  // [FAILSAFE NGUY HIEM]: Qua nhiet >= 35C hoac Can nuoc -> BAT BUOC CAT SUOI NGAY DANG BAT BANG BAT KY CACH NAO
+  if (is_overheat || is_empty) {
+    if (heaterState) {
+      heaterState = false;
+      timer_heater_active = false;
+      heater_auto_triggered = false;
+      stateChanged = true;
+      Serial.println("[FAILSAFE NGUY HIEM] !!! CAT KHAN CAP SUOI (Qua nhiet >= 35C hoac Can nuoc) !!!");
+    }
+  }
+
+  // [FAILSAFE NGUY HIEM]: Can nuoc -> BAT BUOC CAT BOM RUT VA CHE DO LOC NUOC NGAY
+  if (is_empty) {
+    if (drainState || filterMode) {
+      drainState = false;
+      filterMode = false;
+      timer_drain_active = false;
+      timer_filter_active = false;
+      stateChanged = true;
+      Serial.println("[FAILSAFE NGUY HIEM] !!! CAT BOM RUT & LOC NUOC (Nuoc can nguy hiem) !!!");
+    }
+  }
+
+  // ===================== 2. AUTO LOGIC NHIET DO (KHI DUOI 35C) =====================
+  if (waterTemp > -50.0 && airTemp > -50.0 && !is_overheat && !is_empty) {
     float tempDiff = abs(waterTemp - airTemp);
 
     // Kiem tra do chenh lech hop ly (Plausibility check <= 15C de loc cam bien bi hong/troi)
@@ -745,68 +836,47 @@ void checkLogic() {
       // --- DIEU KHIEN SUOI TU DONG (Dua tren nhiet do NUOC) ---
       if (waterTemp < th_heater_on && !heaterState && !timer_heater_active) {
         heaterState = true;
+        heater_auto_triggered = true; // Danh dau do he thong tu dong bat
         start_heater = ms;
         stateChanged = true;
-        Serial.printf("[LOGIC] Nuoc lanh (%.1fC < %.1fC) -> BAT Suoi Tu Dong\n", waterTemp, th_heater_on);
+        Serial.printf("[LOGIC AUTO] Nuoc lanh (%.1fC < %.1fC) -> Tu dong BAT Suoi\n", waterTemp, th_heater_on);
       }
-      if (waterTemp >= th_heater_off && heaterState && !timer_heater_active) {
+      // Chi tu dong TAT suoi neu chinh logic auto da tu bat truoc do
+      if (waterTemp >= th_heater_off && heaterState && heater_auto_triggered) {
         heaterState = false;
+        heater_auto_triggered = false;
         stateChanged = true;
-        Serial.printf("[LOGIC] Nuoc am (%.1fC >= %.1fC) -> TAT Suoi Tu Dong\n", waterTemp, th_heater_off);
+        Serial.printf("[LOGIC AUTO] Nuoc da am (%.1fC >= %.1fC) -> Tu dong TAT Suoi\n", waterTemp, th_heater_off);
       }
 
       // --- DIEU KHIEN QUAT TU DONG (Dua tren nhiet do NUOC) ---
       if (waterTemp > th_fan_on && !fanState && !timer_fan_active) {
         fanState = true;
+        fan_auto_triggered = true;
         start_fan = ms;
         stateChanged = true;
-        Serial.printf("[LOGIC] Nuoc nong (%.1fC > %.1fC) -> BAT Quat Tu Dong\n", waterTemp, th_fan_on);
+        Serial.printf("[LOGIC AUTO] Nuoc nong (%.1fC > %.1fC) -> Tu dong BAT Quat\n", waterTemp, th_fan_on);
       }
-      if (waterTemp <= th_fan_off && fanState && !timer_fan_active) {
+      if (waterTemp <= th_fan_off && fanState && fan_auto_triggered) {
         fanState = false;
+        fan_auto_triggered = false;
         stateChanged = true;
-        Serial.printf("[LOGIC] Nuoc mat (%.1fC <= %.1fC) -> TAT Quat Tu Dong\n", waterTemp, th_fan_off);
+        Serial.printf("[LOGIC AUTO] Nuoc mat (%.1fC <= %.1fC) -> Tu dong TAT Quat\n", waterTemp, th_fan_off);
       }
     } else {
       Serial.printf("[LOGIC CANH BAO] Chenh lech nhiet do bat thuong: Nuoc=%.1fC, KK=%.1fC (Diff=%.1fC > 15C)\n",
                     waterTemp, airTemp, tempDiff);
     }
-  } else {
-    // Cam bien loi -> Tat an toan neu khong chay timer
-    if (heaterState && !timer_heater_active) { heaterState = false; stateChanged = true; }
-    if (fanState && !timer_fan_active)       { fanState = false; stateChanged = true; }
   }
 
-  // [FAILSAFE KHOA AN TOAN CHO SUOI]: Nuoc can nguy hiem hoac qua nhiet >= 35C -> CAT SUOI NGAY
-  if ((waterLevelCm >= th_water_empty && waterLevelCm > 0) || waterTemp >= 35.0) {
-    if (heaterState) {
-      heaterState = false;
-      timer_heater_active = false;
-      stateChanged = true;
-      Serial.println("[FAILSAFE] !!! CAT KHAN CAP SUOI (Can nuoc hoac qua nhiet >= 35C) !!!");
-    }
-  }
-
-  // 2. Logic Muc Nuoc Sieu Am (HC-SR04 do tu tren xuong)
+  // ===================== 3. LOGIC MUC NUOC SIEU AM =====================
   // Khoang cach NHO = nuoc DAY | Khoang cach LON = nuoc CAN
   if (waterLevelCm > 0) {
-    bool is_empty = (waterLevelCm >= th_water_empty); // Qua xa -> nuoc can NGUY HIEM
     bool is_low   = (waterLevelCm >= th_water_low);   // Xa vua -> nuoc thap, can bom bu
     bool is_full  = (waterLevelCm <= th_water_full);  // Rat gan -> nuoc day, dung bom bu
 
-    // [BẢO VỆ KHẨN CẤP] Nuoc can nguy hiem:
-    // -> Cat ngay bom rut (neu dang chay) de tranh hut can be
-    if (is_empty) {
-      if (drainState) {
-        drainState = false;
-        timer_drain_active = false;
-        stateChanged = true;
-        Serial.println("[LOGIC] !!! Nuoc CAN NGUY HIEM -> CAT KHAN CAP Bom Rut !!!");
-      }
-    }
-
-    // Tu dong bom bu nuoc (chong can do bay hoi)
-    if (auto_pump) {
+    // Tu dong bom bu nuoc (chi chay khi KHONG trong che do loc nuoc song song)
+    if (auto_pump && !filterMode) {
       if (is_low && !pumpState) {
         pumpState = true;
         stateChanged = true;
@@ -817,17 +887,9 @@ void checkLogic() {
         Serial.println("[LOGIC] Nuoc day -> TAT Bom Bu (chong tran)");
       }
     }
-
-    // Bom rut nuoc (BOM THAY NUOC): Tu dong tat khi nuoc da DAY de tranh tran
-    if (drainState && is_full) {
-      drainState = false;
-      timer_drain_active = false;
-      stateChanged = true;
-      Serial.println("[LOGIC] Nuoc da DAY -> TAT Bom Rut (bao ve tran be)");
-    }
   }
 
-  // 3. Hen gio Den LED theo lich (Time Window)
+  // ===================== 4. HEN GIO DEN LED THEO LICH =====================
   if (led_timer_mode) {
     struct tm ti;
     if (getLocalTime(&ti)) {
@@ -846,7 +908,7 @@ void checkLogic() {
     }
   }
 
-  // 4. Hen gio Cho An Tu Dong (3 moc/ngay)
+  // ===================== 5. HEN GIO CHO AN TU DONG =====================
   struct tm ti;
   if (getLocalTime(&ti)) {
     int curTotalMin = ti.tm_hour * 60 + ti.tm_min;
@@ -877,7 +939,7 @@ void checkLogic() {
     if (curTotalMin == 0 && curSec < 5) feed_last_min = -1;
   }
 
-  // 5. Timer Countdown tu tat (Chi chay khi co co timer_*_active)
+  // ===================== 6. TIMER COUNTDOWN TU TAT =====================
   if (timer_heater_active && heaterState && (ms - start_heater >= timer_heater_sec * 1000UL)) {
     heaterState = false;
     timer_heater_active = false;
@@ -895,6 +957,14 @@ void checkLogic() {
     timer_drain_active = false;
     stateChanged = true;
     Serial.println("[LOGIC] Bom rut het timer -> TAT");
+  }
+  if (timer_filter_active && filterMode && (ms - start_filter >= timer_filter_sec * 1000UL)) {
+    filterMode = false;
+    drainState = false;
+    pumpState = false;
+    timer_filter_active = false;
+    stateChanged = true;
+    Serial.println("[LOGIC] Loc nuoc song song het timer -> TAT");
   }
   if (timer_led_active && ledState && (ms - start_led >= timer_led_sec * 1000UL)) {
     ledState = false;
