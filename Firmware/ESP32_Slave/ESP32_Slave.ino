@@ -79,6 +79,7 @@ const unsigned long FEED_DURATION_MS = 2000; // 2 giây
 
 // Logic Sục Oxy
 bool oxyModeContinuous = false; // false = chu kỳ, true = liên tục
+bool oxyCycleEnabled   = true;  // true khi chu kỳ đang kích hoạt, false khi tắt hẳn
 unsigned long oxyLastChange = 0;
 uint16_t oxy_on_min  = 5;       // 5 phút
 uint16_t oxy_off_min = 15;      // 15 phút
@@ -199,12 +200,14 @@ void handleIR() {
       lastPress4Time = now;
       if (press4Count >= 3) {
         oxyModeContinuous = true;
+        oxyCycleEnabled = false;
         oxyState = true;
         Serial.println("[SLAVE] Oxy -> LIEN TUC");
         press4Count = 0;
       } else {
         oxyModeContinuous = false;
         oxyState = !oxyState;
+        oxyCycleEnabled = oxyState; // Chi chay chu ky khi oxyState = true
         oxyLastChange = now;
         Serial.printf("[SLAVE] Oxy -> %s (Chu ky)\n", oxyState ? "BAT" : "TAT");
       }
@@ -224,6 +227,7 @@ void handleIR() {
     } else if (command == ir_btn_0) {
       heaterState = fanState = pumpState = oxyState = drainState = ledState = false;
       oxyModeContinuous = false;
+      oxyCycleEnabled = false;
       Serial.println("[SLAVE] EMERGENCY OFF - Tat tat ca!");
     } else {
       Serial.printf("[SLAVE] Phim chua gan chuc nang: 0x%02X\n", command);
@@ -260,6 +264,8 @@ void handleOxyCycle() {
     }
     return; // Không chạy chu kỳ
   }
+
+  if (!oxyCycleEnabled) return; // Không tự kích hoạt nếu người dùng / Master đã tắt Oxy!
   
   unsigned long now = millis();
   unsigned long onMs  = (unsigned long)oxy_on_min * 60000UL;
@@ -283,8 +289,9 @@ void handleOxyCycle() {
 }
 
 void emergencyOff() {
-  heaterState = fanState = pumpState = drainState = ledState = false;
+  heaterState = fanState = pumpState = oxyState = drainState = ledState = false;
   oxyModeContinuous = false; // Ve che do chu ky an toan
+  oxyCycleEnabled   = false;
   applyRelayStates();
   Serial.println("[SLAVE] !!! MAT PONG TU MASTER -> NGAT DIEN AN TOAN NGAY LAP TUC !!!");
 }
@@ -366,10 +373,12 @@ void handleMasterCommand() {
       
       if (doc.containsKey("oxy")) {
         oxyState = doc["oxy"].as<bool>();
+        oxyCycleEnabled = oxyState && (!oxyModeContinuous);
         oxyLastChange = millis(); // Reset timer chu kỳ nếu master gửi lệnh
       }
       if (doc.containsKey("oxy_mode")) {
         oxyModeContinuous = doc["oxy_mode"].as<bool>();
+        if (oxyModeContinuous) oxyCycleEnabled = false;
       }
       if (doc.containsKey("oo")) oxy_on_min  = doc["oo"];
       if (doc.containsKey("of")) oxy_off_min = doc["of"];

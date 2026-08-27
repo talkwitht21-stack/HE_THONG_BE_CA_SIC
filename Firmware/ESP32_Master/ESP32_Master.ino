@@ -106,6 +106,11 @@ bool timer_led_active     = false;
 bool filterMode           = false;
 bool timer_filter_active  = false;
 uint32_t timer_filter_sec = 900; // Mac dinh 15 phut (900s)
+bool filterCycleMode      = false;
+uint16_t filter_on_min    = 15;
+uint16_t filter_off_min   = 45;
+unsigned long filterCycleLastChange = 0;
+bool filterCyclePhaseOn   = true;
 
 // Co ghi nho do Logic Tu Dong bat (de Auto chi tat nhung gi do chinh no tu bat)
 bool heater_auto_triggered= false;
@@ -289,9 +294,11 @@ void setupWeb() {
     d["o"]    = oxyState;
     d["d"]    = drainState;
     d["l"]    = ledState;
-    d["om"]   = oxyModeContinuous;
-    d["sys"]  = systemEnabled;
+    d["om"]   = oxyModeContinuous;    d["sys"]  = systemEnabled;
     d["fl"]   = filterMode;
+    d["fcm"]  = filterCycleMode;
+    d["fon"]  = filter_on_min;
+    d["fof"]  = filter_off_min;
 
     d["sh_on"]  = th_heater_on;
     d["sh_off"] = th_heater_off;
@@ -368,9 +375,8 @@ void setupWeb() {
     if (dev == "system") {
       systemEnabled = !systemEnabled;
       if (!systemEnabled) {
-        heaterState = fanState = pumpState = drainState = ledState = filterMode = false;
+        heaterState = fanState = pumpState = oxyState = drainState = ledState = filterMode = filterCycleMode = false;
         timer_heater_active = timer_fan_active = timer_drain_active = timer_led_active = timer_filter_active = false;
-        heater_auto_triggered = fan_auto_triggered = false;
         oxyModeContinuous = false;
       }
       saveSettings();
@@ -393,19 +399,33 @@ void setupWeb() {
       }
       else if (dev == "pump") {
         pumpState = !pumpState;
-        if (!pumpState && filterMode) { filterMode = false; timer_filter_active = false; }
+        if (!pumpState && filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; }
       }
       else if (dev == "drain") {
         drainState = !drainState;
         timer_drain_active = false;
-        if (!drainState && filterMode) { filterMode = false; timer_filter_active = false; }
+        if (!drainState && filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; }
         if (drainState) start_drain = millis();
       }
       else if (dev == "filter") {
+        filterCycleMode = false;
         filterMode = !filterMode;
         timer_filter_active = false;
         drainState = pumpState = filterMode; // Bật hoặc tắt đồng thời cả 2 bơm
         if (filterMode) { start_drain = start_pump = start_filter = millis(); }
+      }
+      else if (dev == "filter_cycle") {
+        filterCycleMode = !filterCycleMode;
+        timer_filter_active = false;
+        if (filterCycleMode) {
+          filterCyclePhaseOn = true;
+          filterCycleLastChange = millis();
+          filterMode = drainState = pumpState = true;
+          start_drain = start_pump = start_filter = millis();
+        } else {
+          filterMode = drainState = pumpState = false;
+        }
+        saveSettings();
       }
       else if (dev == "led") {
         ledState = !ledState;
@@ -437,15 +457,14 @@ void setupWeb() {
       return;
     }
 
-    unsigned long ms = millis();
     if (dev == "heater") {
       heaterState = true;
-      timer_heater_active = (sec > 0);
-      heater_auto_triggered = false;
       timer_heater_sec = sec;
-      start_heater = ms;
-      Serial.printf("[TIMER] Bat Hen Gio Suoi: %u giay\n", sec);
-    } else if (dev == "fan") {
+      timer_heater_active = true;
+      start_heater = millis();
+      saveSettings();
+    }
+    else if (dev == "fan") {
       fanState = true;
       timer_fan_active = (sec > 0);
       fan_auto_triggered = false;
@@ -499,6 +518,10 @@ void setupWeb() {
     if (d.containsKey("slm"))    led_timer_mode    = d["slm"];
     if (d.containsKey("sl_on"))  led_on_time       = d["sl_on"].as<String>();
     if (d.containsKey("sl_off")) led_off_time      = d["sl_off"].as<String>();
+
+    if (d.containsKey("fcm"))    filterCycleMode   = d["fcm"].as<bool>();
+    if (d.containsKey("fon"))    filter_on_min     = d["fon"];
+    if (d.containsKey("fof"))    filter_off_min    = d["fof"];
 
     if (d.containsKey("fen1"))   feed_en_1         = d["fen1"];
     if (d.containsKey("ft1"))    feed_time_1       = d["ft1"].as<String>();
@@ -612,6 +635,10 @@ void loadSettings() {
   timer_filter_sec= prefs.getUInt("tfls", 900);
   timer_led_sec   = prefs.getUInt("tls", 0);
 
+  filterCycleMode = prefs.getBool("fcm", false);
+  filter_on_min   = prefs.getUShort("fon", 15);
+  filter_off_min  = prefs.getUShort("fof", 45);
+
   ir1 = prefs.getString("ir1", "45");
   ir2 = prefs.getString("ir2", "46");
   ir3 = prefs.getString("ir3", "47");
@@ -669,6 +696,10 @@ void saveSettings() {
   prefs.putUInt("tds", timer_drain_sec);
   prefs.putUInt("tfls", timer_filter_sec);
   prefs.putUInt("tls", timer_led_sec);
+
+  prefs.putBool("fcm", filterCycleMode);
+  prefs.putUShort("fon", filter_on_min);
+  prefs.putUShort("fof", filter_off_min);
 
   prefs.putString("ir1", ir1);
   prefs.putString("ir2", ir2);
@@ -806,10 +837,9 @@ void checkLogic() {
 
   // 0. Neu HE THONG BI TAT (Kill Switch), khoa tat ca relay
   if (!systemEnabled) {
-    if (heaterState || fanState || pumpState || drainState || ledState || filterMode) {
-      heaterState = fanState = pumpState = drainState = ledState = filterMode = false;
+    if (heaterState || fanState || pumpState || oxyState || drainState || ledState || filterMode || filterCycleMode) {
+      heaterState = fanState = pumpState = oxyState = drainState = ledState = filterMode = filterCycleMode = false;
       timer_heater_active = timer_fan_active = timer_drain_active = timer_led_active = timer_filter_active = false;
-      heater_auto_triggered = fan_auto_triggered = false;
       oxyModeContinuous = false;
       sendToSlave(false);
       Serial.println("[LOGIC] He thong dang bi KHOA -> Tat tat ca relay");
@@ -828,7 +858,6 @@ void checkLogic() {
     if (heaterState) {
       heaterState = false;
       timer_heater_active = false;
-      heater_auto_triggered = false;
       stateChanged = true;
       Serial.println("[FAILSAFE NGUY HIEM] !!! CAT KHAN CAP SUOI (Qua nhiet >= 35C hoac Can nuoc) !!!");
     }
@@ -836,9 +865,10 @@ void checkLogic() {
 
   // [FAILSAFE NGUY HIEM]: Can nuoc -> BAT BUOC CAT BOM RUT VA CHE DO LOC NUOC NGAY
   if (is_empty) {
-    if (drainState || filterMode) {
+    if (drainState || filterMode || filterCycleMode) {
       drainState = false;
       filterMode = false;
+      filterCycleMode = false;
       timer_drain_active = false;
       timer_filter_active = false;
       stateChanged = true;
@@ -985,6 +1015,38 @@ void checkLogic() {
     timer_led_active = false;
     stateChanged = true;
     Serial.println("[LOGIC] Den LED het timer -> TAT");
+  }
+
+  // ===================== 7. CHU KY LOC NUOC TU DONG =====================
+  if (filterCycleMode && !is_empty) {
+    unsigned long onMs  = (unsigned long)filter_on_min * 60000UL;
+    unsigned long offMs = (unsigned long)filter_off_min * 60000UL;
+
+    if (filterCyclePhaseOn) {
+      if (!filterMode || !drainState || !pumpState) {
+        filterMode = drainState = pumpState = true;
+        stateChanged = true;
+      }
+      if (ms - filterCycleLastChange >= onMs) {
+        filterCyclePhaseOn = false;
+        filterCycleLastChange = ms;
+        filterMode = drainState = pumpState = false;
+        stateChanged = true;
+        Serial.println("[LOGIC] Chu ky Loc Nuoc -> Chuyen sang phase NGHI");
+      }
+    } else {
+      if (filterMode || drainState || pumpState) {
+        filterMode = drainState = pumpState = false;
+        stateChanged = true;
+      }
+      if (ms - filterCycleLastChange >= offMs) {
+        filterCyclePhaseOn = true;
+        filterCycleLastChange = ms;
+        filterMode = drainState = pumpState = true;
+        stateChanged = true;
+        Serial.println("[LOGIC] Chu ky Loc Nuoc -> Chuyen sang phase CHAY");
+      }
+    }
   }
 
   // Gui lenh cap nhat xuong Slave neu co thay doi

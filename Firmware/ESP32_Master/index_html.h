@@ -137,6 +137,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           <div class="row-info">
             <span class="row-label">Che Do Loc Nuoc (Song Song)</span>
             <span class="countdown-lbl" id="c-filter"></span>
+            <span id="lbl-filter-cycle" style="font-size:0.75em;color:#64748b;display:block"></span>
           </div>
           <div class="row-ctrl">
             <div class="timer-wrap">
@@ -145,6 +146,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
               <input type="number" class="timer-input" id="tfl-s" min="0" max="59" value="0"><span class="timer-unit">s</span>
             </div>
             <button class="btn timer-btn" id="bt-filter" onclick="startTimer('filter')">HEN GIO</button>
+            <button class="btn off" id="b-filter-cycle" onclick="toggle('filter_cycle')">CHU KY: TAT</button>
             <button class="btn off" id="b-filter" onclick="toggle('filter')">TAT</button>
           </div>
         </div>
@@ -187,6 +189,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="form-group"><span>Che do Suc Oxy:</span><select id="s-om"><option value="0">Chu ky</option><option value="1">Lien tuc</option></select></div>
         <div class="form-group"><span>Thoi gian BAT (phut):</span><input type="number" id="s-oo" min="1" max="999" step="1"></div>
         <div class="form-group"><span>Thoi gian TAT (phut):</span><input type="number" id="s-of" min="1" max="999" step="1"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Chu Ky Loc Nuoc Tu Dong</div>
+        <div class="form-group"><span>Thoi gian CHAY (phut):</span><input type="number" id="s-fon" min="1" max="999" step="1" value="15"></div>
+        <div class="form-group"><span>Thoi gian NGHI (phut):</span><input type="number" id="s-fof" min="1" max="999" step="1" value="45"></div>
       </div>
       <div class="card">
         <div class="card-title">Hen Gio Den LED</div>
@@ -350,6 +357,16 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           ub('b-heater', d.h); ub('b-fan', d.f); ub('b-pump', d.p);
           ub('b-oxy', d.o); ub('b-drain', d.d); ub('b-filter', d.fl); ub('b-led', d.l);
 
+          let bfc = document.getElementById('b-filter-cycle');
+          if (bfc) {
+            bfc.textContent = d.fcm ? 'CHU KY: BAT' : 'CHU KY: TAT';
+            bfc.className = 'btn ' + (d.fcm ? 'on' : 'off');
+          }
+          let lfc = document.getElementById('lbl-filter-cycle');
+          if (lfc) {
+            lfc.textContent = '(Chu ky: ' + (d.fon||15) + 'p Chay / ' + (d.fof||45) + 'p Nghi)';
+          }
+
           // Cap nhat trang thai nut HEN GIO (Active khi dang dem lui)
           let bth  = document.getElementById('bt-heater'); if (bth)  bth.className  = 'btn timer-btn' + (d.th_a  ? ' active' : '');
           let btf  = document.getElementById('bt-fan');    if (btf)  btf.className  = 'btn timer-btn' + (d.tf_a  ? ' active' : '');
@@ -410,6 +427,9 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
             document.getElementById('s-om').value    = d.om  ? 1 : 0;
             document.getElementById('s-oo').value    = d.oo  || 5;
             document.getElementById('s-of').value    = d.of  || 15;
+
+            document.getElementById('s-fon').value   = d.fon || 15;
+            document.getElementById('s-fof').value   = d.fof || 45;
 
             document.getElementById('s-lm').value    = d.slm ? 1 : 0;
             document.getElementById('s-lon').value   = d.sl_on;
@@ -505,6 +525,9 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         om:     document.getElementById('s-om').value == 1,
         oo:     parseInt(document.getElementById('s-oo').value) || 5,
         of:     parseInt(document.getElementById('s-of').value) || 15,
+
+        fon:    parseInt(document.getElementById('s-fon').value) || 15,
+        fof:    parseInt(document.getElementById('s-fof').value) || 45,
 
         slm:    document.getElementById('s-lm').value == 1,
         sl_on:  document.getElementById('s-lon').value,
