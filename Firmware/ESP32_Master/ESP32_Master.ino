@@ -339,7 +339,7 @@ void setupWeb() {
 
     d["ssid"]   = sta_ssid;
     d["pass"]   = sta_password;
-    d["hn"]     = host_name;
+    d["hn"]     = HOST_NAME;
     d["cam"]    = cameraIP;
 
     d["mqe"]    = mqtt_enabled;
