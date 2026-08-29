@@ -103,7 +103,7 @@ def main():
 
     def on_cloudflare_ready(pub_url):
         shared_state["public_url"] = pub_url
-        if tg_cfg.get("enabled", False):
+        if telegram_bot:
             telegram_bot.send_tunnel_url(pub_url)
 
     tunnel = None

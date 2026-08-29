@@ -57,10 +57,23 @@ class TelegramBotService:
         self.send_message("<b>HE THONG BE CA SIC</b>\nBot AI da khoi dong thanh cong tren Raspberry Pi 5!\nGo <code>/help</code> de xem danh sach lenh.")
 
     def send_message(self, text):
-        if not self.enabled:
+        tok = str(self.bot_token).strip()
+        cid = str(self.chat_id).strip()
+        if not tok or not cid or tok == "YOUR_TELEGRAM_BOT_TOKEN" or cid == "YOUR_TELEGRAM_CHAT_ID":
             return False
         try:
-            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            url = f"https://api.telegram.org/bot{tok}/sendMessage"
+            payload = {"chat_id": cid, "text": text, "parse_mode": "HTML"}
+            r = requests.post(url, json=payload, timeout=8)
+            if r.status_code == 200:
+                print(f"[TELEGRAM] Da gui tin nhan thanh cong toi Chat ID: {cid}")
+                return True
+            else:
+                print(f"[TELEGRAM WARN] Gui tin that bai (HTTP {r.status_code}): {r.text}")
+                return False
+        except Exception as e:
+            print(f"[TELEGRAM ERROR] Loi gui text: {e}")
+            return False
             payload = {"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}
             r = requests.post(url, json=payload, timeout=5)
             return r.status_code == 200
@@ -82,12 +95,15 @@ class TelegramBotService:
             return False
 
     def send_tunnel_url(self, public_url):
+        if not public_url:
+            return False
         msg = (
-            "<b>DUONG DAN TRUY CAP WEB TU XA (CLOUDFLARE):</b>\n"
-            f"🔗 <a href='{public_url}'>{public_url}</a>\n"
-            "Ban co the mo link tren bang 4G/Internet ngoai duong de xem camera va dieu khien be ca!"
+            "🟢 <b>HE THONG BE CA SIC DA KHOI DONG!</b>\n\n"
+            "🌐 <b>DUONG DAN TRUY CAP WEB TU XA (CLOUDFLARE):</b>\n"
+            f"🔗 <a href='{public_url}'>{public_url}</a>\n\n"
+            "📱 <i>Ban co the mo link tren tu dien thoai (4G/WiFi ngoai duong) de xem Camera AI va dieu khien be ca truc tiep!</i>"
         )
-        self.send_message(msg)
+        return self.send_message(msg)
 
     def check_and_send_alert(self, ai_result):
         if not self.enabled:
