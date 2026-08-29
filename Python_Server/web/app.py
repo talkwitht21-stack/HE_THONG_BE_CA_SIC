@@ -1,8 +1,7 @@
 from flask import Flask, render_template, Response, jsonify, request
-import os
 import time
 
-def create_app(video_stream, gemini_ai, esp32_client, shared_state):
+def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=None, telegram_bot=None):
     app = Flask(__name__, template_folder="templates")
     app.config["SECRET_KEY"] = "beca_secret_key"
 
@@ -28,10 +27,54 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state):
         esp_data = esp32_client.get_data() if esp32_client else {}
         return jsonify({
             "ai": shared_state.get("ai_result", {}),
+            "total_fish_configured": shared_state.get("total_fish_configured", 10),
+            "public_url": shared_state.get("public_url", ""),
+            "telegram_chat_id": shared_state.get("telegram_chat_id", ""),
             "fps": video_stream.actual_fps if video_stream else 0.0,
             "esp32": esp_data,
             "timestamp": time.time()
         })
+
+    @app.route("/api/instant_analyze", methods=["POST", "GET"])
+    def api_instant_analyze():
+        """
+        Chụp ảnh và phân tích Gemini AI ngay tức thì theo yêu cầu của người dùng trên Web.
+        """
+        frame = video_stream.get_frame() if video_stream else None
+        if frame is not None and gemini_ai:
+            res = gemini_ai.analyze_frame(frame)
+            shared_state["ai_result"] = res
+            return jsonify({"status": "success", "data": res})
+        return jsonify({"status": "error", "message": "Camera hoac AI chua san sang"}), 500
+
+    @app.route("/api/update_settings", methods=["POST"])
+    def api_update_settings():
+        data = request.get_json() or {}
+        changed = False
+
+        if "total_fish" in data:
+            try:
+                tf = int(data["total_fish"])
+                shared_state["total_fish_configured"] = tf
+                if config_mgr:
+                    config_mgr.set("aquarium", "total_fish", tf)
+                changed = True
+            except ValueError:
+                pass
+
+        if "telegram_chat_id" in data:
+            cid = str(data["telegram_chat_id"]).strip()
+            shared_state["telegram_chat_id"] = cid
+            if config_mgr:
+                config_mgr.set("telegram", "chat_id", cid)
+            if telegram_bot:
+                telegram_bot.update_chat_id(cid)
+            changed = True
+
+        if changed and config_mgr:
+            config_mgr.save_config()
+
+        return jsonify({"status": "success", "message": "Da luu cai dat thanh cong!"})
 
     @app.route("/api/lan_control", methods=["POST"])
     def api_lan_control():

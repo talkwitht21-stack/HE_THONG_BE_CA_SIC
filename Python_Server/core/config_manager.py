@@ -32,6 +32,9 @@ DEFAULT_CONFIG = {
         "base_url": "http://beca.local",
         "timeout_sec": 2.0
     },
+    "aquarium": {
+        "total_fish": 10
+    },
     "web": {
         "host": "0.0.0.0",
         "port": 5000
@@ -78,3 +81,18 @@ class ConfigManager:
         if isinstance(sec_val, dict):
             return sec_val.get(key, default)
         return default
+
+    def set(self, section, key, value):
+        if section not in self.config:
+            self.config[section] = {}
+        self.config[section][key] = value
+
+    def save_config(self):
+        try:
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                yaml.dump(self.config, f, allow_unicode=True, default_flow_style=False)
+            print(f"[CONFIG] Da luu cau hinh moi vao {self.config_path}")
+            return True
+        except Exception as e:
+            print(f"[CONFIG ERROR] Loi luu {self.config_path}: {e}")
+            return False

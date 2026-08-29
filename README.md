@@ -400,26 +400,63 @@ Vào thư viện **Control widgets** $\rightarrow$ chọn các widget công tắ
 ## 11. HƯỚNG DẪN CÀI ĐẶT & VẬN HÀNH PYTHON SERVER (EDGE AI & IOT GATEWAY)
 
 Python Server được thiết kế để chạy trên **Raspberry Pi 5** (hoặc máy tính mini / PC Windows / Linux) với các tính năng:
-- **Trí tuệ nhân tạo Đa phương thức Gemini Flash Vision:** Phân tích ảnh từ camera theo thời gian thực (đếm số cá, phát hiện cá lờ đờ/chết, đo độ đục nước).
+- **Trí tuệ nhân tạo Đa phương thức Gemini Flash Vision:** Phân tích ảnh từ camera theo thời gian thực (đếm số cá sống/chết, phát hiện cá lờ đờ, đo độ đục nước).
+- **Tự động mở Cloudflare Tunnel:** Sinh đường dẫn Public URL (`https://*.trycloudflare.com`) truy cập Web từ xa và tự động gửi link vào Telegram.
 - **Giao diện Web Hợp nhất 2 Chế Độ:**
   - *Chế độ 1 (LAN `beca.local`):* Gọi trực tiếp REST API của ESP32 qua mạng nội bộ để đọc cảm biến và điều khiển 6 Relay siêu nhanh $< 5\text{ms}$.
   - *Chế độ 2 (Cloud ThingsBoard):* Nhúng Dashboard ThingsBoard để giám sát từ xa qua Internet.
-- **Telegram Chatbot 2 Chiều:** Tự động gửi ảnh snapshot cảnh báo khẩn cấp khi có sự cố và tương tác lệnh (`/status`, `/snapshot`, `/data`, `/feed`).
+- **Telegram Chatbot 2 Chiều:** Tự động gửi ảnh snapshot cảnh báo khẩn cấp khi có sự cố và tương tác lệnh (`/status`, `/snapshot`, `/data`, `/feed`, `/url`).
 - **Đẩy Telemetry AI lên Device riêng trên ThingsBoard:** Tách biệt hoàn toàn với ESP32.
 
-### 11.1. Cài đặt Môi trường & Thư viện
+---
+
+### 11.1. Logic Chụp Ảnh & Xử Lý Thị Giác (Vision Sampling & Photo Capture Pipeline)
+
+```mermaid
+graph TD
+    CAM["Camera (Webcam USB / IP Camera RTSP)"] -->|"Thread đọc non-blocking 15 FPS"| BUF["Bộ đệm khung hình (Video Frame Buffer)"]
+    
+    BUF -->|"1. Mỗi 10s lấy 1 snapshot JPEG"| GEMINI["Mô hình Gemini Flash Vision VLM<br/>(Phân tích cá chết, cá yếu, độ đục)"]
+    BUF -->|"2. Khi dead_fish > 0 hoặc độ đục >= 40%"| ALERT["Cảnh Báo Khẩn Cấp Telegram<br/>(Gửi ảnh bằng chứng + Cooldown 10p)"]
+    BUF -->|"3. Khi người dùng gõ /snapshot hoặc /status"| CMD["Phản Hồi Telegram Ngay Lập Tức<br/>(Gửi ảnh chụp tức thì)"]
+    BUF -->|"4. Luồng liên tục 15 FPS"| MJPEG["MJPEG Video Stream trên Web<br/>http://<ip-pi5>:5000/video_feed"]
+
+    GEMINI -->|"Cập nhật kết quả JSON"| CALC["Tính toán số lượng cá:<br/>Cá Sống = Tổng Cá Thả (Web) - Cá Chết"]
+    CALC -->|"Đẩy dữ liệu AI"| TB["Device AI ThingsBoard"]
+    CALC -->|"Hiển thị"| WEB["Web Dashboard Pi 5"]
+```
+
+#### Chi tiết 4 luồng chụp ảnh:
+1. **Luồng 1 - Chụp ảnh định kỳ phân tích AI (Mỗi 10 - 15 giây):**
+   - Lấy 1 frame từ camera $\rightarrow$ Nén chuẩn JPEG độ phân giải $640 \times 480$ tối ưu băng thông.
+   - Gửi lên mô hình **Gemini Flash Vision** với prompt chuyên sâu.
+   - **Công thức quản lý số lượng cá:**
+     $$\text{Số Cá Đang Sống} = \text{Tổng Số Cá Thả (Nhập từ Web)} - \text{Số Cá Chết (Phát hiện bởi AI)}$$
+2. **Luồng 2 - Chụp ảnh bằng chứng khi có sự cố khẩn cấp (Emergency Snapshot):**
+   - Khi phát hiện `dead_fish > 0` hoặc `độ đục >= 40%` $\rightarrow$ Chụp ngay 1 ảnh bằng chứng chất lượng cao và gửi trực tiếp vào Telegram của người dùng (kèm Cooldown chống spam 10 phút).
+3. **Luồng 3 - Chụp ảnh theo yêu cầu người dùng (On-Demand Snapshot):**
+   - Khi người dùng gửi lệnh `/snapshot` hoặc `/status` trên Telegram $\rightarrow$ Chụp ngay frame tại thời điểm đó và phản hồi kèm báo cáo trong $< 2\text{s}$.
+4. **Luồng 4 - Phát trực tiếp Video MJPEG Stream:**
+   - Cung cấp luồng video thời gian thực liên tục tại endpoint `/video_feed` cho Web Dashboard.
+
+---
+
+### 11.2. Cài đặt Môi trường & Thư viện
 ```bash
 cd Python_Server
 pip install -r requirements.txt
 ```
 
-### 11.2. Cấu hình hệ thống (`config.yaml`)
+### 11.3. Cấu hình hệ thống (`config.yaml`)
 Mở file [`Python_Server/config.yaml`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Python_Server/config.yaml) và điền thông tin:
 ```yaml
 camera:
   source: 0 # 0 là Webcam USB, hoặc chuỗi RTSP IP Camera: "rtsp://admin:123456@192.168.1.100:554/stream1"
   fps: 15
   analyze_interval_sec: 10
+
+aquarium:
+  total_fish: 10 # Tổng số cá thả trong bể (có thể chỉnh trực tiếp trên Web)
 
 gemini:
   enabled: true
@@ -429,7 +466,7 @@ gemini:
 telegram:
   enabled: true
   bot_token: "YOUR_TELEGRAM_BOT_TOKEN" # Lấy token từ @BotFather
-  chat_id: "YOUR_TELEGRAM_CHAT_ID"     # Lấy ID từ @userinfobot
+  chat_id: "YOUR_TELEGRAM_CHAT_ID"     # Lấy ID từ @userinfobot (có thể sửa trên Web)
   cooldown_minutes: 10
 
 thingsboard:
@@ -447,11 +484,13 @@ web:
   port: 5000
 ```
 
-### 11.3. Khởi chạy Server
+### 11.4. Khởi chạy Server
 ```bash
 python run_server.py
 ```
-* **Truy cập Web Dashboard:** Mở trình duyệt vào **`http://localhost:5000`** (hoặc `http://<ip-pi5>:5000`).
-* **Trải nghiệm Telegram Bot:** Mở ứng dụng Telegram và gõ lệnh `/status` hoặc `/snapshot` để nhận ảnh và báo cáo AI tức thì!
+* **Tự động mở Cloudflare Tunnel:** Ngay khi khởi động, hệ thống tự động sinh Public URL (`https://*.trycloudflare.com`) và gửi thẳng vào Telegram của bạn!
+* **Truy cập Web Dashboard:** Mở trình duyệt vào **`http://localhost:5000`** (hoặc đường link Cloudflare).
+* **Trải nghiệm Telegram Bot:** Gõ lệnh `/status`, `/snapshot`, `/data`, `/feed`, `/url` để nhận báo cáo và ảnh chụp tức thì.
+
 
 

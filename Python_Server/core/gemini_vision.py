@@ -15,8 +15,7 @@ Bạn là Chuyên gia Trí tuệ Nhân tạo Giám sát Thủy sinh và Bể cá
 Hãy phân tích bức ảnh chụp bể cá này và trả về ĐÚNG ĐỊNH DẠNG JSON sau (KHÔNG thêm bất kỳ giải thích nào ngoài JSON):
 
 {
-  "total_fish": <số lượng cá thể nhận diện được, số nguyên>,
-  "dead_fish": <số cá thể bị tử vong, lật ngửa, nổi bất động trên mặt nước hoặc nằm im dưới đáy, số nguyên>,
+  "dead_fish": <số cá thể bị tử vong, lật ngửa bụng, nổi bất động trên mặt nước hoặc nằm im dưới đáy bể, số nguyên>,
   "abnormal_fish": <số cá thể bơi lờ đờ, tróc vảy, nấm trắng, bơi nghiêng bất thường, số nguyên>,
   "water_turbidity": <ước tính độ vẩn đục của nước từ 0 (trong vắt) đến 100 (rất đục/ô nhiễm), số nguyên>,
   "is_alert": <true nếu dead_fish > 0 hoặc water_turbidity >= 40, ngược lại false>,
@@ -27,6 +26,7 @@ Hãy phân tích bức ảnh chụp bể cá này và trả về ĐÚNG ĐỊNH 
 class GeminiVisionAnalyzer:
     """
     Module phân tích hình ảnh chuyên sâu bằng Gemini Multimodal Vision API.
+    Tập trung phát hiện số cá chết, cá yếu và độ đục nước.
     """
     def __init__(self, api_key, model_name="gemini-2.0-flash", temperature=0.2):
         self.api_key = api_key
@@ -61,7 +61,6 @@ class GeminiVisionAnalyzer:
             return self._fallback_cv_analysis(frame)
 
         try:
-            # Resize và nén JPEG tối ưu băng thông
             h, w = frame.shape[:2]
             if w > 800:
                 frame = cv2.resize(frame, (640, int(h * 640 / w)))
@@ -75,18 +74,17 @@ class GeminiVisionAnalyzer:
             response = self.model.generate_content([PROMPT_ANALYZE_FISH, image_parts[0]])
             text = response.text.strip()
             
-            # Trích xuất JSON
             match = re.search(r'\{.*\}', text, re.DOTALL)
             if match:
                 data = json.loads(match.group(0))
                 return {
-                    "total_fish": int(data.get("total_fish", 0)),
                     "dead_fish": int(data.get("dead_fish", 0)),
                     "abnormal_fish": int(data.get("abnormal_fish", 0)),
                     "water_turbidity": int(data.get("water_turbidity", 10)),
                     "is_alert": bool(data.get("is_alert", False)),
                     "summary": str(data.get("summary", "Bể cá bình thường.")),
-                    "ai_engine": self.model_name
+                    "ai_engine": self.model_name,
+                    "analyzed_at": time.strftime("%H:%M:%S %d/%m/%Y")
                 }
             else:
                 return json.loads(text)
@@ -97,27 +95,26 @@ class GeminiVisionAnalyzer:
 
     def _fallback_cv_analysis(self, frame):
         """
-        Thuật toán xử lý ảnh cổ điển (OpenCV) dự phòng khi chưa có API Key hoặc mất Internet.
+        Thuật toán xử lý ảnh OpenCV dự phòng khi chưa có API Key hoặc mất Internet.
         """
         if frame is None:
             return {
-                "total_fish": 0, "dead_fish": 0, "abnormal_fish": 0,
+                "dead_fish": 0, "abnormal_fish": 0,
                 "water_turbidity": 10, "is_alert": False,
-                "summary": "Khong co tin hieu camera.", "ai_engine": "Fallback-CV"
+                "summary": "Khong co tin hieu camera.", "ai_engine": "Fallback-CV",
+                "analyzed_at": time.strftime("%H:%M:%S %d/%m/%Y")
             }
             
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # Tinh toan do bien thien do tuong phan Laplacian (uoc tinh do duc)
         laplacian_var = cv2.Laplacian(gray, cv2.CV_64F).var()
-        # Chuyen sang thang diem do duc 0 - 100%
         turbidity = int(max(5, min(95, 100 - (laplacian_var / 5.0))))
         
         return {
-            "total_fish": 5, # Gia lap uoc tinh
             "dead_fish": 0,
             "abnormal_fish": 0,
             "water_turbidity": turbidity,
             "is_alert": (turbidity >= 40),
-            "summary": f"Che do Du phong: Nuoc co do duc xap xi {turbidity}%.",
-            "ai_engine": "Fallback-CV"
+            "summary": f"Che do Du phong: Do duc nuoc xap xi {turbidity}%.",
+            "ai_engine": "Fallback-CV",
+            "analyzed_at": time.strftime("%H:%M:%S %d/%m/%Y")
         }

@@ -1,43 +1,49 @@
-﻿# ==============================================================================
+# ==============================================================================
 # HỆ THỐNG BỂ CÁ SIC - CẤU HÌNH PYTHON SERVER (EDGE AI & IOT GATEWAY)
 # ==============================================================================
 
-# 1. Cấu hình Camera
+# 1. Cấu hình Camera & Chu kỳ phân tích AI
 camera:
-  source: 0 # 0 là Webcam USB mặc định, hoặc chuỗi RTSP/HTTP: " rtsp://admin:123456@192.168.1.100:554/stream1\
- width: 640
- height: 480
- fps: 15
- analyze_interval_sec: 10 # Chu kỳ gửi ảnh cho Gemini AI phân tích (giây)
+  source: 0 # 0 là Webcam USB, hoặc chuỗi RTSP: "rtsp://admin:123456@192.168.1.100:554/stream1"
+  width: 640
+  height: 480
+  fps: 15
+  interval_normal_sec: 120 # Chu kỳ chụp ảnh bình thường: Mỗi 2 phút (120 giây)
+  interval_alert_sec: 10   # Chu kỳ chụp khi phát hiện cá chết: Chụp liên tục mỗi 10 giây
 
-# 2. Cấu hình Google Gemini Multimodal Vision AI
+# 2. Cấu hình Bể Cá & Quản lý số lượng cá
+aquarium:
+  total_fish: 10 # Tổng số cá thả trong bể (chỉnh sửa trực tiếp trên Web Dashboard)
+
+# 3. Cấu hình Google Gemini Multimodal Vision AI
 gemini:
- enabled: true
- api_key: \YOUR_GEMINI_API_KEY\ # Lấy API Key miễn phí tại: https://aistudio.google.com/
- model: \gemini-2.0-flash\ # hoặc \gemini-1.5-flash\
- temperature: 0.2
+  enabled: true
+  api_key: "YOUR_GEMINI_API_KEY" # Lấy API Key miễn phí tại: https://aistudio.google.com/
+  model: "gemini-2.0-flash"      # hoặc "gemini-1.5-flash"
+  temperature: 0.2
 
-# 3. Cấu hình Telegram Chatbot
+# 4. Cấu hình Telegram Chatbot
 telegram:
- enabled: false # Đổi thành true sau khi điền bot_token và chat_id
- bot_token: \YOUR_TELEGRAM_BOT_TOKEN\ # Tạo bot qua @BotFather
- chat_id: \YOUR_TELEGRAM_CHAT_ID\ # Lấy Chat ID qua @userinfobot
- cooldown_minutes: 10 # Khoảng cách tối thiểu giữa 2 lần gửi cảnh báo lỗi
+  enabled: false # Đổi thành true sau khi điền bot_token và chat_id
+  bot_token: "YOUR_TELEGRAM_BOT_TOKEN" # Lấy token từ @BotFather
+  chat_id: "YOUR_TELEGRAM_CHAT_ID"     # Lấy ID từ @userinfobot (có thể sửa trực tiếp trên Web)
+  cooldown_minutes: 10                 # Khoảng cách tối thiểu giữa 2 lần gửi cảnh báo
 
-# 4. Cấu hình ThingsBoard Cloud (Device AI riêng biệt)
+# 5. Cấu hình ThingsBoard Cloud (Device AI riêng biệt)
 thingsboard:
- enabled: false # Đổi thành true sau khi có Access Token của Device AI
- host: \demo.thingsboard.io\
- port: 1883
- access_token: \YOUR_RPI5_AI_DEVICE_TOKEN\
+  enabled: false
+  host: "demo.thingsboard.io"
+  port: 1883
+  access_token: "YOUR_RPI5_AI_DEVICE_TOKEN" # Token của Device AI riêng
 
-# 5. Cấu hình Kết nối Cục bộ ESP32 qua mạng LAN
+# 6. Cấu hình Kết nối Cục bộ ESP32 qua mạng LAN
 esp32_lan:
- enabled: true
- base_url: \http://beca.local\ # hoặc IP cục bộ của ESP32 nếu mDNS chưa phân giải
- timeout_sec: 2.0
+  enabled: true
+  base_url: "http://beca.local"
+  timeout_sec: 2.0
 
-# 6. Cấu hình Web Server Flask (Phát MJPEG Stream & Dashboard)
+# 7. Cấu hình Web Server Flask & Cloudflare Tunnel
 web:
- host: \0.0.0.0\
- port: 5000
+  host: "0.0.0.0"
+  port: 5000
+  enable_cloudflare: true # Tự động tạo Cloudflare Tunnel (trycloudflare) và gửi link qua Telegram

@@ -1,4 +1,4 @@
-﻿opencv-python
+opencv-python
 numpy
 paho-mqtt
 requests
@@ -6,3 +6,4 @@ pyyaml
 flask
 google-generativeai
 python-telegram-bot
+pycloudflared
