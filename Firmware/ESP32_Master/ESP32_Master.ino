@@ -115,6 +115,7 @@ bool filterCyclePhaseOn   = true;
 // Co ghi nho do Logic Tu Dong bat (de Auto chi tat nhung gi do chinh no tu bat)
 bool heater_auto_triggered= false;
 bool fan_auto_triggered   = false;
+bool pump_manual_triggered= false;
 
 // Cau hinh chu ky Suc Oxy (phut)
 uint16_t oxy_on_min  = 5;
@@ -412,7 +413,15 @@ void setupWeb() {
       }
       else if (dev == "pump") {
         pumpState = !pumpState;
-        if (!pumpState && filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; }
+        if (pumpState) {
+          pump_manual_triggered = true;
+          autoPumpTimeoutAlarm = false;
+          autoPumpStart = millis();
+        } else {
+          pump_manual_triggered = false;
+          autoPumpStart = 0;
+          if (filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; }
+        }
       }
       else if (dev == "drain") {
         drainState = !drainState;
@@ -839,6 +848,8 @@ void handleSlave() {
       heaterState = sh; timer_heater_active = false; heater_auto_triggered = false; if (sh) start_heater = millis();
       fanState    = sf; timer_fan_active    = false; fan_auto_triggered    = false; if (sf) start_fan    = millis();
       pumpState   = sp;
+      if (sp) { pump_manual_triggered = true; autoPumpTimeoutAlarm = false; autoPumpStart = millis(); }
+      else { pump_manual_triggered = false; autoPumpStart = 0; }
       oxyState    = so;
       drainState  = sd; timer_drain_active  = false; if (sd) start_drain  = millis();
       ledState    = sl; timer_led_active    = false; if (sl) start_led    = millis();
@@ -947,15 +958,20 @@ void checkLogic() {
 
     // Tu dong bom bu nuoc (chi chay khi KHONG trong che do loc nuoc song song)
     if (auto_pump && !filterMode) {
+      // 1. Khi nuoc thap -> Tu dong bat bom bu
       if (is_low && !pumpState && !autoPumpTimeoutAlarm) {
         pumpState = true;
         autoPumpStart = ms;
+        pump_manual_triggered = false;
         stateChanged = true;
         Serial.println("[LOGIC] Nuoc thap -> BAT Bom Bu Tu Dong");
-      } else if (is_full && pumpState) {
+      }
+      // 2. Khi nuoc day -> Ngat bom bu (chong tran) va reset toan bo co
+      else if (is_full && pumpState) {
         pumpState = false;
         autoPumpStart = 0;
-        autoPumpTimeoutAlarm = false; // Reset trang thai canh bao khi da bom day
+        autoPumpTimeoutAlarm = false;
+        pump_manual_triggered = false;
         stateChanged = true;
         Serial.println("[LOGIC] Nuoc day -> TAT Bom Bu (chong tran)");
       }
@@ -963,7 +979,8 @@ void checkLogic() {
       // [FAILSAFE NGUY HIEM]: Bom bu chay lien tuc qua 10 phut (600s) ma chua day -> Ngat khan cap
       if (pumpState && autoPumpStart > 0 && (ms - autoPumpStart >= 600000UL)) {
         pumpState = false;
-        autoPumpTimeoutAlarm = true; // Khoa lai chong chay bom / tran nuoc
+        autoPumpTimeoutAlarm = true;
+        pump_manual_triggered = false;
         stateChanged = true;
         Serial.println("[FAILSAFE NGUY HIEM] !!! BOM BU CHAY QUA 10 PHUT -> NGAT KHAN CAP CHONG TRAN / CHAY BOM !!!");
       }
@@ -1208,7 +1225,15 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (method == "setPump") { 
     pumpState = val; 
-    if (!pumpState && filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; } 
+    if (pumpState) {
+      pump_manual_triggered = true;
+      autoPumpTimeoutAlarm = false;
+      autoPumpStart = millis();
+    } else {
+      pump_manual_triggered = false;
+      autoPumpStart = 0;
+      if (filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; }
+    }
   }
   else if (method == "setDrain") { 
     drainState = val; 
