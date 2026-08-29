@@ -105,3 +105,19 @@ class ReferenceManager:
                 except Exception as e:
                     print(f"[REF MANAGER WARN] Khong the doc ref_{i}.jpg: {e}")
         return gemini_parts
+
+    def has_references(self):
+        """
+        Kiểm tra xem hiện tại có ít nhất 1 ảnh mẫu tham chiếu hợp lệ hay không.
+        """
+        for i in range(1, self.max_slots + 1):
+            path = self.get_slot_path(i)
+            if path and os.path.exists(path):
+                return True
+        return False
+
+    def get_reference_image_parts(self):
+        """
+        Alias tương thích cho get_all_reference_images_for_gemini.
+        """
+        return self.get_all_reference_images_for_gemini()

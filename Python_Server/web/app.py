@@ -89,6 +89,17 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             return jsonify({"status": "success", "message": "Dang tao lai duong ham Cloudflare..."})
         return jsonify({"status": "error", "message": "Cloudflare Tunnel chua bat"}), 400
 
+    @app.route("/api/snapshot")
+    def api_snapshot():
+        """
+        Chụp và trả về trực tiếp ảnh JPEG tĩnh hiện tại từ Camera
+        """
+        if video_stream:
+            jpeg = video_stream.get_jpeg_bytes()
+            if jpeg:
+                return Response(jpeg, mimetype="image/jpeg")
+        return "Camera not available", 503
+
     # API QUAN LY 5 ANH MAU THAM CHIEU
     @app.route("/api/reference/status", methods=["GET"])
     def api_ref_status():
@@ -108,11 +119,11 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
     def api_ref_capture():
         data = request.get_json() or {}
         slot_id = data.get("slot")
-        if ref_manager and slot_id:
+        if ref_manager and slot_id is not None:
             frame = video_stream.get_frame() if video_stream else None
             if frame is not None:
-                ok = ref_manager.save_frame_to_slot(slot_id, frame)
-                return jsonify({"status": "success" if ok else "failed", "slot": slot_id})
+                ok = ref_manager.save_frame_to_slot(int(slot_id), frame)
+                return jsonify({"status": "success" if ok else "failed", "slot": int(slot_id)})
         return jsonify({"status": "error", "message": "Khong the chup anh mau"}), 400
 
     @app.route("/api/reference/upload", methods=["POST"])

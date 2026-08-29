@@ -234,6 +234,99 @@
       animation: pulse 1.5s infinite;
     }
 
+
+    /* 5-SLOT REFERENCE GALLERY STYLING */
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .gallery-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78em;
+      font-weight: 800;
+      color: #0284c7;
+      margin-bottom: 6px;
+    }
+    .gallery-img-wrap {
+      width: 100%;
+      height: 90px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      border: 1px dashed #cbd5e1;
+    }
+    .gallery-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.2s;
+    }
+    .gallery-img:hover {
+      transform: scale(1.05);
+    }
+    .gallery-empty {
+      color: #94a3b8;
+      font-size: 0.72em;
+      font-weight: 600;
+      padding: 4px;
+    }
+    .gallery-time {
+      font-size: 0.68em;
+      color: #64748b;
+      margin: 4px 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .gallery-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .btn-gal {
+      flex: 1;
+      padding: 4px 0;
+      font-size: 0.72em;
+      font-weight: 700;
+      border-radius: 4px;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-gal-cap {
+      background: #0284c7;
+      color: white;
+    }
+    .btn-gal-del {
+      background: #ef4444;
+      color: white;
+      max-width: 28px;
+    }
+    .btn-gal-up {
+      background: #10b981;
+      color: white;
+      max-width: 28px;
+    }
+
   </style>
 </head>
 <body>
@@ -300,6 +393,23 @@
               <div style="font-size:0.8em;color:#64748b;margin-top:4px">Lần chụp cuối: <span id="ai-time">--</span> &bull; FPS: <span id="ai-fps">--</span></div>
             </div>
           </div>
+
+          <!-- KHỐI HIỂN THỊ TRỰC QUAN 5 ẢNH MẪU THAM CHIẾU (BASELINE CALIBRATION) -->
+          <div class="card" style="margin-top:14px">
+            <div class="card-title">
+              <span>🖼️ 5 Ảnh Mẫu Tham Chiếu Bể Cá (Baseline)</span>
+              <span class="badge" style="background:#0284c7;color:white;font-size:0.72em">Gemini 3.5 Flash</span>
+            </div>
+            <div style="font-size:0.78em;color:#64748b;margin-bottom:8px">
+              🛡️ 5 ảnh chụp lúc bể bình thường giúp AI loại trừ 100% lũa, đá ngầm và hang hốc.
+            </div>
+
+            <div class="gallery-grid" id="main-gallery-grid">
+              <!-- Render 5 Slot động qua JavaScript -->
+              <div class="gallery-card"><div class="gallery-empty">Đang tải...</div></div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Cột Phải: Điều Khiển Trực Tiếp ESP32 qua LAN -->
@@ -628,23 +738,106 @@
       document.getElementById('view-cloud').style.display = (mode === 'cloud') ? 'block' : 'none';
     }
 
-    function instantAnalyze() {
-      let btn = document.getElementById('btn-snap-ai');
+    async function instantAnalyze() {
+      const btn = document.getElementById('btn-snap-ai');
       btn.disabled = true;
-      btn.innerHTML = '⏳ Đang chụp ảnh và gửi Gemini AI phân tích...';
+      btn.innerHTML = '⏳ Đang chụp ảnh và gửi Gemini 3.5 Flash phân tích...';
       
-      fetch('/api/instant_analyze', {method: 'POST'})
-        .then(r => r.json())
-        .then(d => {
-          btn.disabled = false;
-          btn.innerHTML = '📸 CHỤP ẢNH &amp; PHÂN TÍCH AI NGAY';
+      try {
+        const res = await fetch('/api/instant_analyze', {method: 'POST'});
+        const d = await res.json();
+        btn.disabled = false;
+        btn.innerHTML = '📸 CHỤP ẢNH &amp; PHÂN TÍCH AI NGAY';
+        if (d.status === 'success') {
           fetchStatus();
-        })
-        .catch(err => {
-          btn.disabled = false;
-          btn.innerHTML = '📸 CHỤP ẢNH &amp; PHÂN TÍCH AI NGAY';
-          alert('Lỗi phân tích tức thì: ' + err);
+          alert(`✅ Phân tích thành công!
+• Cá sống: ${d.data.alive_fish || '--'}
+• Cá chết nghi ngờ: ${d.data.dead_fish || 0}
+• Độ đục: ${d.data.water_turbidity || 0}%
+• Đánh giá: ${d.data.summary || ''}`);
+        } else {
+          alert('❌ Phân tích thất bại: ' + (d.message || 'Lỗi không xác định'));
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '📸 CHỤP ẢNH &amp; PHÂN TÍCH AI NGAY';
+        alert('❌ Lỗi kết nối Camera / Gemini API: ' + err);
+      }
+    }
+
+    // Render 5 Ảnh Mẫu Tham Chiếu Trực Quan Trên Màn Hình Chính
+    async function loadReferenceGallery() {
+      try {
+        const res = await fetch('/api/reference/status');
+        const list = await res.json();
+        const grid = document.getElementById('main-gallery-grid');
+        if (!grid || !Array.isArray(list)) return;
+
+        let html = '';
+        const nowMs = Date.now();
+        list.forEach(item => {
+          const slot = item.slot;
+          const exists = item.exists;
+          const mtime = item.mtime ? item.mtime.split(' ')[0] : 'Chưa có ảnh';
+
+          html += `
+            <div class="gallery-card">
+              <div class="gallery-header">
+                <span>SLOT ${slot}</span>
+                <span style="font-size:0.85em">${exists ? '🟢' : '⚪'}</span>
+              </div>
+              <div class="gallery-img-wrap" onclick="${exists ? `window.open('/api/reference/image/${slot}?t=${nowMs}', '_blank')` : `captureRefSlotDirect(${slot})`}">
+                ${exists 
+                  ? `<img class="gallery-img" src="/api/reference/image/${slot}?t=${nowMs}" alt="Slot ${slot}">` 
+                  : `<div class="gallery-empty">📸 Bấm để chụp vào ô này</div>`}
+              </div>
+              <div class="gallery-time" title="${item.mtime || ''}">${exists ? item.mtime : 'Chưa chụp'}</div>
+              <div class="gallery-actions">
+                <button class="btn-gal btn-gal-cap" title="Chụp khung hình hiện tại vào Slot ${slot}" onclick="captureRefSlotDirect(${slot})">📸 Chụp</button>
+                <button class="btn-gal btn-gal-up" title="Tải ảnh lên Slot ${slot}" onclick="triggerUploadRef(${slot})">⬆️</button>
+                ${exists ? `<button class="btn-gal btn-gal-del" title="Xóa ảnh Slot ${slot}" onclick="deleteRefSlotDirect(${slot})">🗑️</button>` : ''}
+              </div>
+            </div>
+          `;
         });
+        grid.innerHTML = html;
+      } catch (e) {
+        console.error('Loi load reference gallery:', e);
+      }
+    }
+
+    async function captureRefSlotDirect(slot) {
+      try {
+        const res = await fetch('/api/reference/capture', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({slot: slot})
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          loadReferenceGallery();
+          renderRefSlotsModal();
+        } else {
+          alert('❌ Không thể chụp: ' + (d.message || 'Lỗi camera'));
+        }
+      } catch (e) {
+        alert('❌ Lỗi: ' + e);
+      }
+    }
+
+    async function deleteRefSlotDirect(slot) {
+      if (!confirm(`Bạn có chắc muốn xóa ảnh mẫu Slot ${slot}?`)) return;
+      try {
+        await fetch('/api/reference/delete', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({slot: slot})
+        });
+        loadReferenceGallery();
+        renderRefSlotsModal();
+      } catch (e) {
+        alert('❌ Lỗi: ' + e);
+      }
     }
 
     function restartTunnel() {
