@@ -73,6 +73,53 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "timestamp": time.time()
         })
 
+    @app.route("/api/update_dead_fish", methods=["POST"])
+    def api_update_dead_fish():
+        data = request.get_json() or {}
+        if "dead_fish" in data:
+            try:
+                new_dead = max(0, int(data["dead_fish"]))
+                shared_state["confirmed_dead_fish"] = new_dead
+                shared_state["suspected_dead_fish"] = new_dead
+                
+                total = shared_state.get("total_fish_configured", 10)
+                alive = max(0, total - new_dead)
+                
+                if new_dead > 0:
+                    shared_state["verify_progress"] = f"5/5 (Thủ công: {new_dead} cá chết)"
+                else:
+                    shared_state["verify_progress"] = "0/5 (An toàn - Đã reset thủ công)"
+                
+                cur_ai = shared_state.get("ai_result", {})
+                cur_ai["dead_fish"] = new_dead
+                cur_ai["confirmed_dead_fish"] = new_dead
+                cur_ai["alive_fish"] = alive
+                cur_ai["summary"] = f"Người dùng đã điều chỉnh thủ công số cá chết: {new_dead} con."
+                shared_state["ai_result"] = cur_ai
+                
+                if mqtt_ai and mqtt_ai.enabled:
+                    ai_telemetry = {
+                        "total_fish": total,
+                        "alive_fish": alive,
+                        "dead_fish": new_dead,
+                        "water_turbidity": cur_ai.get("water_turbidity", 15),
+                        "summary": cur_ai.get("summary", ""),
+                        "ai_engine": cur_ai.get("ai_engine", "Gemini 3.5 Flash"),
+                        "is_alert": (new_dead > 0)
+                    }
+                    mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps if video_stream else 0.0)
+                
+                return jsonify({
+                    "status": "success", 
+                    "dead_fish": new_dead,
+                    "alive_fish": alive,
+                    "total_fish": total,
+                    "message": f"Đã cập nhật số cá chết thành {new_dead} con thành công!"
+                })
+            except Exception as e:
+                return jsonify({"status": "error", "message": str(e)}), 400
+        return jsonify({"status": "error", "message": "Thieu tham so dead_fish"}), 400
+
     @app.route("/api/instant_analyze", methods=["POST", "GET"])
     def api_instant_analyze():
         frame = video_stream.get_frame() if video_stream else None

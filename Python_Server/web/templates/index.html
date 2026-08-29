@@ -450,6 +450,18 @@
               <div class="ai-box"><div class="ai-val" id="ai-dead" style="color:#ef4444">0</div><div class="ai-lbl">Cá Chết (5/5)</div></div>
             </div>
 
+            <!-- THANH ĐIỀU CHỈNH SỐ CÁ CHẾT TRỰC TIẾP TRÊN MÀN HÌNH CHÍNH (KHÔNG CẦN VÀO CÀI ĐẶT) -->
+            <div style="background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:8px 12px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:0.82em;font-weight:bold;color:#be123c">⚠️ Sửa Số Cá Chết:</span>
+                <input type="number" id="quick-inp-dead" min="0" value="0" style="width:60px;padding:4px 6px;border:1px solid #fda4af;border-radius:6px;font-weight:bold;color:#9f1239;text-align:center">
+                <button onclick="updateManualDeadFish()" style="background:#e11d48;color:white;border:none;padding:5px 10px;border-radius:6px;font-size:0.78em;font-weight:bold;cursor:pointer">💾 Cập Nhật</button>
+              </div>
+              <div style="font-size:0.74em;color:#9f1239">
+                <i>(Sửa số cá chết & đồng bộ ThingsBoard tức thì)</i>
+              </div>
+            </div>
+
             <div class="ai-grid" style="grid-template-columns: 1fr 1.5fr; margin-top:8px">
               <div class="ai-box"><div class="ai-val" id="ai-turb">--%</div><div class="ai-lbl">Độ Đục Nước</div><div id="turb-filter-badge" style="font-size:0.68em;margin-top:2px;font-weight:700;color:#64748b">Tự lọc: &gt;70% ON | &lt;60% OFF</div></div>
               <div class="ai-box" style="padding:10px 8px">
@@ -1391,6 +1403,10 @@
           document.getElementById('ai-alive').textContent = alive;
           if (document.getElementById('ai-suspected')) document.getElementById('ai-suspected').textContent = suspected;
           document.getElementById('ai-dead').textContent = confirmedDead;
+          let quickInpDead = document.getElementById('quick-inp-dead');
+          if (quickInpDead && document.activeElement !== quickInpDead) {
+            quickInpDead.value = confirmedDead;
+          }
           
           // Thanh tiến trình xác thực 5 lần trực quan
           let progStr = d.verify_progress || '0/5';
