@@ -4319,7 +4319,7 @@
       "countdown-card-filter-0006": {
         "typeFullFqn": "system.cards.aggregated_value_card",
         "type": "timeseries",
-        "sizeX": 6,
+        "sizeX": 12,
         "sizeY": 4,
         "config": {
           "datasources": [
@@ -4503,14 +4503,14 @@
           "borderRadius": "14px",
           "enableDataExport": false
         },
-        "row": 25,
+        "row": 28,
         "col": 0,
         "id": "countdown-card-filter-0006"
       },
       "countdown-card-drain-0007": {
         "typeFullFqn": "system.cards.aggregated_value_card",
         "type": "timeseries",
-        "sizeX": 6,
+        "sizeX": 12,
         "sizeY": 4,
         "config": {
           "datasources": [
@@ -4694,8 +4694,8 @@
           "borderRadius": "14px",
           "enableDataExport": false
         },
-        "row": 25,
-        "col": 6,
+        "row": 28,
+        "col": 12,
         "id": "countdown-card-drain-0007"
       },
       "schedule-led-card-0008": {
@@ -4745,6 +4745,55 @@
         "row": 25,
         "col": 12,
         "id": "schedule-led-card-0008"
+      },
+      "custom-timer-panel-0009": {
+        "typeFullFqn": "system.cards.html_card",
+        "type": "latest",
+        "sizeX": 24,
+        "sizeY": 6,
+        "config": {
+          "datasources": [],
+          "showTitle": true,
+          "backgroundColor": "#ffffff",
+          "color": "#0369a1",
+          "padding": "0px",
+          "settings": {
+            "cardHtml": "\n<div style='font-family: Segoe UI, Roboto, sans-serif; padding: 14px 18px; box-sizing: border-box;'>\n  <!-- TIÊU ĐỀ & ĐẾM NGƯỢC THỜI GIAN THỰC -->\n  <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;'>\n    <span style='background: #e0f2fe; color: #0284c7; font-weight: 800; font-size: 0.85em; padding: 4px 12px; border-radius: 20px;'>\n      ⏱️ BẢNG HẸN GIỜ TÙY CHỈNH THỜI GIAN\n    </span>\n    <span style='font-size: 0.8em; color: #64748b; font-weight: 600;'>\n      Lọc: <b>${timer_filter_rem:0}s</b> | Rút: <b>${timer_drain_rem:0}s</b> | Sưởi: <b>${timer_heater_rem:0}s</b>\n    </span>\n  </div>\n\n  <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 14px;'>\n    <!-- KHỐI 1: TÙY CHỈNH HẸN GIỜ ĐẾM NGƯỢC -->\n    <div style='background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;'>\n      <div style='font-size: 0.82em; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 8px;'>\n        ⏳ 1. Kích Hoạt Hẹn Giờ Tự Tắt (Tùy Chỉnh Phút)\n      </div>\n      <div style='display: flex; gap: 8px; margin-bottom: 8px;'>\n        <select id='tb_dev_select' style='flex: 1; padding: 6px 8px; border: 1px solid #94a3b8; border-radius: 6px; font-weight: 600;'>\n          <option value='filter'>Lọc Nước Tuần Hoàn</option>\n          <option value='drain'>Bơm Rút Nước</option>\n          <option value='heater'>Máy Sưởi</option>\n          <option value='fan'>Quạt Làm Mát</option>\n          <option value='led'>Đèn LED</option>\n        </select>\n        <input type='number' id='tb_min_input' value='15' min='1' max='360' style='width: 70px; padding: 6px; border: 1px solid #94a3b8; border-radius: 6px; font-weight: 700; text-align: center;' placeholder='Phút'>\n      </div>\n      <div style='display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap;'>\n        <button onclick=\"document.getElementById('tb_min_input').value=3\" style='padding: 3px 6px; font-size: 0.75em; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; cursor: pointer; font-weight: 600;'>3p</button>\n        <button onclick=\"document.getElementById('tb_min_input').value=5\" style='padding: 3px 6px; font-size: 0.75em; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; cursor: pointer; font-weight: 600;'>5p</button>\n        <button onclick=\"document.getElementById('tb_min_input').value=15\" style='padding: 3px 6px; font-size: 0.75em; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; cursor: pointer; font-weight: 600;'>15p</button>\n        <button onclick=\"document.getElementById('tb_min_input').value=30\" style='padding: 3px 6px; font-size: 0.75em; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; cursor: pointer; font-weight: 600;'>30p</button>\n        <button onclick=\"document.getElementById('tb_min_input').value=60\" style='padding: 3px 6px; font-size: 0.75em; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; cursor: pointer; font-weight: 600;'>60p</button>\n        <button onclick=\"document.getElementById('tb_min_input').value=120\" style='padding: 3px 6px; font-size: 0.75em; background: #e0f2fe; color: #0284c7; border: 1px solid #bae6fd; border-radius: 4px; cursor: pointer; font-weight: 600;'>120p</button>\n      </div>\n      <div style='display: flex; gap: 6px;'>\n        <button id='tb_btn_start_timer' style='flex: 2; background: #0284c7; color: white; border: none; padding: 7px; border-radius: 6px; font-weight: 700; font-size: 0.8em; cursor: pointer;'>\n          ▶️ BẮT ĐẦU HẸN GIỜ\n        </button>\n        <button id='tb_btn_cancel_timer' style='flex: 1; background: #64748b; color: white; border: none; padding: 7px; border-radius: 6px; font-weight: 700; font-size: 0.8em; cursor: pointer;'>\n          ⏹️ HỦY\n        </button>\n      </div>\n    </div>\n\n    <!-- KHỐI 2: TÙY CHỈNH LỊCH ĐÈN & CHU KỲ -->\n    <div style='background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 12px;'>\n      <div style='font-size: 0.82em; font-weight: 800; color: #16a34a; text-transform: uppercase; margin-bottom: 8px;'>\n        💡 2. Lịch Chiếu Sáng &amp; Chu Kỳ Lọc\n      </div>\n      <div style='display: flex; gap: 8px; margin-bottom: 8px;'>\n        <div style='flex: 1;'>\n          <div style='font-size: 0.75em; color: #64748b;'>Giờ Bật Đèn:</div>\n          <input type='text' id='tb_led_on' value='${led_on_time:07:00}' style='width: 100%; padding: 5px; border: 1px solid #94a3b8; border-radius: 5px; font-size: 0.85em; font-weight: 600;'>\n        </div>\n        <div style='flex: 1;'>\n          <div style='font-size: 0.75em; color: #64748b;'>Giờ Tắt Đèn:</div>\n          <input type='text' id='tb_led_off' value='${led_off_time:21:00}' style='width: 100%; padding: 5px; border: 1px solid #94a3b8; border-radius: 5px; font-size: 0.85em; font-weight: 600;'>\n        </div>\n      </div>\n      <div style='display: flex; gap: 8px; margin-bottom: 8px;'>\n        <div style='flex: 1;'>\n          <div style='font-size: 0.75em; color: #64748b;'>Chu Kỳ Lọc (Bật/p):</div>\n          <input type='number' id='tb_fon' value='${filter_on_min:15}' style='width: 100%; padding: 5px; border: 1px solid #94a3b8; border-radius: 5px; font-size: 0.85em; font-weight: 600;'>\n        </div>\n        <div style='flex: 1;'>\n          <div style='font-size: 0.75em; color: #64748b;'>Chu Kỳ Lọc (Nghỉ/p):</div>\n          <input type='number' id='tb_fof' value='${filter_off_min:45}' style='width: 100%; padding: 5px; border: 1px solid #94a3b8; border-radius: 5px; font-size: 0.85em; font-weight: 600;'>\n        </div>\n      </div>\n      <button id='tb_btn_save_sched' style='width: 100%; background: #16a34a; color: white; border: none; padding: 7px; border-radius: 6px; font-weight: 700; font-size: 0.8em; cursor: pointer;'>\n        💾 LƯU LỊCH TRÌNH &amp; CHU KỲ\n      </button>\n    </div>\n  </div>\n</div>\n",
+            "cardCss": "",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false
+              }
+            },
+            "controllerScript": "\nself.onInit = function() {\n    var ctx = self.ctx;\n    var $scope = ctx.$scope;\n\n    function sendRpc(method, params) {\n        if (ctx.controlApi) {\n            ctx.controlApi.sendTwoWayRpcCommand(method, params, 5000).subscribe(\n                function() { console.log('RPC OK:', method, params); },\n                function(err) { console.warn('RPC Resp/Timeout:', err); }\n            );\n        }\n    }\n\n    setTimeout(function() {\n        var btnStart = document.getElementById('tb_btn_start_timer');\n        var btnCancel = document.getElementById('tb_btn_cancel_timer');\n        var btnSaveSched = document.getElementById('tb_btn_save_sched');\n\n        if (btnStart) {\n            btnStart.onclick = function() {\n                var dev = document.getElementById('tb_dev_select').value;\n                var min = parseInt(document.getElementById('tb_min_input').value) || 15;\n                var sec = min * 60;\n                sendRpc('setTimer', { device: dev, seconds: sec });\n                alert('✅ Đã gửi lệnh hẹn giờ ' + min + ' phút cho ' + dev.toUpperCase() + '!');\n            };\n        }\n\n        if (btnCancel) {\n            btnCancel.onclick = function() {\n                var dev = document.getElementById('tb_dev_select').value;\n                sendRpc('setTimer', { device: dev, seconds: 0 });\n                alert('⏹️ Đã hủy hẹn giờ cho ' + dev.toUpperCase() + '!');\n            };\n        }\n\n        if (btnSaveSched) {\n            btnSaveSched.onclick = function() {\n                var onTime = document.getElementById('tb_led_on').value || '07:00';\n                var offTime = document.getElementById('tb_led_off').value || '21:00';\n                var fon = parseInt(document.getElementById('tb_fon').value) || 15;\n                var fof = parseInt(document.getElementById('tb_fof').value) || 45;\n\n                sendRpc('setLedSchedule', { mode: true, on: onTime, off: offTime });\n                sendRpc('setFilterCycleSchedule', { on_min: fon, off_min: fof });\n                alert('✅ Đã lưu Lịch Đèn (' + onTime + ' - ' + offTime + ') và Chu Kỳ Lọc (' + fon + 'p/' + fof + 'p)!');\n            };\n        }\n    }, 500);\n};\n"
+          },
+          "title": "⏱️ Bảng Điều Khiển Hẹn Giờ Tùy Chỉnh & Lịch Trình (ThingsBoard RPC)",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "showTitleIcon": true,
+          "titleIcon": "psychology",
+          "iconColor": "#0284c7",
+          "iconSize": "22px",
+          "titleFont": {
+            "size": 15,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "22px"
+          },
+          "titleColor": "#0284c7",
+          "borderRadius": "14px",
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          }
+        },
+        "row": 22,
+        "col": 0,
+        "id": "custom-timer-panel-0009"
       }
     },
     "states": {
@@ -4930,18 +4979,18 @@
                 "col": 20
               },
               "countdown-card-filter-0006": {
-                "sizeX": 6,
+                "sizeX": 12,
                 "sizeY": 4,
                 "mobileHeight": null,
-                "row": 25,
+                "row": 28,
                 "col": 0
               },
               "countdown-card-drain-0007": {
-                "sizeX": 6,
+                "sizeX": 12,
                 "sizeY": 4,
                 "mobileHeight": null,
-                "row": 25,
-                "col": 6
+                "row": 28,
+                "col": 12
               },
               "schedule-led-card-0008": {
                 "sizeX": 12,
@@ -4949,6 +4998,13 @@
                 "mobileHeight": null,
                 "row": 25,
                 "col": 12
+              },
+              "custom-timer-panel-0009": {
+                "sizeX": 24,
+                "sizeY": 6,
+                "mobileHeight": null,
+                "row": 22,
+                "col": 0
               }
             },
             "gridSettings": {
