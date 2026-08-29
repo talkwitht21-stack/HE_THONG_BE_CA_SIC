@@ -288,14 +288,13 @@ void handleOxyCycle() {
       applyRelayStates();
       forceStatusUpdate = true;
     }
-    return; // Không chạy chu kỳ
+    return; // Chế độ liên tục 24/7
   }
 
-  if (!oxyCycleEnabled) return; // Không tự kích hoạt nếu người dùng / Master đã tắt Oxy!
-  
+  // Chế độ Chu Kỳ Tự Động (Tự động luân phiên Bật / Nghỉ)
   unsigned long now = millis();
-  unsigned long onMs  = (unsigned long)oxy_on_min * 60000UL;
-  unsigned long offMs = (unsigned long)oxy_off_min * 60000UL;
+  unsigned long onMs  = (unsigned long)max(1, (int)oxy_on_min) * 60000UL;
+  unsigned long offMs = (unsigned long)max(1, (int)oxy_off_min) * 60000UL;
 
   if (oxyState) {
     if (now - oxyLastChange >= onMs) {
@@ -303,6 +302,7 @@ void handleOxyCycle() {
       oxyLastChange = now;
       applyRelayStates();
       forceStatusUpdate = true;
+      Serial.printf("[SLAVE OXY] Het %u phut BAT -> Chuyen sang NGHI (%u phut)\n", oxy_on_min, oxy_off_min);
     }
   } else {
     if (now - oxyLastChange >= offMs) {
@@ -310,6 +310,7 @@ void handleOxyCycle() {
       oxyLastChange = now;
       applyRelayStates();
       forceStatusUpdate = true;
+      Serial.printf("[SLAVE OXY] Het %u phut NGHI -> Chuyen sang BAT (%u phut)\n", oxy_off_min, oxy_on_min);
     }
   }
 }
@@ -397,17 +398,30 @@ void handleMasterCommand() {
       if (doc.containsKey("drain"))  drainState  = doc["drain"].as<bool>();
       if (doc.containsKey("led"))    ledState    = doc["led"].as<bool>();
       
-      if (doc.containsKey("oxy")) {
-        oxyState = doc["oxy"].as<bool>();
-        oxyCycleEnabled = oxyState && (!oxyModeContinuous);
-        oxyLastChange = millis(); // Reset timer chu kỳ nếu master gửi lệnh
-      }
       if (doc.containsKey("oxy_mode")) {
-        oxyModeContinuous = doc["oxy_mode"].as<bool>();
-        if (oxyModeContinuous) oxyCycleEnabled = false;
+        bool new_om = doc["oxy_mode"].as<bool>();
+        if (new_om != oxyModeContinuous) {
+          oxyModeContinuous = new_om;
+          oxyLastChange = millis();
+        }
       }
-      if (doc.containsKey("oo")) oxy_on_min  = doc["oo"];
-      if (doc.containsKey("of")) oxy_off_min = doc["of"];
+      if (doc.containsKey("oo")) {
+        uint16_t new_oo = doc["oo"];
+        if (new_oo != oxy_on_min && new_oo > 0) {
+          oxy_on_min = new_oo;
+          oxyLastChange = millis();
+        }
+      }
+      if (doc.containsKey("of")) {
+        uint16_t new_of = doc["of"];
+        if (new_of != oxy_off_min && new_of > 0) {
+          oxy_off_min = new_of;
+          oxyLastChange = millis();
+        }
+      }
+      if (doc.containsKey("oxy") && oxyModeContinuous) {
+        oxyState = doc["oxy"].as<bool>();
+      }
 
       if (doc.containsKey("fa")) {
         feed_angle = constrain(doc["fa"].as<int>(), 10, 180);

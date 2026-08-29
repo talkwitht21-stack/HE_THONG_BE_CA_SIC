@@ -433,7 +433,7 @@
               <div class="ctrl-item"><span class="ctrl-lbl">Máy Sưởi</span><button class="btn off" id="b-heater" onclick="sendLAN('heater')">TẮT</button></div>
               <div class="ctrl-item"><span class="ctrl-lbl">Quạt Làm Mát</span><button class="btn off" id="b-fan" onclick="sendLAN('fan')">TẮT</button></div>
               <div class="ctrl-item"><span class="ctrl-lbl">Bơm Bù Nước</span><button class="btn off" id="b-pump" onclick="sendLAN('pump')">TẮT</button></div>
-              <div class="ctrl-item"><span class="ctrl-lbl">Sục Khí Oxy</span><button class="btn off" id="b-oxy" onclick="sendLAN('oxy')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Sục Khí Oxy <small id="lbl-oxy-mode" style="color:#0284c7;font-weight:bold;font-size:0.78em">(Chu kỳ)</small></span><button class="btn off" id="b-oxy" onclick="sendLAN('oxy')">TẮT</button></div>
               <div class="ctrl-item"><span class="ctrl-lbl">Bơm Rút Nước</span><button class="btn off" id="b-drain" onclick="sendLAN('drain')">TẮT</button></div>
               <div class="ctrl-item"><span class="ctrl-lbl">Lọc Tuần Hoàn</span><button class="btn off" id="b-filter" onclick="sendLAN('filter')">TẮT</button></div>
               <div class="ctrl-item"><span class="ctrl-lbl">Chu Kỳ Lọc</span><button class="btn off" id="b-filter_cycle" onclick="sendLAN('filter_cycle')">TẮT</button></div>
@@ -1184,6 +1184,18 @@
             document.getElementById('v-wl').textContent = (esp.wcm > 0) ? esp.wcm.toFixed(1) : 'Lỗi';
 
             let now = Date.now();
+            // Cập nhật nhãn chế độ Oxy
+            const oxyModeLbl = document.getElementById('lbl-oxy-mode');
+            if (oxyModeLbl) {
+              if (esp.om) {
+                oxyModeLbl.textContent = '(Liên tục 24/7)';
+                oxyModeLbl.style.color = '#10b981';
+              } else {
+                oxyModeLbl.textContent = `(Chu kỳ ${esp.oo || 5}p Bật / ${esp.of || 15}p Nghỉ)`;
+                oxyModeLbl.style.color = '#0284c7';
+              }
+            }
+
             for (let dev in DEV_BTN_MAP) {
               let btnInfo = DEV_BTN_MAP[dev];
               let espState = Boolean(esp[btnInfo.espKey]);
