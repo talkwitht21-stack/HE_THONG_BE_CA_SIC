@@ -241,4 +241,28 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             return jsonify({"status": "success" if ok else "failed", "device": device})
         return jsonify({"status": "error", "message": "Invalid request"}), 400
 
+    @app.route("/api/lan_timer", methods=["POST"])
+    def api_lan_timer():
+        """
+        Kích hoạt hẹn giờ đếm ngược tự tắt (tương tự ESP Web /api/timer)
+        """
+        data = request.get_json() or {}
+        device = data.get("device")
+        seconds = data.get("seconds", 0)
+        if esp32_client and device:
+            ok = esp32_client.start_timer(device, seconds)
+            return jsonify({"status": "success" if ok else "failed", "device": device, "seconds": seconds})
+        return jsonify({"status": "error", "message": "Invalid timer request"}), 400
+
+    @app.route("/api/update_schedule", methods=["POST"])
+    def api_update_schedule():
+        """
+        Cập nhật lịch trình và chu kỳ tự động (tương tự ESP Web /api/set)
+        """
+        data = request.get_json() or {}
+        if esp32_client and data:
+            ok = esp32_client.set_schedule(data)
+            return jsonify({"status": "success" if ok else "failed", "data": data})
+        return jsonify({"status": "error", "message": "Invalid schedule request"}), 400
+
     return app

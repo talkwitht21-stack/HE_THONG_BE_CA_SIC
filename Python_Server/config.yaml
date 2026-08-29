@@ -14,7 +14,7 @@ esp32_lan:
 gemini:
   api_key: YOUR_GEMINI_API_KEY
   enabled: true
-  model: gemini-2.0-flash
+  model: gemini-3.5-flash
   temperature: 0.2
 telegram:
   bot_token: YOUR_TELEGRAM_BOT_TOKEN

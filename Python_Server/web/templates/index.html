@@ -140,6 +140,100 @@
     .setting-input:focus { outline: none; border-color: #0284c7; }
     .setting-btn { padding: 9px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.82em; transition: all 0.2s; white-space: nowrap; }
     .setting-btn:hover { background: #0369a1; }
+
+    /* TIMERS & SCHEDULE STYLING */
+    .timer-section {
+      margin-top: 14px;
+      padding: 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+    }
+    .timer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .timer-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .timer-box h4 {
+      margin: 0 0 8px 0;
+      font-size: 0.88em;
+      color: #0284c7;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .timer-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .timer-input {
+      padding: 6px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.85em;
+      outline: none;
+      flex: 1;
+      min-width: 80px;
+    }
+    .btn-timer-preset {
+      padding: 4px 8px;
+      font-size: 0.75em;
+      background: #e0f2fe;
+      color: #0284c7;
+      border: 1px solid #bae6fd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-timer-preset:hover {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .btn-timer-start {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.82em;
+      width: 100%;
+      margin-top: 4px;
+    }
+    .btn-timer-start:hover {
+      opacity: 0.92;
+    }
+    .countdown-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fef3c7;
+      color: #d97706;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 0.75em;
+      font-weight: bold;
+    }
+    .countdown-active {
+      background: #dcfce7;
+      color: #15803d;
+      border-color: #bbf7d0;
+      animation: pulse 1.5s infinite;
+    }
+
   </style>
 </head>
 <body>
@@ -239,6 +333,110 @@
             <button class="btn action" id="btn-action-feed" onclick="sendLAN('feed')">CHO ĂN NGAY TỨC THÌ (SERVO)</button>
             <button class="btn action" id="btn-action-sys" style="background:#ef4444;margin-top:8px" onclick="sendLAN('system')">KHÓA / MỞ TOÀN BỘ HỆ THỐNG</button>
           </div>
+
+          <!-- KHỐI HẸN GIỜ & LỊCH TRÌNH THIẾT BỊ (ĐỒNG BỘ REST API ESP32) -->
+          <div class="card" style="margin-top:14px">
+            <div class="card-title">
+              <span>⏱️ Hẹn Giờ &amp; Lịch Trình Tự Động</span>
+              <span class="badge" style="background:#0284c7;color:white;font-size:0.72em">ESP32 REST API</span>
+            </div>
+
+            <!-- Đồng Hồ Đếm Ngược Đang Chạy (Real-Time Countdown Badges) -->
+            <div id="active-countdowns" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              <span class="countdown-pill" id="cd-filter">Lọc Nước: Sẵn sàng</span>
+              <span class="countdown-pill" id="cd-drain">Bơm Rút: Sẵn sàng</span>
+              <span class="countdown-pill" id="cd-heater">Sưởi: Sẵn sàng</span>
+              <span class="countdown-pill" id="cd-fan">Quạt: Sẵn sàng</span>
+              <span class="countdown-pill" id="cd-led">Đèn LED: Sẵn sàng</span>
+            </div>
+
+            <div class="timer-grid">
+              <!-- 1. Hẹn Giờ Đếm Ngược Nhanh -->
+              <div class="timer-box">
+                <h4>⏳ Hẹn Giờ Đếm Ngược Tự Tắt</h4>
+                <div class="timer-row">
+                  <select id="timer-dev" class="timer-input" style="font-weight:600">
+                    <option value="filter">Lọc Nước Tuần Hoàn</option>
+                    <option value="drain">Bơm Rút Nước</option>
+                    <option value="heater">Máy Sưởi</option>
+                    <option value="fan">Quạt Làm Mát</option>
+                    <option value="led">Đèn LED</option>
+                  </select>
+                  <input type="number" id="timer-min" class="timer-input" value="15" min="1" max="180" placeholder="Phút">
+                </div>
+                <div class="timer-row">
+                  <span style="font-size:0.75em;color:#64748b">Chọn nhanh:</span>
+                  <button class="btn-timer-preset" onclick="setTimerMin(3)">3p</button>
+                  <button class="btn-timer-preset" onclick="setTimerMin(5)">5p</button>
+                  <button class="btn-timer-preset" onclick="setTimerMin(15)">15p</button>
+                  <button class="btn-timer-preset" onclick="setTimerMin(30)">30p</button>
+                  <button class="btn-timer-preset" onclick="setTimerMin(60)">60p</button>
+                </div>
+                <div style="display:flex;gap:6px">
+                  <button class="btn-timer-start" onclick="startDeviceTimer()">▶️ BẮT ĐẦU HẸN GIỜ</button>
+                  <button class="btn-timer-start" style="background:#64748b" onclick="cancelDeviceTimer()">⏹️ HỦY</button>
+                </div>
+              </div>
+
+              <!-- 2. Lịch Chiếu Sáng Đèn LED -->
+              <div class="timer-box">
+                <h4>
+                  <span>💡 Lịch Bật/Tắt Đèn LED</span>
+                  <input type="checkbox" id="sched-led-en" style="cursor:pointer">
+                </h4>
+                <div class="timer-row">
+                  <div style="flex:1">
+                    <div style="font-size:0.75em;color:#64748b">Giờ BẬT:</div>
+                    <input type="time" id="sched-led-on" class="timer-input" value="07:00">
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-size:0.75em;color:#64748b">Giờ TẮT:</div>
+                    <input type="time" id="sched-led-off" class="timer-input" value="21:00">
+                  </div>
+                </div>
+                <button class="btn-timer-start" style="background:#10b981" onclick="saveLedSchedule()">💾 LƯU LỊCH ĐÈN</button>
+              </div>
+
+              <!-- 3. Lịch Cho Ăn Tự Động (3 Mốc) -->
+              <div class="timer-box" style="grid-column: span 1">
+                <h4>🍱 Lịch Cho Ăn Tự Động (3 Mốc)</h4>
+                <div class="timer-row" style="margin-bottom:4px">
+                  <input type="checkbox" id="sched-feed-en1"> <span style="font-size:0.8em">Mốc 1:</span>
+                  <input type="text" id="sched-feed-t1" class="timer-input" value="08:00:00" placeholder="HH:MM:SS">
+                </div>
+                <div class="timer-row" style="margin-bottom:4px">
+                  <input type="checkbox" id="sched-feed-en2"> <span style="font-size:0.8em">Mốc 2:</span>
+                  <input type="text" id="sched-feed-t2" class="timer-input" value="12:00:00" placeholder="HH:MM:SS">
+                </div>
+                <div class="timer-row" style="margin-bottom:4px">
+                  <input type="checkbox" id="sched-feed-en3"> <span style="font-size:0.8em">Mốc 3:</span>
+                  <input type="text" id="sched-feed-t3" class="timer-input" value="18:00:00" placeholder="HH:MM:SS">
+                </div>
+                <div class="timer-row">
+                  <span style="font-size:0.8em">Góc quay:</span>
+                  <input type="number" id="sched-feed-angle" class="timer-input" value="180" min="10" max="180"> <span style="font-size:0.8em">độ</span>
+                </div>
+                <button class="btn-timer-start" style="background:#f59e0b" onclick="saveFeedSchedule()">💾 LƯU LỊCH CHO ĂN</button>
+              </div>
+
+              <!-- 4. Chu Kỳ Lọc Nước & Sục Oxy -->
+              <div class="timer-box">
+                <h4>🔄 Chu Kỳ Lọc &amp; Sục Oxy (Phút)</h4>
+                <div class="timer-row">
+                  <span style="font-size:0.8em;width:85px">Lọc tuần hoàn:</span>
+                  <input type="number" id="sched-fon" class="timer-input" value="15" placeholder="Bật (p)">
+                  <input type="number" id="sched-fof" class="timer-input" value="45" placeholder="Nghỉ (p)">
+                </div>
+                <div class="timer-row">
+                  <span style="font-size:0.8em;width:85px">Sục khí oxy:</span>
+                  <input type="number" id="sched-oon" class="timer-input" value="5" placeholder="Bật (p)">
+                  <input type="number" id="sched-oof" class="timer-input" value="15" placeholder="Nghỉ (p)">
+                </div>
+                <button class="btn-timer-start" style="background:#6366f1" onclick="saveCycleSchedule()">💾 LƯU CẤU HÌNH CHU KỲ</button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -822,6 +1020,114 @@
 
     setInterval(fetchStatus, 2000);
     fetchStatus();
+  
+    // ===================== TIMER & SCHEDULE FUNCTIONS =====================
+    function setTimerMin(min) {
+      document.getElementById("timer-min").value = min;
+    }
+
+    function formatSecToMMSS(seconds) {
+      if (!seconds || seconds <= 0) return "Sẵn sàng";
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    async function startDeviceTimer() {
+      const dev = document.getElementById("timer-dev").value;
+      const min = parseInt(document.getElementById("timer-min").value) || 15;
+      const sec = min * 60;
+      try {
+        const res = await fetch("/api/lan_timer", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({device: dev, seconds: sec})
+        });
+        const d = await res.json();
+        if (d.status === "success") {
+          alert(`✅ Đã kích hoạt hẹn giờ ${min} phút cho ${dev.toUpperCase()}!`);
+          fetchStatus();
+        } else {
+          alert("❌ Không thể hẹn giờ: " + (d.message || "Lỗi thiết bị"));
+        }
+      } catch (e) {
+        alert("❌ Lỗi kết nối hẹn giờ: " + e);
+      }
+    }
+
+    async function cancelDeviceTimer() {
+      const dev = document.getElementById("timer-dev").value;
+      try {
+        const res = await fetch("/api/lan_timer", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({device: dev, seconds: 0})
+        });
+        alert(`⏹️ Đã hủy hẹn giờ cho ${dev.toUpperCase()}!`);
+        fetchStatus();
+      } catch (e) {
+        alert("❌ Lỗi: " + e);
+      }
+    }
+
+    async function saveLedSchedule() {
+      const mode = document.getElementById("sched-led-en").checked;
+      const onTime = document.getElementById("sched-led-on").value || "07:00";
+      const offTime = document.getElementById("sched-led-off").value || "21:00";
+      try {
+        const res = await fetch("/api/update_schedule", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({slm: mode, sl_on: onTime, sl_off: offTime})
+        });
+        const d = await res.json();
+        if (d.status === "success") alert("✅ Đã lưu lịch bật/tắt đèn LED!");
+      } catch (e) {
+        alert("❌ Lỗi lưu lịch: " + e);
+      }
+    }
+
+    async function saveFeedSchedule() {
+      const en1 = document.getElementById("sched-feed-en1").checked;
+      const t1  = document.getElementById("sched-feed-t1").value || "08:00:00";
+      const en2 = document.getElementById("sched-feed-en2").checked;
+      const t2  = document.getElementById("sched-feed-t2").value || "12:00:00";
+      const en3 = document.getElementById("sched-feed-en3").checked;
+      const t3  = document.getElementById("sched-feed-t3").value || "18:00:00";
+      const fa  = parseInt(document.getElementById("sched-feed-angle").value) || 180;
+
+      try {
+        const res = await fetch("/api/update_schedule", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({fen1: en1, ft1: t1, fen2: en2, ft2: t2, fen3: en3, ft3: t3, fa: fa})
+        });
+        const d = await res.json();
+        if (d.status === "success") alert("✅ Đã lưu lịch cho ăn tự động (3 mốc)!");
+      } catch (e) {
+        alert("❌ Lỗi: " + e);
+      }
+    }
+
+    async function saveCycleSchedule() {
+      const fon = parseInt(document.getElementById("sched-fon").value) || 15;
+      const fof = parseInt(document.getElementById("sched-fof").value) || 45;
+      const oon = parseInt(document.getElementById("sched-oon").value) || 5;
+      const oof = parseInt(document.getElementById("sched-oof").value) || 15;
+
+      try {
+        const res = await fetch("/api/update_schedule", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({fon: fon, fof: fof, oo: oon, of: oof})
+        });
+        const d = await res.json();
+        if (d.status === "success") alert("✅ Đã lưu cấu hình chu kỳ Lọc & Sục Oxy!");
+      } catch (e) {
+        alert("❌ Lỗi: " + e);
+      }
+    }
+
   </script>
 </body>
 </html>

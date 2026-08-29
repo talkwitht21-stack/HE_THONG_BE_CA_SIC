@@ -1171,7 +1171,7 @@ void handleMQTT() {
   if (ms - lastMqttPublish >= 5000) {
     lastMqttPublish = ms;
 
-    StaticJsonDocument<512> d;
+    StaticJsonDocument<768> d;
     d["water_temp"]   = (waterTemp > -500.0) ? waterTemp : 0.0;
     d["air_temp"]     = (airTemp > -500.0)   ? airTemp   : 0.0;
     d["air_hum"]      = (airHum > -500.0)    ? airHum    : 0.0;
@@ -1190,7 +1190,23 @@ void handleMQTT() {
     d["ip"]           = WiFi.localIP().toString();
     if (last_ir.length() > 0) d["last_ir"] = last_ir;
 
-    char buf[512];
+    // Đẩy thời gian đếm ngược timer còn lại (giây) lên ThingsBoard
+    long th_r = (heaterState && timer_heater_active && timer_heater_sec > 0) ? (long)max(0L, (long)timer_heater_sec - (long)((ms - start_heater)/1000)) : 0;
+    long tf_r = (fanState    && timer_fan_active    && timer_fan_sec    > 0) ? (long)max(0L, (long)timer_fan_sec    - (long)((ms - start_fan)   /1000)) : 0;
+    long td_r = (drainState  && timer_drain_active  && timer_drain_sec  > 0) ? (long)max(0L, (long)timer_drain_sec  - (long)((ms - start_drain) /1000)) : 0;
+    long tl_r = (ledState    && timer_led_active    && timer_led_sec    > 0) ? (long)max(0L, (long)timer_led_sec    - (long)((ms - start_led)   /1000)) : 0;
+    long tfl_r= (filterMode  && timer_filter_active && timer_filter_sec > 0) ? (long)max(0L, (long)timer_filter_sec - (long)((ms - start_filter)/1000)) : 0;
+
+    d["timer_heater_rem"] = th_r;
+    d["timer_fan_rem"]    = tf_r;
+    d["timer_drain_rem"]  = td_r;
+    d["timer_filter_rem"] = tfl_r;
+    d["timer_led_rem"]    = tl_r;
+    d["led_timer_mode"]   = led_timer_mode;
+    d["led_on_time"]      = led_on_time;
+    d["led_off_time"]     = led_off_time;
+
+    char buf[768];
     serializeJson(d, buf);
     bool ok = mqtt.publish("v1/devices/me/telemetry", buf);
     if (ok) {
@@ -1281,6 +1297,89 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   }
   else if (method == "setFeed" && val) {
     feedTriggered = true;
+  }
+  // --- RPC HẸN GIỜ ĐẾM NGƯỢC (COUNTDOWN TIMERS) ---
+  else if (method == "setTimer") {
+    if (d["params"].is<JsonObject>()) {
+      JsonObject p = d["params"].as<JsonObject>();
+      String dev = p["device"].as<String>();
+      uint32_t sec = p["seconds"].as<uint32_t>();
+      unsigned long msNow = millis();
+      if (dev == "filter") {
+        filterCycleMode = false; filterMode = drainState = pumpState = true;
+        timer_filter_active = (sec > 0); timer_filter_sec = sec;
+        start_filter = start_pump = start_drain = msNow;
+      } else if (dev == "drain") {
+        drainState = true; timer_drain_active = (sec > 0); timer_drain_sec = sec; start_drain = msNow;
+      } else if (dev == "heater") {
+        heaterState = true; timer_heater_active = (sec > 0); timer_heater_sec = sec; start_heater = msNow;
+      } else if (dev == "fan") {
+        fanState = true; timer_fan_active = (sec > 0); timer_fan_sec = sec; start_fan = msNow;
+      } else if (dev == "led") {
+        ledState = true; timer_led_active = (sec > 0); timer_led_sec = sec; start_led = msNow;
+      }
+    }
+  }
+  else if (method == "setTimerFilter") {
+    uint32_t sec = d["params"].as<uint32_t>();
+    filterCycleMode = false; filterMode = drainState = pumpState = true;
+    timer_filter_active = (sec > 0); timer_filter_sec = sec;
+    start_filter = start_pump = start_drain = millis();
+  }
+  else if (method == "setTimerDrain") {
+    uint32_t sec = d["params"].as<uint32_t>();
+    drainState = true; timer_drain_active = (sec > 0); timer_drain_sec = sec; start_drain = millis();
+  }
+  else if (method == "setTimerHeater") {
+    uint32_t sec = d["params"].as<uint32_t>();
+    heaterState = true; timer_heater_active = (sec > 0); timer_heater_sec = sec; start_heater = millis();
+  }
+  else if (method == "setTimerFan") {
+    uint32_t sec = d["params"].as<uint32_t>();
+    fanState = true; timer_fan_active = (sec > 0); timer_fan_sec = sec; start_fan = millis();
+  }
+  else if (method == "setTimerLed") {
+    uint32_t sec = d["params"].as<uint32_t>();
+    ledState = true; timer_led_active = (sec > 0); timer_led_sec = sec; start_led = millis();
+  }
+  // --- RPC LỊCH TRÌNH & CHU KỲ (SCHEDULES & CYCLES) ---
+  else if (method == "setLedSchedule") {
+    if (d["params"].is<JsonObject>()) {
+      JsonObject p = d["params"].as<JsonObject>();
+      if (p.containsKey("mode")) led_timer_mode = p["mode"].as<bool>();
+      if (p.containsKey("on"))   led_on_time = p["on"].as<String>();
+      if (p.containsKey("off"))  led_off_time = p["off"].as<String>();
+      saveSettings();
+    }
+  }
+  else if (method == "setFeedSchedule") {
+    if (d["params"].is<JsonObject>()) {
+      JsonObject p = d["params"].as<JsonObject>();
+      if (p.containsKey("en1")) feed_en_1 = p["en1"].as<bool>();
+      if (p.containsKey("t1"))  feed_time_1 = p["t1"].as<String>();
+      if (p.containsKey("en2")) feed_en_2 = p["en2"].as<bool>();
+      if (p.containsKey("t2"))  feed_time_2 = p["t2"].as<String>();
+      if (p.containsKey("en3")) feed_en_3 = p["en3"].as<bool>();
+      if (p.containsKey("t3"))  feed_time_3 = p["t3"].as<String>();
+      if (p.containsKey("angle")) feed_angle = constrain(p["angle"].as<int>(), 10, 180);
+      saveSettings();
+    }
+  }
+  else if (method == "setFilterCycleSchedule") {
+    if (d["params"].is<JsonObject>()) {
+      JsonObject p = d["params"].as<JsonObject>();
+      if (p.containsKey("on_min"))  filter_on_min = p["on_min"].as<uint16_t>();
+      if (p.containsKey("off_min")) filter_off_min = p["off_min"].as<uint16_t>();
+      saveSettings();
+    }
+  }
+  else if (method == "setOxyCycleSchedule") {
+    if (d["params"].is<JsonObject>()) {
+      JsonObject p = d["params"].as<JsonObject>();
+      if (p.containsKey("on_min"))  oxy_on_min = p["on_min"].as<uint16_t>();
+      if (p.containsKey("off_min")) oxy_off_min = p["off_min"].as<uint16_t>();
+      saveSettings();
+    }
   }
 
   sendToSlave(feedTriggered);

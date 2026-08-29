@@ -5,7 +5,11 @@ import time
 class ESP32LANClient:
     """
     Cầu nối gọi trực tiếp REST API của ESP32 qua mạng nội bộ LAN (http://beca.local).
-    Tốc độ phản hồi cực nhanh (< 5ms), không phụ thuộc vào Internet.
+    Tốc độ phản hồi cực nhanh (< 5ms), không phụ thuộc vào Internet:
+    - GET  /api/data: Dữ liệu cảm biến, relay và thời gian đếm ngược timer còn lại.
+    - POST /api/ctrl: Điều khiển bật/tắt thiết bị tức thì.
+    - POST /api/timer: Kích hoạt hẹn giờ đếm ngược tự tắt.
+    - POST /api/set: Cài đặt lịch trình (Đèn LED, Cho ăn, Chu kỳ lọc/oxy).
     """
     def __init__(self, base_url="http://beca.local", timeout=2.0):
         self.base_url = base_url.rstrip("/")
@@ -45,13 +49,25 @@ class ESP32LANClient:
 
     def start_timer(self, dev_name, seconds):
         """
-        Gửi lệnh hẹn giờ qua POST /api/timer
+        Gửi lệnh hẹn giờ qua POST /api/timer (Tương tự ESP Web)
         """
         url = f"{self.base_url}/api/timer"
         try:
-            payload = {"d": dev_name, "sec": seconds}
+            payload = {"d": dev_name, "sec": int(seconds)}
             r = requests.post(url, json=payload, timeout=self.timeout)
             return r.status_code == 200
         except Exception as e:
-            print(f"[ESP32 LAN ERROR] Loi goi POST /api/timer: {e}")
+            print(f"[ESP32 LAN ERROR] Loi goi POST /api/timer ({dev_name}={seconds}s): {e}")
+            return False
+
+    def set_schedule(self, schedule_dict):
+        """
+        Gửi cài đặt lịch trình và chu kỳ qua POST /api/set (Tương tự ESP Web)
+        """
+        url = f"{self.base_url}/api/set"
+        try:
+            r = requests.post(url, json=schedule_dict, timeout=self.timeout)
+            return r.status_code == 200
+        except Exception as e:
+            print(f"[ESP32 LAN ERROR] Loi goi POST /api/set: {e}")
             return False
