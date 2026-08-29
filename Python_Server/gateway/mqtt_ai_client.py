@@ -80,15 +80,32 @@ class MQTTAIClient:
         if not self.enabled or not self.client or not self.connected:
             return False
             
+        total = ai_data.get("total_fish", 10)
+        dead = ai_data.get("dead_fish", 0)
+        alive = ai_data.get("alive_fish", max(0, total - dead))
+        turb = ai_data.get("water_turbidity", 0)
+        summary = ai_data.get("summary", "")
+        engine = ai_data.get("ai_engine", "Gemini Flash VLM")
+        is_alert = ai_data.get("is_alert", False)
+
         telemetry = {
-            "ai_total_fish": ai_data.get("total_fish", 0),
-            "ai_dead_fish": ai_data.get("dead_fish", 0),
-            "ai_abnormal_fish": ai_data.get("abnormal_fish", 0),
-            "ai_water_turbidity": ai_data.get("water_turbidity", 0),
-            "ai_summary": ai_data.get("summary", ""),
-            "ai_engine": ai_data.get("ai_engine", "AI"),
-            "ai_fps": fps,
-            "ai_alert": ai_data.get("is_alert", False)
+            # 1. Key chuẩn khớp 100% với 6 widgets AI trên ThingsBoard
+            "total_fish": total,
+            "alive_fish": alive,
+            "dead_fish": dead,
+            "water_turbidity": turb,
+            "summary": summary,
+            "ai_engine": engine,
+            "ai_fps": round(fps, 1),
+            "is_alert": is_alert,
+            
+            # 2. Key có prefix dự phòng
+            "ai_total_fish": total,
+            "ai_alive_fish": alive,
+            "ai_dead_fish": dead,
+            "ai_water_turbidity": turb,
+            "ai_summary": summary,
+            "ai_alert": is_alert
         }
         
         try:
