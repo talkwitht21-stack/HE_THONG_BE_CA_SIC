@@ -1920,8 +1920,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -2090,8 +2090,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -2260,8 +2260,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -2430,8 +2430,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -2600,8 +2600,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -2770,8 +2770,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -2940,8 +2940,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -3110,8 +3110,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -3280,8 +3280,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
@@ -3450,8 +3450,8 @@
           "iconSize": "20px",
           "configMode": "basic",
           "targetDevice": {
-            "type": "device",
-            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+            "type": "entity",
+            "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419"
           },
           "titleColor": "#0369a1",
           "borderRadius": "14px",
