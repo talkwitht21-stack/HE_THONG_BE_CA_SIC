@@ -442,19 +442,46 @@ graph TD
 
 ---
 
-### 11.2. Cài đặt Môi trường & Thư viện
+### 11.2. Cơ Chế 5 Ảnh Mẫu Tham Chiếu (Baseline Calibration - Chống Nhận Diện Nhầm)
+
+Để giải quyết triệt để việc AI nhìn nhầm gỗ lũa, đá sỏi, hang hốc, rêu hoặc bóng phản chiếu dưới đáy bể thành cá chết:
+1. **Lưu 5 Ảnh Mẫu Chuẩn:** Người dùng chụp từ camera hoặc tải lên 5 bức ảnh chụp bể cá khi ở trạng thái hoàn toàn bình thường (các góc sáng, tối, lũa đá, mặt nước).
+2. **Đối Chiếu Ground Truth:** Khi phân tích ảnh thực tế, hệ thống gửi kèm 5 ảnh mẫu này sang Gemini Flash Vision làm bộ dữ liệu tham chiếu chuẩn.
+3. **Loại Trừ Vật Thể Tĩnh:** AI so sánh ảnh hiện tại với 5 ảnh mẫu để loại trừ $100\%$ các vật thể tĩnh, chỉ phát hiện và cảnh báo khi có cá thể thực sự bị bất động/tử vong!
+4. **Quản Lý Tiện Lợi:** 
+   - Trên Web Dashboard: Xem trước 5 thumbnail, bấm nút "Chụp Cam" hoặc "Tải Ảnh".
+   - Trên Telegram: Gõ lệnh `/setref 1..5` để chụp frame camera hiện tại lưu làm ảnh mẫu ngay tức thì.
+
+---
+
+### 11.3. Bảng Lệnh Tương Tác Qua Telegram Chatbot
+
+| Lệnh Telegram | Chức Năng |
+|---|---|
+| `/status` | Chụp ảnh camera $\rightarrow$ Gửi AI đối chiếu 5 ảnh mẫu $\rightarrow$ Trả về ảnh + báo cáo chi tiết |
+| `/snapshot` | Chụp và gửi ảnh trực tiếp từ camera ngay lập tức |
+| `/setref <1-5>` | Chụp frame camera hiện tại lưu làm ảnh mẫu tham chiếu số $1..5$ |
+| `/refstatus` | Xem danh sách và thời gian lưu của 5 ảnh mẫu tham chiếu |
+| `/url` | Lấy lại đường dẫn Public Web Cloudflare Tunnel (`https://*.trycloudflare.com`) |
+| `/data` | Đọc toàn bộ cảm biến môi trường (Nhiệt độ nước, mực nước, relay) từ ESP32 qua LAN |
+| `/feed` | Kích hoạt quay Servo rót thức ăn từ xa qua Telegram |
+
+---
+
+### 11.4. Cài đặt Môi trường & Thư viện
 ```bash
 cd Python_Server
 pip install -r requirements.txt
 ```
 
-### 11.3. Cấu hình hệ thống (`config.yaml`)
+### 11.5. Cấu hình hệ thống (`config.yaml`)
 Mở file [`Python_Server/config.yaml`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Python_Server/config.yaml) và điền thông tin:
 ```yaml
 camera:
   source: 0 # 0 là Webcam USB, hoặc chuỗi RTSP IP Camera: "rtsp://admin:123456@192.168.1.100:554/stream1"
   fps: 15
-  analyze_interval_sec: 10
+  interval_normal_sec: 120 # Chu kỳ bình thường: 2 phút / lần
+  interval_alert_sec: 10   # Chu kỳ khi có cá chết: Chụp liên tục 10s / lần
 
 aquarium:
   total_fish: 10 # Tổng số cá thả trong bể (có thể chỉnh trực tiếp trên Web)
@@ -483,15 +510,13 @@ esp32_lan:
 web:
   host: "0.0.0.0"
   port: 5000
+  enable_cloudflare: true
 ```
 
-### 11.4. Khởi chạy Server
+### 11.6. Khởi chạy Server
 ```bash
 python run_server.py
 ```
 * **Tự động mở Cloudflare Tunnel:** Ngay khi khởi động, hệ thống tự động sinh Public URL (`https://*.trycloudflare.com`) và gửi thẳng vào Telegram của bạn!
 * **Truy cập Web Dashboard:** Mở trình duyệt vào **`http://localhost:5000`** (hoặc đường link Cloudflare).
-* **Trải nghiệm Telegram Bot:** Gõ lệnh `/status`, `/snapshot`, `/data`, `/feed`, `/url` để nhận báo cáo và ảnh chụp tức thì.
-
-
-
+* **Trải nghiệm Telegram Bot:** Gõ lệnh `/status`, `/snapshot`, `/setref 1`, `/data`, `/feed`, `/url` để nhận báo cáo và ảnh chụp tức thì.

@@ -11,7 +11,7 @@
     
     /* Header */
     .header { background: #ffffff; padding: 16px 22px; border-radius: 16px; border: 1px solid #bae6fd; box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-    .title h1 { color: #0284c7; font-size: 1.4em; font-weight: 800; }
+    .title h1 { color: #0284c7; font-size: 1.38em; font-weight: 800; }
     .title p { color: #64748b; font-size: 0.82em; font-weight: 600; margin-top: 2px; }
     
     /* Mode Switcher */
@@ -48,6 +48,17 @@
     .ai-lbl { font-size: 0.7em; color: #64748b; font-weight: 700; margin-top: 2px; }
     .ai-summary { background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px 14px; border-radius: 8px; font-size: 0.83em; color: #0369a1; margin-top: 12px; line-height: 1.4; }
     
+    /* 5 Reference Slots */
+    .ref-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
+    @media (max-width: 600px) { .ref-grid { grid-template-columns: repeat(2, 1fr); } }
+    .ref-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px; text-align: center; font-size: 0.75em; position: relative; }
+    .ref-thumb { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 4px; background: #e2e8f0; display: block; margin-bottom: 4px; border: 1px solid #e2e8f0; }
+    .ref-btn-group { display: flex; flex-direction: column; gap: 3px; }
+    .ref-btn { padding: 4px; border: none; border-radius: 4px; font-size: 0.75em; font-weight: bold; cursor: pointer; }
+    .ref-btn-cam { background: #0284c7; color: white; }
+    .ref-btn-up { background: #e0f2fe; color: #0369a1; }
+    .ref-btn-del { background: #fee2e2; color: #dc2626; margin-top: 2px; }
+
     /* Settings Form */
     .form-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
     .form-input { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85em; }
@@ -124,6 +135,20 @@
             </div>
           </div>
 
+          <!-- QUẢN LÝ 5 ẢNH MẪU THAM CHIẾU BỂ CÁ (BASELINE CALIBRATION) -->
+          <div class="card">
+            <div class="card-title">
+              <span>5 Ảnh Mẫu Tham Chiếu (Chống Nhận Diện Nhầm)</span>
+              <span id="ref-count-badge" class="badge badge-lan">0/5 Ảnh</span>
+            </div>
+            <p style="font-size:0.78em;color:#64748b;margin-bottom:8px">
+              Chụp hoặc tải lên 5 ảnh bể cá lúc bình thường (các góc sáng, tối, lũa đá) để AI đối chiếu, loại bỏ 100% việc nhận nhầm vật thể tĩnh thành cá chết.
+            </p>
+            <div class="ref-grid" id="ref-slots-container">
+              <!-- Render 5 slots via JS -->
+            </div>
+          </div>
+
           <!-- Cài Đặt Số Cá & Telegram ID -->
           <div class="card">
             <div class="card-title">Cài Đặt Hệ Thống Bể Cá</div>
@@ -186,8 +211,11 @@
     </div>
   </div>
 
+  <input type="file" id="file-upload-input" style="display:none" accept="image/*" onchange="handleFileSelected(event)">
+
   <script>
     let _currentMode = 'lan';
+    let _uploadSlot = null;
 
     function setMode(mode) {
       _currentMode = mode;
@@ -214,6 +242,75 @@
           btn.innerHTML = '📸 CHỤP ẢNH &amp; PHÂN TÍCH AI NGAY';
           alert('Lỗi phân tích tức thì: ' + err);
         });
+    }
+
+    // 5 Reference Slots Management
+    function captureRefSlot(slot) {
+      fetch('/api/reference/capture', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({slot: slot})
+      }).then(() => fetchStatus());
+    }
+
+    function triggerUploadRef(slot) {
+      _uploadSlot = slot;
+      document.getElementById('file-upload-input').click();
+    }
+
+    function handleFileSelected(event) {
+      let file = event.target.files[0];
+      if (!file || !_uploadSlot) return;
+      
+      let formData = new FormData();
+      formData.append('slot', _uploadSlot);
+      formData.append('file', file);
+
+      fetch('/api/reference/upload', {
+        method: 'POST',
+        body: formData
+      }).then(() => {
+        event.target.value = '';
+        fetchStatus();
+      });
+    }
+
+    function deleteRefSlot(slot) {
+      if (!confirm('Bạn có chắc muốn xóa ảnh mẫu Slot ' + slot + '?')) return;
+      fetch('/api/reference/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({slot: slot})
+      }).then(() => fetchStatus());
+    }
+
+    function renderRefSlots(refList) {
+      let container = document.getElementById('ref-slots-container');
+      if (!container || !refList) return;
+
+      let validCount = 0;
+      let html = '';
+      refList.forEach(s => {
+        if (s.exists) validCount++;
+        let thumbUrl = s.exists ? `/api/reference/image/${s.slot}?t=${Date.now()}` : '';
+        let thumbHtml = s.exists 
+          ? `<img class="ref-thumb" src="${thumbUrl}" alt="Mẫu ${s.slot}">`
+          : `<div class="ref-thumb" style="display:flex;align-items:center;justify-content:center;color:#94a3b8">Trống</div>`;
+
+        html += `
+          <div class="ref-card">
+            <strong style="display:block;margin-bottom:2px;color:#0369a1">Mẫu ${s.slot}</strong>
+            ${thumbHtml}
+            <div class="ref-btn-group">
+              <button class="ref-btn ref-btn-cam" onclick="captureRefSlot(${s.slot})">Chụp Cam</button>
+              <button class="ref-btn ref-btn-up" onclick="triggerUploadRef(${s.slot})">Tải Ảnh</button>
+              ${s.exists ? `<button class="ref-btn ref-btn-del" onclick="deleteRefSlot(${s.slot})">Xóa</button>` : ''}
+            </div>
+          </div>
+        `;
+      });
+      container.innerHTML = html;
+      document.getElementById('ref-count-badge').textContent = `${validCount}/5 Ảnh`;
     }
 
     function saveSettings(type) {
@@ -257,6 +354,11 @@
             document.getElementById('tunnel-text').innerHTML = `<a class="tunnel-link" href="${d.public_url}" target="_blank">${d.public_url}</a>`;
           } else {
             document.getElementById('tunnel-text').textContent = 'Chưa tạo hoặc dùng IP cục bộ';
+          }
+
+          // Reference Slots
+          if (d.ref_status) {
+            renderRefSlots(d.ref_status);
           }
 
           // AI Metrics

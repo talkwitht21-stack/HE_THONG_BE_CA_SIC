@@ -12,10 +12,16 @@ except ImportError:
 
 PROMPT_ANALYZE_FISH = """
 Bạn là Chuyên gia Trí tuệ Nhân tạo Giám sát Thủy sinh và Bể cá Thông minh.
-Hãy phân tích bức ảnh chụp bể cá này và trả về ĐÚNG ĐỊNH DẠNG JSON sau (KHÔNG thêm bất kỳ giải thích nào ngoài JSON):
+Dưới đây là:
+1. Các bức ảnh mẫu chụp bể cá này khi ở trạng thái HOÀN TOÀN BÌNH THƯỜNG và KHÔNG CÓ CÁ CHẾT (các vật thể tĩnh dưới đáy như gỗ lũa, đá sỏi, hang hốc, rêu thủy sinh là bối cảnh tự nhiên).
+2. Bức ảnh cuối cùng là ẢNH HIỆN TẠI CỦA BỂ CÁ CẦN PHÂN TÍCH.
+
+NHIỆM VỤ CỦA BẠN:
+Hãy so sánh ảnh hiện tại với các ảnh mẫu bình thường để LOẠI TRỪ 100% các vật thể tĩnh trong bể, và chỉ đánh giá cá thể thực sự.
+Trả về ĐÚNG ĐỊNH DẠNG JSON sau (KHÔNG thêm bất kỳ giải thích nào ngoài JSON):
 
 {
-  "dead_fish": <số cá thể bị tử vong, lật ngửa bụng, nổi bất động trên mặt nước hoặc nằm im dưới đáy bể, số nguyên>,
+  "dead_fish": <số cá thể thực sự bị tử vong, lật ngửa bụng, nổi bất động trên mặt nước hoặc nằm im dưới đáy bể (không phải gỗ/đá tĩnh), số nguyên>,
   "abnormal_fish": <số cá thể bơi lờ đờ, tróc vảy, nấm trắng, bơi nghiêng bất thường, số nguyên>,
   "water_turbidity": <ước tính độ vẩn đục của nước từ 0 (trong vắt) đến 100 (rất đục/ô nhiễm), số nguyên>,
   "is_alert": <true nếu dead_fish > 0 hoặc water_turbidity >= 40, ngược lại false>,
@@ -26,12 +32,13 @@ Hãy phân tích bức ảnh chụp bể cá này và trả về ĐÚNG ĐỊNH 
 class GeminiVisionAnalyzer:
     """
     Module phân tích hình ảnh chuyên sâu bằng Gemini Multimodal Vision API.
-    Tập trung phát hiện số cá chết, cá yếu và độ đục nước.
+    Tích hợp đối chiếu 5 ảnh mẫu tham chiếu bình thường (Few-Shot Baseline Calibration).
     """
-    def __init__(self, api_key, model_name="gemini-2.0-flash", temperature=0.2):
+    def __init__(self, api_key, model_name="gemini-2.0-flash", temperature=0.2, ref_manager=None):
         self.api_key = api_key
         self.model_name = model_name
         self.temperature = temperature
+        self.ref_manager = ref_manager
         self.enabled = bool(api_key and api_key != "YOUR_GEMINI_API_KEY")
         
         self.model = None
@@ -55,7 +62,7 @@ class GeminiVisionAnalyzer:
 
     def analyze_frame(self, frame):
         """
-        Gửi frame ảnh sang Gemini Vision API để nhận phân tích JSON có cấu trúc.
+        Gửi frame ảnh hiện tại cùng các ảnh mẫu tham chiếu sang Gemini Vision API.
         """
         if not self.enabled or self.model is None or frame is None:
             return self._fallback_cv_analysis(frame)
@@ -69,9 +76,16 @@ class GeminiVisionAnalyzer:
             if not ret:
                 return self._fallback_cv_analysis(frame)
                 
-            image_parts = [{"mime_type": "image/jpeg", "data": buf.tobytes()}]
+            current_frame_part = {"mime_type": "image/jpeg", "data": buf.tobytes()}
             
-            response = self.model.generate_content([PROMPT_ANALYZE_FISH, image_parts[0]])
+            # Nap cac anh mau tham chieu
+            contents = [PROMPT_ANALYZE_FISH]
+            ref_parts = self.ref_manager.get_all_reference_images_for_gemini() if self.ref_manager else []
+            if ref_parts:
+                contents.extend(ref_parts)
+            contents.append(current_frame_part)
+            
+            response = self.model.generate_content(contents)
             text = response.text.strip()
             
             match = re.search(r'\{.*\}', text, re.DOTALL)
@@ -84,6 +98,7 @@ class GeminiVisionAnalyzer:
                     "is_alert": bool(data.get("is_alert", False)),
                     "summary": str(data.get("summary", "Bể cá bình thường.")),
                     "ai_engine": self.model_name,
+                    "ref_count_used": len(ref_parts),
                     "analyzed_at": time.strftime("%H:%M:%S %d/%m/%Y")
                 }
             else:
@@ -102,6 +117,7 @@ class GeminiVisionAnalyzer:
                 "dead_fish": 0, "abnormal_fish": 0,
                 "water_turbidity": 10, "is_alert": False,
                 "summary": "Khong co tin hieu camera.", "ai_engine": "Fallback-CV",
+                "ref_count_used": 0,
                 "analyzed_at": time.strftime("%H:%M:%S %d/%m/%Y")
             }
             
@@ -116,5 +132,6 @@ class GeminiVisionAnalyzer:
             "is_alert": (turbidity >= 40),
             "summary": f"Che do Du phong: Do duc nuoc xap xi {turbidity}%.",
             "ai_engine": "Fallback-CV",
+            "ref_count_used": 0,
             "analyzed_at": time.strftime("%H:%M:%S %d/%m/%Y")
         }

@@ -9,9 +9,9 @@ class TelegramBotService:
       - Tự động gửi link Cloudflare Tunnel khi khởi động.
       - Tự động gửi cảnh báo khẩn cấp đính kèm ảnh snapshot khi có sự cố.
       - Có cơ chế Cooldown chống spam.
-      - Hỗ trợ tương tác 2 chiều: /status, /snapshot, /data, /feed, /url.
+      - Hỗ trợ tương tác 2 chiều: /status, /snapshot, /data, /feed, /url, /setref, /refstatus.
     """
-    def __init__(self, bot_token, chat_id, cooldown_minutes=10, video_stream=None, gemini_ai=None, esp32_client=None, shared_state=None):
+    def __init__(self, bot_token, chat_id, cooldown_minutes=10, video_stream=None, gemini_ai=None, esp32_client=None, shared_state=None, ref_manager=None):
         self.bot_token = bot_token
         self.chat_id = str(chat_id)
         self.cooldown_sec = cooldown_minutes * 60
@@ -19,6 +19,7 @@ class TelegramBotService:
         self.gemini_ai = gemini_ai
         self.esp32_client = esp32_client
         self.shared_state = shared_state or {}
+        self.ref_manager = ref_manager
         
         self.enabled = bool(bot_token and chat_id and bot_token != "YOUR_TELEGRAM_BOT_TOKEN")
         self.last_alert_time = 0
@@ -68,9 +69,6 @@ class TelegramBotService:
             return False
 
     def send_tunnel_url(self, public_url):
-        """
-        Gửi đường dẫn Cloudflare Tunnel vào Telegram ngay khi khởi tạo xong.
-        """
         msg = (
             "<b>DUONG DAN TRUY CAP WEB TU XA (CLOUDFLARE):</b>\n"
             f"🔗 <a href='{public_url}'>{public_url}</a>\n"
@@ -79,14 +77,11 @@ class TelegramBotService:
         self.send_message(msg)
 
     def check_and_send_alert(self, ai_result):
-        """
-        Kiểm tra nếu có sự cố nguy hiểm và gửi cảnh báo (có chống spam cooldown).
-        """
         if not self.enabled:
             return
             
         is_alert = ai_result.get("is_alert", False)
-        dead = ai_result.get("dead_fish", 0)
+        dead = ai_result.get("confirmed_dead_fish", ai_result.get("dead_fish", 0))
         turb = ai_result.get("water_turbidity", 0)
         
         if not is_alert and dead == 0 and turb < 40:
@@ -103,7 +98,7 @@ class TelegramBotService:
         
         alert_msg = f"<b>CANH BAO KHAN CAP TU BE CA!</b>\n"
         if dead > 0:
-            alert_msg += f"- Phat hien: <b>{dead} CA THE BI CHET/BAT THUONG!</b>\n"
+            alert_msg += f"- XAC NHAN 100%: <b>{dead} CA THE BI CHET!</b>\n"
             alert_msg += f"- So ca con song: <b>{alive} / {total}</b>\n"
         if turb >= 40:
             alert_msg += f"- Do duc cua nuoc rat cao: <b>{turb}%</b>\n"
@@ -139,13 +134,19 @@ class TelegramBotService:
             time.sleep(0.5)
 
     def _handle_command(self, cmd_text):
-        cmd = cmd_text.lower()
+        parts = cmd_text.split()
+        if not parts:
+            return
+        cmd = parts[0].lower()
+
         if cmd == "/help" or cmd == "/start":
             msg = (
                 "<b>DANH SACH LENH TELEGRAM BOT BE CA SIC:</b>\n"
                 "• <code>/status</code>: Chup anh va phan tich tinh trang AI ngay lap tuc\n"
                 "• <code>/snapshot</code>: Chup va gui anh truc tiep tu Camera\n"
                 "• <code>/url</code>: Lay lai link Web Cloudflare truy cap tu xa\n"
+                "• <code>/setref 1..5</code>: Chup frame hien tai luu lam anh mau so 1-5\n"
+                "• <code>/refstatus</code>: Xem danh sach 5 anh mau tham chieu da luu\n"
                 "• <code>/data</code>: Doc cac thong so moi truong tu ESP32\n"
                 "• <code>/feed</code>: Kich hoat quay Servo cho ca an tu xa\n"
             )
@@ -158,6 +159,37 @@ class TelegramBotService:
             else:
                 self.send_message("Cloudflare Tunnel chua duoc khoi tao hoac chua co URL.")
 
+        elif cmd == "/setref":
+            if len(parts) >= 2 and parts[1].isdigit():
+                slot = int(parts[1])
+                if 1 <= slot <= 5:
+                    frame = self.video_stream.get_frame() if self.video_stream else None
+                    if frame is not None and self.ref_manager:
+                        ok = self.ref_manager.save_frame_to_slot(slot, frame)
+                        if ok:
+                            self.send_message(f"Da chup va luu anh mau tham chieu vao <b>Slot {slot}/5</b> thanh cong!")
+                        else:
+                            self.send_message(f"Loi khi luu anh mau vao Slot {slot}.")
+                    else:
+                        self.send_message("Khong the lay frame tu Camera.")
+                else:
+                    self.send_message("Vui long chon slot tu 1 den 5 (Vi du: <code>/setref 1</code>).")
+            else:
+                self.send_message("Cu phap: <code>/setref &lt;slot 1-5&gt;</code> (Vi du: <code>/setref 1</code>).")
+
+        elif cmd == "/refstatus":
+            if self.ref_manager:
+                st = self.ref_manager.get_slot_status()
+                msg = "<b>DANH SACH 5 ANH MAU THAM CHIEU (BASELINE):</b>\n"
+                for s in st:
+                    icon = "DA LUU" if s["exists"] else "CHUA CO"
+                    mtime = f"({s['mtime']})" if s["exists"] else ""
+                    msg += f"• Slot {s['slot']}: <b>{icon}</b> {mtime}\n"
+                msg += "\nGo <code>/setref &lt;1-5&gt;</code> de chup luu anh mau tu camera."
+                self.send_message(msg)
+            else:
+                self.send_message("Chua khoi tao Reference Manager.")
+
         elif cmd == "/snapshot":
             img_bytes = self.video_stream.get_jpeg_bytes() if self.video_stream else None
             if img_bytes:
@@ -167,15 +199,15 @@ class TelegramBotService:
                 self.send_message("Khong the lay anh tu Camera.")
 
         elif cmd == "/status":
-            self.send_message("Dang chup anh va phan tich qua Gemini Vision AI, vui long doi giay lat...")
+            self.send_message("Dang chup anh va phan tich qua Gemini Vision AI (co doi chieu anh mau), vui long doi giay lat...")
             frame = self.video_stream.get_frame() if self.video_stream else None
             ai_res = self.gemini_ai.analyze_frame(frame) if self.gemini_ai else {}
             
-            # Cap nhat shared state
             self.shared_state["ai_result"] = ai_res
             dead = ai_res.get("dead_fish", 0)
             total = self.shared_state.get("total_fish_configured", 10)
             alive = max(0, total - dead)
+            ref_count = ai_res.get("ref_count_used", 0)
             
             caption = (
                 f"<b>KET QUA PHAN TICH AI ({ai_res.get('ai_engine', 'AI')})</b>\n"
@@ -183,6 +215,7 @@ class TelegramBotService:
                 f"• Ca dang song khoe: <b>{alive}</b>\n"
                 f"• Ca chet / bat thuong: <b>{dead}</b>\n"
                 f"• Do duc nuoc: <b>{ai_res.get('water_turbidity', 0)}%</b>\n"
+                f"• Anh mau tham chieu su dung: <b>{ref_count}/5 anh</b>\n"
                 f"• Nhan xet: <i>{ai_res.get('summary', '')}</i>\n"
                 f"• Thoi gian: {ai_res.get('analyzed_at', time.strftime('%H:%M:%S'))}"
             )
