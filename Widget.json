@@ -3467,136 +3467,861 @@
         "id": "9df5cc0a-3d44-6bf2-a3fe-f48a16f4519f"
       },
       "timer-rpc-filter-15m-0001": {
-        "typeFullFqn": "system.rpc_button",
+        "typeFullFqn": "system.power_button",
         "type": "rpc",
         "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
-          "title": "⏱️ Hẹn Giờ Lọc Nước (15 Phút)",
-          "backgroundColor": "#0284c7",
-          "color": "#ffffff",
-          "padding": "10px",
+          "backgroundColor": "#ffffff",
+          "color": "#1e293b",
+          "padding": "0px",
           "settings": {
-            "title": "Chạy Lọc 15 Phút",
-            "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
-            "requestTimeout": 5000,
-            "oneWayElseTwoWay": true,
-            "method": "setTimerFilter",
-            "params": 900
-          }
+            "initialState": {
+              "action": "GET_TIME_SERIES",
+              "defaultValue": false,
+              "executeRpc": {
+                "method": "setTimerFilter",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "getAttribute": {
+                "scope": null,
+                "key": "setTimerFilter"
+              },
+              "getTimeSeries": {
+                "key": "setTimerFilter"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "dataToValueFunction": "/* Should return boolean value */\nreturn data;",
+                "compareToValue": true
+              }
+            },
+            "onUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerFilter",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 900,
+                "valueToDataFunction": "return 900;"
+              }
+            },
+            "offUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerFilter",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 0,
+                "valueToDataFunction": "return 0;"
+              }
+            },
+            "disabledState": {
+              "action": "DO_NOTHING",
+              "defaultValue": false,
+              "getAttribute": {
+                "key": "state",
+                "scope": null
+              },
+              "getTimeSeries": {
+                "key": "state"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "compareToValue": true,
+                "dataToValueFunction": "return data;"
+              }
+            },
+            "layout": "default",
+            "onButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "offButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "mainColorOn": "#0284c7",
+            "backgroundColorOn": "#f0f9ff",
+            "mainColorOff": "#94a3b8",
+            "backgroundColorOff": "#f8fafc",
+            "mainColorDisabled": "rgba(0,0,0,0.12)",
+            "backgroundColorDisabled": "#FFFFFF",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "padding": "12px"
+          },
+          "title": "⏱️ Hẹn Giờ Lọc (15 Phút)",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          },
+          "actions": {},
+          "widgetCss": "",
+          "noDataDisplayMessage": "",
+          "titleFont": {
+            "size": 14,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "1.4"
+          },
+          "showTitleIcon": false,
+          "titleTooltip": "",
+          "titleStyle": {
+            "fontSize": "14px",
+            "fontWeight": 700
+          },
+          "pageSize": 1024,
+          "titleIcon": "whatshot",
+          "iconColor": "#0284c7",
+          "iconSize": "20px",
+          "configMode": "basic",
+          "targetDevice": {
+            "type": "device",
+            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+          },
+          "titleColor": "#0284c7",
+          "borderRadius": "14px",
+          "datasources": []
         },
         "row": 22,
         "col": 0,
         "id": "timer-rpc-filter-15m-0001"
       },
       "timer-rpc-drain-3m-0002": {
-        "typeFullFqn": "system.rpc_button",
+        "typeFullFqn": "system.power_button",
         "type": "rpc",
         "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
-          "title": "⏱️ Hẹn Giờ Bơm Rút (3 Phút)",
-          "backgroundColor": "#ea580c",
-          "color": "#ffffff",
-          "padding": "10px",
+          "backgroundColor": "#ffffff",
+          "color": "#1e293b",
+          "padding": "0px",
           "settings": {
-            "title": "Bơm Rút 3 Phút",
-            "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
-            "requestTimeout": 5000,
-            "oneWayElseTwoWay": true,
-            "method": "setTimerDrain",
-            "params": 180
-          }
+            "initialState": {
+              "action": "GET_TIME_SERIES",
+              "defaultValue": false,
+              "executeRpc": {
+                "method": "setTimerDrain",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "getAttribute": {
+                "scope": null,
+                "key": "setTimerDrain"
+              },
+              "getTimeSeries": {
+                "key": "setTimerDrain"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "dataToValueFunction": "/* Should return boolean value */\nreturn data;",
+                "compareToValue": true
+              }
+            },
+            "onUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerDrain",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 180,
+                "valueToDataFunction": "return 180;"
+              }
+            },
+            "offUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerDrain",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 0,
+                "valueToDataFunction": "return 0;"
+              }
+            },
+            "disabledState": {
+              "action": "DO_NOTHING",
+              "defaultValue": false,
+              "getAttribute": {
+                "key": "state",
+                "scope": null
+              },
+              "getTimeSeries": {
+                "key": "state"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "compareToValue": true,
+                "dataToValueFunction": "return data;"
+              }
+            },
+            "layout": "default",
+            "onButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "offButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "mainColorOn": "#0284c7",
+            "backgroundColorOn": "#f0f9ff",
+            "mainColorOff": "#94a3b8",
+            "backgroundColorOff": "#f8fafc",
+            "mainColorDisabled": "rgba(0,0,0,0.12)",
+            "backgroundColorDisabled": "#FFFFFF",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "padding": "12px"
+          },
+          "title": "⏱️ Hẹn Giờ Bơm Rút (3 Phút)",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          },
+          "actions": {},
+          "widgetCss": "",
+          "noDataDisplayMessage": "",
+          "titleFont": {
+            "size": 14,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "1.4"
+          },
+          "showTitleIcon": false,
+          "titleTooltip": "",
+          "titleStyle": {
+            "fontSize": "14px",
+            "fontWeight": 700
+          },
+          "pageSize": 1024,
+          "titleIcon": "whatshot",
+          "iconColor": "#0284c7",
+          "iconSize": "20px",
+          "configMode": "basic",
+          "targetDevice": {
+            "type": "device",
+            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+          },
+          "titleColor": "#ea580c",
+          "borderRadius": "14px",
+          "datasources": []
         },
         "row": 22,
         "col": 5,
         "id": "timer-rpc-drain-3m-0002"
       },
       "timer-rpc-heater-30m-0003": {
-        "typeFullFqn": "system.rpc_button",
+        "typeFullFqn": "system.power_button",
         "type": "rpc",
         "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
-          "title": "⏱️ Hẹn Giờ Sưởi (30 Phút)",
-          "backgroundColor": "#dc2626",
-          "color": "#ffffff",
-          "padding": "10px",
+          "backgroundColor": "#ffffff",
+          "color": "#1e293b",
+          "padding": "0px",
           "settings": {
-            "title": "Bật Sưởi 30 Phút",
-            "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
-            "requestTimeout": 5000,
-            "oneWayElseTwoWay": true,
-            "method": "setTimerHeater",
-            "params": 1800
-          }
+            "initialState": {
+              "action": "GET_TIME_SERIES",
+              "defaultValue": false,
+              "executeRpc": {
+                "method": "setTimerHeater",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "getAttribute": {
+                "scope": null,
+                "key": "setTimerHeater"
+              },
+              "getTimeSeries": {
+                "key": "setTimerHeater"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "dataToValueFunction": "/* Should return boolean value */\nreturn data;",
+                "compareToValue": true
+              }
+            },
+            "onUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerHeater",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 1800,
+                "valueToDataFunction": "return 1800;"
+              }
+            },
+            "offUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerHeater",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 0,
+                "valueToDataFunction": "return 0;"
+              }
+            },
+            "disabledState": {
+              "action": "DO_NOTHING",
+              "defaultValue": false,
+              "getAttribute": {
+                "key": "state",
+                "scope": null
+              },
+              "getTimeSeries": {
+                "key": "state"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "compareToValue": true,
+                "dataToValueFunction": "return data;"
+              }
+            },
+            "layout": "default",
+            "onButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "offButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "mainColorOn": "#0284c7",
+            "backgroundColorOn": "#f0f9ff",
+            "mainColorOff": "#94a3b8",
+            "backgroundColorOff": "#f8fafc",
+            "mainColorDisabled": "rgba(0,0,0,0.12)",
+            "backgroundColorDisabled": "#FFFFFF",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "padding": "12px"
+          },
+          "title": "⏱️ Hẹn Giờ Sưởi (30 Phút)",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          },
+          "actions": {},
+          "widgetCss": "",
+          "noDataDisplayMessage": "",
+          "titleFont": {
+            "size": 14,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "1.4"
+          },
+          "showTitleIcon": false,
+          "titleTooltip": "",
+          "titleStyle": {
+            "fontSize": "14px",
+            "fontWeight": 700
+          },
+          "pageSize": 1024,
+          "titleIcon": "whatshot",
+          "iconColor": "#0284c7",
+          "iconSize": "20px",
+          "configMode": "basic",
+          "targetDevice": {
+            "type": "device",
+            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+          },
+          "titleColor": "#dc2626",
+          "borderRadius": "14px",
+          "datasources": []
         },
         "row": 22,
         "col": 10,
         "id": "timer-rpc-heater-30m-0003"
       },
       "timer-rpc-fan-20m-0004": {
-        "typeFullFqn": "system.rpc_button",
+        "typeFullFqn": "system.power_button",
         "type": "rpc",
         "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
-          "title": "⏱️ Hẹn Giờ Quạt (20 Phút)",
-          "backgroundColor": "#059669",
-          "color": "#ffffff",
-          "padding": "10px",
+          "backgroundColor": "#ffffff",
+          "color": "#1e293b",
+          "padding": "0px",
           "settings": {
-            "title": "Bật Quạt 20 Phút",
-            "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
-            "requestTimeout": 5000,
-            "oneWayElseTwoWay": true,
-            "method": "setTimerFan",
-            "params": 1200
-          }
+            "initialState": {
+              "action": "GET_TIME_SERIES",
+              "defaultValue": false,
+              "executeRpc": {
+                "method": "setTimerFan",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "getAttribute": {
+                "scope": null,
+                "key": "setTimerFan"
+              },
+              "getTimeSeries": {
+                "key": "setTimerFan"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "dataToValueFunction": "/* Should return boolean value */\nreturn data;",
+                "compareToValue": true
+              }
+            },
+            "onUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerFan",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 1200,
+                "valueToDataFunction": "return 1200;"
+              }
+            },
+            "offUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerFan",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 0,
+                "valueToDataFunction": "return 0;"
+              }
+            },
+            "disabledState": {
+              "action": "DO_NOTHING",
+              "defaultValue": false,
+              "getAttribute": {
+                "key": "state",
+                "scope": null
+              },
+              "getTimeSeries": {
+                "key": "state"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "compareToValue": true,
+                "dataToValueFunction": "return data;"
+              }
+            },
+            "layout": "default",
+            "onButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "offButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "mainColorOn": "#0284c7",
+            "backgroundColorOn": "#f0f9ff",
+            "mainColorOff": "#94a3b8",
+            "backgroundColorOff": "#f8fafc",
+            "mainColorDisabled": "rgba(0,0,0,0.12)",
+            "backgroundColorDisabled": "#FFFFFF",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "padding": "12px"
+          },
+          "title": "⏱️ Hẹn Giờ Quạt (20 Phút)",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          },
+          "actions": {},
+          "widgetCss": "",
+          "noDataDisplayMessage": "",
+          "titleFont": {
+            "size": 14,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "1.4"
+          },
+          "showTitleIcon": false,
+          "titleTooltip": "",
+          "titleStyle": {
+            "fontSize": "14px",
+            "fontWeight": 700
+          },
+          "pageSize": 1024,
+          "titleIcon": "whatshot",
+          "iconColor": "#0284c7",
+          "iconSize": "20px",
+          "configMode": "basic",
+          "targetDevice": {
+            "type": "device",
+            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+          },
+          "titleColor": "#059669",
+          "borderRadius": "14px",
+          "datasources": []
         },
         "row": 22,
         "col": 15,
         "id": "timer-rpc-fan-20m-0004"
       },
       "timer-rpc-led-1h-0005": {
-        "typeFullFqn": "system.rpc_button",
+        "typeFullFqn": "system.power_button",
         "type": "rpc",
         "sizeX": 4,
         "sizeY": 3,
         "config": {
           "showTitle": true,
-          "title": "⏱️ Hẹn Giờ Đèn (1 Giờ)",
-          "backgroundColor": "#ca8a04",
-          "color": "#ffffff",
-          "padding": "10px",
+          "backgroundColor": "#ffffff",
+          "color": "#1e293b",
+          "padding": "0px",
           "settings": {
-            "title": "Bật Đèn 1 Giờ",
-            "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
-            "requestTimeout": 5000,
-            "oneWayElseTwoWay": true,
-            "method": "setTimerLed",
-            "params": 3600
-          }
+            "initialState": {
+              "action": "GET_TIME_SERIES",
+              "defaultValue": false,
+              "executeRpc": {
+                "method": "setTimerLed",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "getAttribute": {
+                "scope": null,
+                "key": "setTimerLed"
+              },
+              "getTimeSeries": {
+                "key": "setTimerLed"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "dataToValueFunction": "/* Should return boolean value */\nreturn data;",
+                "compareToValue": true
+              }
+            },
+            "onUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerLed",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 3600,
+                "valueToDataFunction": "return 3600;"
+              }
+            },
+            "offUpdateState": {
+              "action": "EXECUTE_RPC",
+              "executeRpc": {
+                "method": "setTimerLed",
+                "requestTimeout": 5000,
+                "requestPersistent": false,
+                "persistentPollingInterval": 1000
+              },
+              "setAttribute": {
+                "scope": "SERVER_SCOPE",
+                "key": "state"
+              },
+              "putTimeSeries": {
+                "key": "state"
+              },
+              "valueToData": {
+                "type": "CONSTANT",
+                "constantValue": 0,
+                "valueToDataFunction": "return 0;"
+              }
+            },
+            "disabledState": {
+              "action": "DO_NOTHING",
+              "defaultValue": false,
+              "getAttribute": {
+                "key": "state",
+                "scope": null
+              },
+              "getTimeSeries": {
+                "key": "state"
+              },
+              "getAlarmStatus": {
+                "severityList": null,
+                "typeList": null
+              },
+              "dataToValue": {
+                "type": "NONE",
+                "compareToValue": true,
+                "dataToValueFunction": "return data;"
+              }
+            },
+            "layout": "default",
+            "onButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "offButtonIcon": {
+              "showIcon": true,
+              "iconSize": 32,
+              "iconSizeUnit": "px",
+              "icon": "whatshot"
+            },
+            "mainColorOn": "#0284c7",
+            "backgroundColorOn": "#f0f9ff",
+            "mainColorOff": "#94a3b8",
+            "backgroundColorOff": "#f8fafc",
+            "mainColorDisabled": "rgba(0,0,0,0.12)",
+            "backgroundColorDisabled": "#FFFFFF",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "padding": "12px"
+          },
+          "title": "⏱️ Hẹn Giờ Đèn (1 Giờ)",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          },
+          "actions": {},
+          "widgetCss": "",
+          "noDataDisplayMessage": "",
+          "titleFont": {
+            "size": 14,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "1.4"
+          },
+          "showTitleIcon": false,
+          "titleTooltip": "",
+          "titleStyle": {
+            "fontSize": "14px",
+            "fontWeight": 700
+          },
+          "pageSize": 1024,
+          "titleIcon": "whatshot",
+          "iconColor": "#0284c7",
+          "iconSize": "20px",
+          "configMode": "basic",
+          "targetDevice": {
+            "type": "device",
+            "deviceId": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+          },
+          "titleColor": "#ca8a04",
+          "borderRadius": "14px",
+          "datasources": []
         },
         "row": 22,
         "col": 20,
         "id": "timer-rpc-led-1h-0005"
       },
       "countdown-card-filter-0006": {
-        "typeFullFqn": "system.digital_gauge",
-        "type": "latest",
+        "typeFullFqn": "system.cards.aggregated_value_card",
+        "type": "timeseries",
         "sizeX": 6,
-        "sizeY": 5,
+        "sizeY": 4,
         "config": {
-          "showTitle": true,
-          "title": "⏳ Đếm Ngược Lọc Nước Còn Lại",
-          "backgroundColor": "#ffffff",
-          "color": "#0284c7",
-          "padding": "8px",
           "datasources": [
             {
               "type": "entity",
@@ -3606,30 +4331,188 @@
                 {
                   "name": "timer_filter_rem",
                   "type": "timeseries",
-                  "label": "Lọc Còn Lại",
+                  "label": "⏳ Lọc Nước Còn Lại",
                   "color": "#0284c7",
+                  "settings": {},
                   "units": "s",
                   "decimals": 0
                 }
+              ],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              },
+              "latestDataKeys": [
+                {
+                  "name": "timer_filter_rem",
+                  "type": "timeseries",
+                  "label": "⏳ Lọc Nước Còn Lại",
+                  "color": "#0284c7",
+                  "settings": {
+                    "position": "center",
+                    "font": {
+                      "size": 48,
+                      "sizeUnit": "px",
+                      "family": "Segoe UI, Roboto, sans-serif",
+                      "weight": "800",
+                      "style": "normal",
+                      "lineHeight": "1"
+                    },
+                    "color": {
+                      "type": "constant",
+                      "color": "#0284c7",
+                      "rangeList": {
+                        "advancedMode": false,
+                        "range": []
+                      }
+                    },
+                    "showArrow": false
+                  },
+                  "units": "s",
+                  "decimals": 0,
+                  "aggregationType": "NONE"
+                }
               ]
             }
-          ]
+          ],
+          "timewindow": {
+            "selectedTab": 0,
+            "realtime": {
+              "realtimeType": 0,
+              "timewindowMs": 86400000
+            },
+            "aggregation": {
+              "type": "AVG",
+              "limit": 2000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "#ffffff",
+          "color": null,
+          "padding": "0",
+          "settings": {
+            "stack": false,
+            "fontSize": 10,
+            "fontColor": "#64748b",
+            "showTooltip": true,
+            "tooltipIndividual": false,
+            "tooltipCumulative": false,
+            "hideZeros": false,
+            "grid": {
+              "verticalLines": false,
+              "horizontalLines": false,
+              "outlineWidth": 0,
+              "color": "transparent",
+              "backgroundColor": null,
+              "tickColor": "transparent"
+            },
+            "xaxis": {
+              "title": null,
+              "showLabels": false,
+              "color": "transparent"
+            },
+            "yaxis": {
+              "min": null,
+              "max": null,
+              "title": null,
+              "showLabels": false,
+              "color": "transparent",
+              "tickSize": null,
+              "tickDecimals": 0,
+              "ticksFormatter": ""
+            },
+            "shadowSize": 0,
+            "smoothLines": true,
+            "comparisonEnabled": false,
+            "showLegend": false,
+            "showSubtitle": true,
+            "subtitle": "Bể Cá Thông Minh SIC",
+            "subtitleFont": {
+              "family": "Segoe UI, Roboto, sans-serif",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "600",
+              "lineHeight": "14px"
+            },
+            "subtitleColor": "#94a3b8",
+            "showDate": true,
+            "dateFormat": {
+              "format": null,
+              "lastUpdateAgo": true,
+              "custom": false
+            },
+            "dateFont": {
+              "family": "Segoe UI, Roboto, sans-serif",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "14px"
+            },
+            "dateColor": "#94a3b8",
+            "showChart": true,
+            "chartColor": "#0284c7",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "autoScale": true,
+            "padding": "16px"
+          },
+          "title": "⏳ Lọc Nước Còn Lại",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "titleStyle": {
+            "fontSize": "15px",
+            "fontWeight": 700
+          },
+          "mobileHeight": null,
+          "configMode": "basic",
+          "actions": {},
+          "showTitleIcon": true,
+          "titleIcon": "thermostat",
+          "iconColor": "#0284c7",
+          "titleFont": {
+            "size": 15,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "22px"
+          },
+          "iconSize": "22px",
+          "titleTooltip": "",
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          },
+          "widgetCss": "",
+          "pageSize": 1024,
+          "noDataDisplayMessage": "",
+          "useDashboardTimewindow": false,
+          "displayTimewindow": false,
+          "decimals": 1,
+          "titleColor": "#0284c7",
+          "borderRadius": "14px",
+          "enableDataExport": false
         },
         "row": 25,
         "col": 0,
         "id": "countdown-card-filter-0006"
       },
       "countdown-card-drain-0007": {
-        "typeFullFqn": "system.digital_gauge",
-        "type": "latest",
+        "typeFullFqn": "system.cards.aggregated_value_card",
+        "type": "timeseries",
         "sizeX": 6,
-        "sizeY": 5,
+        "sizeY": 4,
         "config": {
-          "showTitle": true,
-          "title": "⏳ Đếm Ngược Bơm Rút Còn Lại",
-          "backgroundColor": "#ffffff",
-          "color": "#ea580c",
-          "padding": "8px",
           "datasources": [
             {
               "type": "entity",
@@ -3639,69 +4522,225 @@
                 {
                   "name": "timer_drain_rem",
                   "type": "timeseries",
-                  "label": "Rút Còn Lại",
+                  "label": "⏳ Bơm Rút Còn Lại",
                   "color": "#ea580c",
+                  "settings": {},
                   "units": "s",
                   "decimals": 0
                 }
+              ],
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              },
+              "latestDataKeys": [
+                {
+                  "name": "timer_drain_rem",
+                  "type": "timeseries",
+                  "label": "⏳ Bơm Rút Còn Lại",
+                  "color": "#ea580c",
+                  "settings": {
+                    "position": "center",
+                    "font": {
+                      "size": 48,
+                      "sizeUnit": "px",
+                      "family": "Segoe UI, Roboto, sans-serif",
+                      "weight": "800",
+                      "style": "normal",
+                      "lineHeight": "1"
+                    },
+                    "color": {
+                      "type": "constant",
+                      "color": "#ea580c",
+                      "rangeList": {
+                        "advancedMode": false,
+                        "range": []
+                      }
+                    },
+                    "showArrow": false
+                  },
+                  "units": "s",
+                  "decimals": 0,
+                  "aggregationType": "NONE"
+                }
               ]
             }
-          ]
+          ],
+          "timewindow": {
+            "selectedTab": 0,
+            "realtime": {
+              "realtimeType": 0,
+              "timewindowMs": 86400000
+            },
+            "aggregation": {
+              "type": "AVG",
+              "limit": 2000
+            }
+          },
+          "showTitle": true,
+          "backgroundColor": "#ffffff",
+          "color": null,
+          "padding": "0",
+          "settings": {
+            "stack": false,
+            "fontSize": 10,
+            "fontColor": "#64748b",
+            "showTooltip": true,
+            "tooltipIndividual": false,
+            "tooltipCumulative": false,
+            "hideZeros": false,
+            "grid": {
+              "verticalLines": false,
+              "horizontalLines": false,
+              "outlineWidth": 0,
+              "color": "transparent",
+              "backgroundColor": null,
+              "tickColor": "transparent"
+            },
+            "xaxis": {
+              "title": null,
+              "showLabels": false,
+              "color": "transparent"
+            },
+            "yaxis": {
+              "min": null,
+              "max": null,
+              "title": null,
+              "showLabels": false,
+              "color": "transparent",
+              "tickSize": null,
+              "tickDecimals": 0,
+              "ticksFormatter": ""
+            },
+            "shadowSize": 0,
+            "smoothLines": true,
+            "comparisonEnabled": false,
+            "showLegend": false,
+            "showSubtitle": true,
+            "subtitle": "Bể Cá Thông Minh SIC",
+            "subtitleFont": {
+              "family": "Segoe UI, Roboto, sans-serif",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "600",
+              "lineHeight": "14px"
+            },
+            "subtitleColor": "#94a3b8",
+            "showDate": true,
+            "dateFormat": {
+              "format": null,
+              "lastUpdateAgo": true,
+              "custom": false
+            },
+            "dateFont": {
+              "family": "Segoe UI, Roboto, sans-serif",
+              "size": 11,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "500",
+              "lineHeight": "14px"
+            },
+            "dateColor": "#94a3b8",
+            "showChart": true,
+            "chartColor": "#0284c7",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false,
+                "color": "rgba(255,255,255,0.72)",
+                "blur": 3
+              }
+            },
+            "autoScale": true,
+            "padding": "16px"
+          },
+          "title": "⏳ Bơm Rút Còn Lại",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "titleStyle": {
+            "fontSize": "15px",
+            "fontWeight": 700
+          },
+          "mobileHeight": null,
+          "configMode": "basic",
+          "actions": {},
+          "showTitleIcon": true,
+          "titleIcon": "thermostat",
+          "iconColor": "#0284c7",
+          "titleFont": {
+            "size": 15,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "22px"
+          },
+          "iconSize": "22px",
+          "titleTooltip": "",
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          },
+          "widgetCss": "",
+          "pageSize": 1024,
+          "noDataDisplayMessage": "",
+          "useDashboardTimewindow": false,
+          "displayTimewindow": false,
+          "decimals": 1,
+          "titleColor": "#ea580c",
+          "borderRadius": "14px",
+          "enableDataExport": false
         },
         "row": 25,
         "col": 6,
         "id": "countdown-card-drain-0007"
       },
       "schedule-led-card-0008": {
-        "typeFullFqn": "system.entities_table",
+        "typeFullFqn": "system.cards.html_card",
         "type": "latest",
         "sizeX": 12,
-        "sizeY": 5,
+        "sizeY": 4,
         "config": {
+          "datasources": [],
           "showTitle": true,
-          "title": "📅 Cấu Hình Lịch Trình & Chu Kỳ (ESP32 Master)",
           "backgroundColor": "#ffffff",
-          "color": "#1e293b",
-          "padding": "8px",
-          "datasources": [
-            {
-              "type": "entity",
-              "name": "",
-              "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
-              "dataKeys": [
-                {
-                  "name": "led_timer_mode",
-                  "type": "timeseries",
-                  "label": "Lịch Đèn LED",
-                  "color": "#f59e0b"
-                },
-                {
-                  "name": "led_on_time",
-                  "type": "timeseries",
-                  "label": "Giờ Bật Đèn",
-                  "color": "#10b981"
-                },
-                {
-                  "name": "led_off_time",
-                  "type": "timeseries",
-                  "label": "Giờ Tắt Đèn",
-                  "color": "#ef4444"
-                },
-                {
-                  "name": "filter_on_min",
-                  "type": "timeseries",
-                  "label": "Chu Kỳ Lọc (Bật/p)",
-                  "color": "#0284c7"
-                },
-                {
-                  "name": "filter_off_min",
-                  "type": "timeseries",
-                  "label": "Chu Kỳ Lọc (Nghỉ/p)",
-                  "color": "#64748b"
-                }
-              ]
+          "color": "#0369a1",
+          "padding": "0px",
+          "settings": {
+            "cardHtml": "\n    <div style='font-family: Segoe UI, Roboto, sans-serif; padding: 14px 18px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-sizing: border-box;'>\n      <div>\n        <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;'>\n          <div style='background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 10px;'>\n            <div style='font-size: 0.8em; font-weight: 800; color: #0284c7; text-transform: uppercase;'>💡 LỊCH ĐÈN LED</div>\n            <div style='font-size: 0.9em; color: #1e293b; margin-top: 4px;'><b>${led_on_time:07:00}</b> ➔ <b>${led_off_time:21:00}</b></div>\n          </div>\n          <div style='background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;'>\n            <div style='font-size: 0.8em; font-weight: 800; color: #16a34a; text-transform: uppercase;'>🔄 CHU KỲ LỌC</div>\n            <div style='font-size: 0.9em; color: #1e293b; margin-top: 4px;'>Bật: <b>${filter_on_min:15}p</b> | Nghỉ: <b>${filter_off_min:45}p</b></div>\n          </div>\n        </div>\n      </div>\n      <div style='background: #ecfeff; border-radius: 8px; padding: 8px 12px; font-size: 0.75em; color: #0e7490; font-weight: 600;'>\n        ⚡ Lịch trình được lưu trong bộ nhớ Flash ESP32 và tự duy trì khi mất điện.\n      </div>\n    </div>\n    ",
+            "cardCss": "",
+            "background": {
+              "type": "color",
+              "color": "#ffffff",
+              "overlay": {
+                "enabled": false
+              }
             }
-          ]
+          },
+          "title": "📅 Lịch Trình & Chu Kỳ Tự Động (ESP32 Master)",
+          "dropShadow": true,
+          "enableFullscreen": false,
+          "showTitleIcon": true,
+          "titleIcon": "psychology",
+          "iconColor": "#0284c7",
+          "iconSize": "22px",
+          "titleFont": {
+            "size": 15,
+            "sizeUnit": "px",
+            "family": "Segoe UI, Roboto, sans-serif",
+            "weight": "700",
+            "style": "normal",
+            "lineHeight": "22px"
+          },
+          "titleColor": "#0284c7",
+          "borderRadius": "14px",
+          "widgetStyle": {
+            "boxShadow": "0 4px 20px rgba(14, 165, 233, 0.07)",
+            "border": "1px solid #e0f2fe"
+          }
         },
         "row": 25,
         "col": 12,
@@ -3892,21 +4931,21 @@
               },
               "countdown-card-filter-0006": {
                 "sizeX": 6,
-                "sizeY": 5,
+                "sizeY": 4,
                 "mobileHeight": null,
                 "row": 25,
                 "col": 0
               },
               "countdown-card-drain-0007": {
                 "sizeX": 6,
-                "sizeY": 5,
+                "sizeY": 4,
                 "mobileHeight": null,
                 "row": 25,
                 "col": 6
               },
               "schedule-led-card-0008": {
                 "sizeX": 12,
-                "sizeY": 5,
+                "sizeY": 4,
                 "mobileHeight": null,
                 "row": 25,
                 "col": 12
