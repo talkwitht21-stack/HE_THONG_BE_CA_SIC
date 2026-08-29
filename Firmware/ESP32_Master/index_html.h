@@ -84,7 +84,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <body>
   <div class="container">
     <div class="header-box">
-      <h1><span>🐠</span> HỆ THỐNG BỂ CÁ SIC</h1>
+      <h1>HỆ THỐNG BỂ CÁ SIC</h1>
       <p class="subtitle">Giám Sát &amp; Điều Khiển Tự Động IoT</p>
     </div>
 
@@ -113,7 +113,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       <div class="card">
         <div class="card-title">Điều Khiển Thiết Bị</div>
         <button class="btn on sys-btn" id="b-sys" onclick="toggle('system')">HỆ THỐNG: ĐANG BẬT</button>
-        <p class="hint">💡 Nhập Giờ:Phút:Giây rồi bấm HẸN GIỜ để tự tắt, hoặc bấm BẬT/TẮT để điều khiển thủ công.</p>
+        <p class="hint">Nhập Giờ:Phút:Giây rồi bấm HẸN GIỜ để tự tắt, hoặc bấm BẬT/TẮT để điều khiển thủ công.</p>
         
         <div class="row">
           <div class="row-info">
@@ -211,7 +211,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           </div>
         </div>
 
-        <button class="feed-btn" onclick="toggle('feed')">🍗 CHO ĂN NGAY TỨC THÌ</button>
+        <button class="feed-btn" onclick="toggle('feed')">CHO ĂN NGAY TỨC THÌ</button>
       </div>
     </div>
 
@@ -316,7 +316,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="ir-row"><span class="ir-lbl">0 - Tắt Tất Cả:</span><div style="display:flex;gap:6px"><input type="text" id="s-ir0"><button class="ir-btn" onclick="ganIR('s-ir0')">GÁN</button></div></div>
       </div>
 
-      <button class="save-btn" onclick="saveSettings()">💾 LƯU TOÀN BỘ CÀI ĐẶT</button>
+      <button class="save-btn" onclick="saveSettings()">LƯU TOÀN BỘ CÀI ĐẶT</button>
     </div>
   </div>
 
@@ -610,7 +610,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(payload)
       }).then(() => {
-        alert('✅ Đã lưu toàn bộ cài đặt thành công!');
+        alert('Đã lưu toàn bộ cài đặt thành công!');
         f(true);
       });
     }
