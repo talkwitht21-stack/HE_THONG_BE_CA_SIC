@@ -464,7 +464,6 @@ void setupWeb() {
         if (oxyModeContinuous) {
           oxyState = true;
         }
-        stateChanged = true;
       }
       else if (dev == "feed") {
         feed = true;
