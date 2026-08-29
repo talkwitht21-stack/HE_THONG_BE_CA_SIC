@@ -273,8 +273,8 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
 
         if "interval_alert_sec" in data:
             try:
-                inv_a = int(data["interval_alert_sec"])
-                if inv_a >= 1:
+                inv_a = float(data["interval_alert_sec"])
+                if inv_a >= 0.1:
                     shared_state["interval_alert_sec"] = inv_a
                     if config_mgr:
                         config_mgr.set("camera", "interval_alert_sec", inv_a)

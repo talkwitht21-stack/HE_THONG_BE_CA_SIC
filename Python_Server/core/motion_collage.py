@@ -57,7 +57,7 @@ def create_5frame_motion_collage(frames_list, intervals_sec=1.0):
         bh, bw = bordered.shape[:2]
 
         # 3. Vẽ nhãn Frame và mốc thời gian
-        t_offset = i * intervals_sec
+        t_offset = float(i) * float(intervals_sec)
         label_text = f"FRAME {i+1}/5 (+{t_offset:.1f}s)"
         
         cv2.rectangle(bordered, (0, 0), (bw, 22), (30, 41, 59), -1)
