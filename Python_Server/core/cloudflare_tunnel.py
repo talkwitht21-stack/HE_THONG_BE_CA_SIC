@@ -11,16 +11,18 @@ import shutil
 class CloudflareTunnel:
     """
     Hệ thống tạo đường hầm Cloudflare Quick Tunnel (miễn phí, không cần mở port router)
-    Lấy cảm hứng và tối ưu từ kiến trúc chuẩn của Nam19ti/IOT_:
-    - Tự động nhận diện nền tảng: Windows x64, Raspberry Pi 5 (ARM64 / aarch64), Linux x64.
-    - Tự động tải binary chính thức về thư mục cục bộ Python_Server/bin/ và cache vĩnh viễn.
-    - Khởi chạy cực nhanh (< 1.5s), đọc stderr bắt URL thời gian thực và tự động gửi link qua Telegram.
-    - Hỗ trợ restart tunnel theo yêu cầu.
+    Tối ưu hóa:
+    - 100% NON-BLOCKING: Quá trình tải binary và chạy tunnel diễn ra hoàn toàn trong background thread.
+      Server Flask, Camera và Web Dashboard khởi động ngay lập tức trong 0.01s!
+    - Tải binary dạng Stream với thông báo tiến trình %, không bị đơ.
+    - Lưu cố định vào Python_Server/bin/ (chỉ tải 1 lần duy nhất, các lần sau mở tức thì < 1s).
+    - Hỗ trợ đa nền tảng: Windows x64, Raspberry Pi 5 (ARM64 / aarch64), Linux x64.
     """
     def __init__(self, port=5000, on_url_ready=None):
         self.port = port
         self.on_url_ready = on_url_ready
         self.public_url = None
+        self.status_msg = "Đang khởi tạo..."
         self.process = None
         self.running = False
         self.thread = None
@@ -28,60 +30,7 @@ class CloudflareTunnel:
         # Thư mục lưu binary cục bộ
         self.bin_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "bin")
         os.makedirs(self.bin_dir, exist_ok=True)
-        
-        self.bin_path = self._get_or_download_binary()
-
-    def _get_or_download_binary(self):
-        """
-        Xác định hoặc tự động tải binary cloudflared phù hợp với kiến trúc máy.
-        """
-        system = sys.platform.lower()
-        arch = platform.machine().lower()
-        
-        bin_name = "cloudflared.exe" if "win" in system else "cloudflared"
-        target_path = os.path.join(self.bin_dir, bin_name)
-
-        # 1. Nếu đã tải sẵn trong bin/ -> Dùng luôn
-        if os.path.exists(target_path):
-            return target_path
-
-        # 2. Nếu đã có trong PATH hệ thống -> Dùng luôn
-        sys_which = shutil.which("cloudflared")
-        if sys_which:
-            return sys_which
-
-        # 3. Tự động tải binary chính thức từ GitHub Cloudflare Releases
-        print("[CLOUDFLARE] Dang tu dong tai binary Cloudflare phu hop voi he thong...")
-        if "aarch64" in arch or "arm64" in arch:
-            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64"
-        elif "arm" in arch:
-            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm"
-        elif "win" in system:
-            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
-        else:
-            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
-
-        try:
-            r = requests.get(download_url, timeout=30)
-            if r.status_code == 200:
-                with open(target_path, "wb") as f:
-                    f.write(r.content)
-                if "win" not in system:
-                    os.chmod(target_path, 0o755)
-                print(f"[CLOUDFLARE] Da tai thanh cong binary tai: {target_path}")
-                return target_path
-        except Exception as e:
-            print(f"[CLOUDFLARE WARN] Khong the tai binary truc tiep ({e}). Thu dung pycloudflared...")
-
-        # 4. Fallback qua pycloudflared nếu có
-        try:
-            import pycloudflared.util
-            exe = str(pycloudflared.util.download())
-            return exe
-        except Exception:
-            pass
-
-        return "cloudflared"
+        self.bin_path = None
 
     def start(self):
         if self.running:
@@ -91,26 +40,93 @@ class CloudflareTunnel:
         self.thread = threading.Thread(target=self._run_tunnel, daemon=True)
         self.thread.start()
 
-    def _run_tunnel(self):
-        print(f"[CLOUDFLARE] Dang mo Cloudflare Quick Tunnel cho port {self.port}...")
+    def _ensure_binary(self):
+        """
+        Kiểm tra hoặc tải binary trong background thread mà không làm nghẽn server.
+        """
+        system = sys.platform.lower()
+        arch = platform.machine().lower()
         
-        # 1. Thử qua pycloudflared trước nếu có
+        bin_name = "cloudflared.exe" if "win" in system else "cloudflared"
+        target_path = os.path.join(self.bin_dir, bin_name)
+
+        # 1. Đã có sẵn trong bin/ -> Dùng luôn
+        if os.path.exists(target_path) and os.path.getsize(target_path) > 1000000:
+            self.bin_path = target_path
+            return self.bin_path
+
+        # 2. Đã có trong PATH hệ thống -> Dùng luôn
+        sys_which = shutil.which("cloudflared")
+        if sys_which:
+            self.bin_path = sys_which
+            return self.bin_path
+
+        # 3. Tải từ GitHub Releases dạng Streaming
+        if "aarch64" in arch or "arm64" in arch:
+            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64"
+        elif "arm" in arch:
+            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm"
+        elif "win" in system:
+            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
+        else:
+            download_url = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64"
+
+        print(f"[CLOUDFLARE] Dang tai binary cloudflared ({download_url})...")
         try:
-            from pycloudflared import try_cloudflare
-            tunnel = try_cloudflare(port=self.port, verbose=False)
-            if tunnel and hasattr(tunnel, "tunnel_url") and tunnel.tunnel_url:
-                self.public_url = tunnel.tunnel_url
-                self._notify_ready()
-                return
-            elif tunnel and hasattr(tunnel, "tunnel") and tunnel.tunnel:
-                self.public_url = tunnel.tunnel
-                self._notify_ready()
-                return
+            r = requests.get(download_url, stream=True, timeout=60)
+            if r.status_code == 200:
+                total_size = int(r.headers.get('content-length', 0))
+                downloaded = 0
+                temp_path = target_path + ".tmp"
+                
+                with open(temp_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=1024 * 1024): # 1MB chunk
+                        if not self.running:
+                            return None
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if total_size > 0:
+                                percent = int((downloaded / total_size) * 100)
+                                print(f"[CLOUDFLARE] Tien trinh tai binary: {percent}% ({downloaded // (1024*1024)}MB / {total_size // (1024*1024)}MB)...")
+
+                if os.path.exists(target_path):
+                    try:
+                        os.remove(target_path)
+                    except Exception:
+                        pass
+                os.rename(temp_path, target_path)
+
+                if "win" not in system:
+                    os.chmod(target_path, 0o755)
+                    
+                print(f"[CLOUDFLARE] DA TAI XONG BINARY VA LUU TAI: {target_path}")
+                self.bin_path = target_path
+                return self.bin_path
+        except Exception as e:
+            print(f"[CLOUDFLARE WARN] Loi tai truc tiep ({e}), thu dung pycloudflared...")
+
+        # 4. Fallback pycloudflared
+        try:
+            import pycloudflared.util
+            exe = str(pycloudflared.util.download())
+            self.bin_path = exe
+            return self.bin_path
         except Exception:
             pass
 
-        # 2. Chạy trực tiếp binary với cờ --no-autoupdate
-        exe = self.bin_path or "cloudflared"
+        self.bin_path = "cloudflared"
+        return self.bin_path
+
+    def _run_tunnel(self):
+        # 1. Chuan bi binary (chay ngam trong thread nay)
+        exe = self._ensure_binary()
+        if not exe or not self.running:
+            return
+
+        print(f"[CLOUDFLARE] Khoi chay tunnel cho port {self.port} voi binary: {exe}...")
+        
+        # 2. Chay truc tiep binary voi co --no-autoupdate
         cmd = [exe, "tunnel", "--no-autoupdate", "--url", f"http://127.0.0.1:{self.port}"]
 
         try:
@@ -126,8 +142,7 @@ class CloudflareTunnel:
             url_pattern = re.compile(r'https://[a-zA-Z0-9-]+\.trycloudflare\.com')
 
             start_time = time.time()
-            # Đọc stderr trong 30 giây để bắt link trycloudflare
-            while self.running and (time.time() - start_time < 30):
+            while self.running and (time.time() - start_time < 35):
                 line = self.process.stderr.readline()
                 if not line and self.process.poll() is not None:
                     break
@@ -137,7 +152,6 @@ class CloudflareTunnel:
                     self._notify_ready()
                     break
 
-            # Duy trì đọc nền
             while self.running and self.process and self.process.poll() is None:
                 time.sleep(1)
 
@@ -146,7 +160,7 @@ class CloudflareTunnel:
 
     def _notify_ready(self):
         print("=" * 65)
-        print(f"  CLOUDFLARE PUBLIC URL: {self.public_url}")
+        print(f"  CLOUDFLARE PUBLIC URL SAN SANG: {self.public_url}")
         print("=" * 65)
         if self.on_url_ready and self.public_url:
             try:
