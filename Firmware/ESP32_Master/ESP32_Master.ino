@@ -39,7 +39,7 @@ const char* HOST_NAME = "beca"; // Ten mien Local mac dinh: http://beca.local
 
 // MQTT ThingsBoard
 bool   mqtt_enabled   = false;
-String mqtt_server    = "demo.thingsboard.io";
+String mqtt_server    = "thingsboard.cloud";
 int    mqtt_port      = 1883;
 String mqtt_token     = "";
 
@@ -613,7 +613,7 @@ void loadSettings() {
   sta_password    = prefs.getString("pass", "12345678");
 
   mqtt_enabled    = prefs.getBool("mqe", false);
-  mqtt_server     = prefs.getString("mqs", "demo.thingsboard.io");
+  mqtt_server     = prefs.getString("mqs", "thingsboard.cloud");
   mqtt_token      = prefs.getString("mqt", "");
 
   systemEnabled   = prefs.getBool("sys", true);

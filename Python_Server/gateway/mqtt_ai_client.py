@@ -8,7 +8,7 @@ class MQTTAIClient:
     Kết nối MQTT gửi Telemetry AI lên Device riêng trên ThingsBoard Cloud.
     Hoàn toàn độc lập với ESP32.
     """
-    def __init__(self, host="demo.thingsboard.io", port=1883, access_token=""):
+    def __init__(self, host="thingsboard.cloud", port=1883, access_token=""):
         self.host = host
         self.port = port
         self.access_token = access_token

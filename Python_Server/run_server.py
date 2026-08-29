@@ -71,7 +71,7 @@ def main():
     # 6. Khoi tao ThingsBoard AI MQTT Client (Device rieng)
     tb_cfg = cfg.get("thingsboard")
     mqtt_ai = MQTTAIClient(
-        host=tb_cfg.get("host", "demo.thingsboard.io"),
+        host=tb_cfg.get("host", "thingsboard.cloud"),
         port=tb_cfg.get("port", 1883),
         access_token=tb_cfg.get("access_token", "")
     )

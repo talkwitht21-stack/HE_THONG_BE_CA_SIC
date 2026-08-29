@@ -23,7 +23,7 @@ DEFAULT_CONFIG = {
     },
     "thingsboard": {
         "enabled": False,
-        "host": "demo.thingsboard.io",
+        "host": "thingsboard.cloud",
         "port": 1883,
         "access_token": ""
     },
