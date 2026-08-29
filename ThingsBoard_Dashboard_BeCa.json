@@ -3469,16 +3469,16 @@
       "timer-rpc-filter-15m-0001": {
         "typeFullFqn": "system.rpc_button",
         "type": "rpc",
-        "sizeX": 4,
+        "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
           "title": "⏱️ Hẹn Giờ Lọc Nước (15 Phút)",
           "backgroundColor": "#0284c7",
           "color": "#ffffff",
-          "padding": "12px",
+          "padding": "10px",
           "settings": {
-            "title": "Chạy Lọc Nước 15 Phút",
+            "title": "Chạy Lọc 15 Phút",
             "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
             "requestTimeout": 5000,
             "oneWayElseTwoWay": true,
@@ -3486,21 +3486,21 @@
             "params": 900
           }
         },
-        "row": 24,
+        "row": 22,
         "col": 0,
         "id": "timer-rpc-filter-15m-0001"
       },
       "timer-rpc-drain-3m-0002": {
         "typeFullFqn": "system.rpc_button",
         "type": "rpc",
-        "sizeX": 4,
+        "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
           "title": "⏱️ Hẹn Giờ Bơm Rút (3 Phút)",
           "backgroundColor": "#ea580c",
           "color": "#ffffff",
-          "padding": "12px",
+          "padding": "10px",
           "settings": {
             "title": "Bơm Rút 3 Phút",
             "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
@@ -3510,21 +3510,21 @@
             "params": 180
           }
         },
-        "row": 24,
-        "col": 4,
+        "row": 22,
+        "col": 5,
         "id": "timer-rpc-drain-3m-0002"
       },
       "timer-rpc-heater-30m-0003": {
         "typeFullFqn": "system.rpc_button",
         "type": "rpc",
-        "sizeX": 4,
+        "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
           "title": "⏱️ Hẹn Giờ Sưởi (30 Phút)",
           "backgroundColor": "#dc2626",
           "color": "#ffffff",
-          "padding": "12px",
+          "padding": "10px",
           "settings": {
             "title": "Bật Sưởi 30 Phút",
             "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
@@ -3534,21 +3534,21 @@
             "params": 1800
           }
         },
-        "row": 24,
-        "col": 8,
+        "row": 22,
+        "col": 10,
         "id": "timer-rpc-heater-30m-0003"
       },
       "timer-rpc-fan-20m-0004": {
         "typeFullFqn": "system.rpc_button",
         "type": "rpc",
-        "sizeX": 4,
+        "sizeX": 5,
         "sizeY": 3,
         "config": {
           "showTitle": true,
           "title": "⏱️ Hẹn Giờ Quạt (20 Phút)",
           "backgroundColor": "#059669",
           "color": "#ffffff",
-          "padding": "12px",
+          "padding": "10px",
           "settings": {
             "title": "Bật Quạt 20 Phút",
             "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
@@ -3558,8 +3558,8 @@
             "params": 1200
           }
         },
-        "row": 24,
-        "col": 12,
+        "row": 22,
+        "col": 15,
         "id": "timer-rpc-fan-20m-0004"
       },
       "timer-rpc-led-1h-0005": {
@@ -3572,7 +3572,7 @@
           "title": "⏱️ Hẹn Giờ Đèn (1 Giờ)",
           "backgroundColor": "#ca8a04",
           "color": "#ffffff",
-          "padding": "12px",
+          "padding": "10px",
           "settings": {
             "title": "Bật Đèn 1 Giờ",
             "targetDeviceAlias": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
@@ -3582,15 +3582,15 @@
             "params": 3600
           }
         },
-        "row": 24,
-        "col": 16,
+        "row": 22,
+        "col": 20,
         "id": "timer-rpc-led-1h-0005"
       },
       "countdown-card-filter-0006": {
         "typeFullFqn": "system.digital_gauge",
         "type": "latest",
         "sizeX": 6,
-        "sizeY": 4,
+        "sizeY": 5,
         "config": {
           "showTitle": true,
           "title": "⏳ Đếm Ngược Lọc Nước Còn Lại",
@@ -3606,7 +3606,7 @@
                 {
                   "name": "timer_filter_rem",
                   "type": "timeseries",
-                  "label": "Thời gian lọc còn lại (giây)",
+                  "label": "Lọc Còn Lại",
                   "color": "#0284c7",
                   "units": "s",
                   "decimals": 0
@@ -3615,7 +3615,7 @@
             }
           ]
         },
-        "row": 27,
+        "row": 25,
         "col": 0,
         "id": "countdown-card-filter-0006"
       },
@@ -3623,7 +3623,7 @@
         "typeFullFqn": "system.digital_gauge",
         "type": "latest",
         "sizeX": 6,
-        "sizeY": 4,
+        "sizeY": 5,
         "config": {
           "showTitle": true,
           "title": "⏳ Đếm Ngược Bơm Rút Còn Lại",
@@ -3639,7 +3639,7 @@
                 {
                   "name": "timer_drain_rem",
                   "type": "timeseries",
-                  "label": "Thời gian rút còn lại (giây)",
+                  "label": "Rút Còn Lại",
                   "color": "#ea580c",
                   "units": "s",
                   "decimals": 0
@@ -3648,15 +3648,15 @@
             }
           ]
         },
-        "row": 27,
+        "row": 25,
         "col": 6,
         "id": "countdown-card-drain-0007"
       },
       "schedule-led-card-0008": {
         "typeFullFqn": "system.entities_table",
         "type": "latest",
-        "sizeX": 8,
-        "sizeY": 4,
+        "sizeX": 12,
+        "sizeY": 5,
         "config": {
           "showTitle": true,
           "title": "📅 Cấu Hình Lịch Trình & Chu Kỳ (ESP32 Master)",
@@ -3703,7 +3703,7 @@
             }
           ]
         },
-        "row": 27,
+        "row": 25,
         "col": 12,
         "id": "schedule-led-card-0008"
       }
@@ -3854,6 +3854,62 @@
                 "mobileHeight": null,
                 "row": 19,
                 "col": 18
+              },
+              "timer-rpc-filter-15m-0001": {
+                "sizeX": 5,
+                "sizeY": 3,
+                "mobileHeight": null,
+                "row": 22,
+                "col": 0
+              },
+              "timer-rpc-drain-3m-0002": {
+                "sizeX": 5,
+                "sizeY": 3,
+                "mobileHeight": null,
+                "row": 22,
+                "col": 5
+              },
+              "timer-rpc-heater-30m-0003": {
+                "sizeX": 5,
+                "sizeY": 3,
+                "mobileHeight": null,
+                "row": 22,
+                "col": 10
+              },
+              "timer-rpc-fan-20m-0004": {
+                "sizeX": 5,
+                "sizeY": 3,
+                "mobileHeight": null,
+                "row": 22,
+                "col": 15
+              },
+              "timer-rpc-led-1h-0005": {
+                "sizeX": 4,
+                "sizeY": 3,
+                "mobileHeight": null,
+                "row": 22,
+                "col": 20
+              },
+              "countdown-card-filter-0006": {
+                "sizeX": 6,
+                "sizeY": 5,
+                "mobileHeight": null,
+                "row": 25,
+                "col": 0
+              },
+              "countdown-card-drain-0007": {
+                "sizeX": 6,
+                "sizeY": 5,
+                "mobileHeight": null,
+                "row": 25,
+                "col": 6
+              },
+              "schedule-led-card-0008": {
+                "sizeX": 12,
+                "sizeY": 5,
+                "mobileHeight": null,
+                "row": 25,
+                "col": 12
               }
             },
             "gridSettings": {
