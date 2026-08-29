@@ -460,10 +460,7 @@ void setupWeb() {
         if (ledState) start_led = millis();
       }
       else if (dev == "oxy") {
-        oxyModeContinuous = !oxyModeContinuous;
-        if (oxyModeContinuous) {
-          oxyState = true;
-        }
+        oxyState = !oxyState;
       }
       else if (dev == "feed") {
         feed = true;

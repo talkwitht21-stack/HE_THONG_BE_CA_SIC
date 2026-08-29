@@ -282,16 +282,22 @@ void handleFeeding() {
 }
 
 void handleOxyCycle() {
+  // Neu nguoi dung / Master da bam TAT Oxy -> Tat han 100%, khong tu dong bat lai!
+  if (!oxyCycleEnabled) {
+    return;
+  }
+
   if (oxyModeContinuous) {
+    // Che do Lien tuc 24/7: Duy tri Bat khi oxyCycleEnabled = true
     if (!oxyState) {
       oxyState = true;
       applyRelayStates();
       forceStatusUpdate = true;
     }
-    return; // Chế độ liên tục 24/7
+    return;
   }
 
-  // Chế độ Chu Kỳ Tự Động (Tự động luân phiên Bật / Nghỉ)
+  // Che do Chu Ky Tu Dong: Luan phien giua BAT (onMs) va NGHI (offMs)
   unsigned long now = millis();
   unsigned long onMs  = (unsigned long)max(1, (int)oxy_on_min) * 60000UL;
   unsigned long offMs = (unsigned long)max(1, (int)oxy_off_min) * 60000UL;
@@ -419,8 +425,13 @@ void handleMasterCommand() {
           oxyLastChange = millis();
         }
       }
-      if (doc.containsKey("oxy") && oxyModeContinuous) {
-        oxyState = doc["oxy"].as<bool>();
+      if (doc.containsKey("oxy")) {
+        bool reqOxy = doc["oxy"].as<bool>();
+        if (reqOxy != oxyCycleEnabled) {
+          oxyCycleEnabled = reqOxy;
+          oxyState = reqOxy;
+          oxyLastChange = millis();
+        }
       }
 
       if (doc.containsKey("fa")) {
