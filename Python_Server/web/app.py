@@ -28,6 +28,11 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
     def api_status():
         esp_data = esp32_client.get_data() if esp32_client else {}
         ref_status = ref_manager.get_slot_status() if ref_manager else []
+        
+        current_api_key = config_mgr.get("gemini", "api_key", "") if config_mgr else ""
+        has_key = bool(current_api_key and current_api_key != "YOUR_GEMINI_API_KEY")
+        masked_key = (current_api_key[:6] + "..." + current_api_key[-4:]) if len(current_api_key) > 10 else ("Đã lưu" if has_key else "")
+
         return jsonify({
             "ai": shared_state.get("ai_result", {}),
             "confirmed_dead_fish": shared_state.get("confirmed_dead_fish", 0),
@@ -35,6 +40,8 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "total_fish_configured": shared_state.get("total_fish_configured", 10),
             "public_url": shared_state.get("public_url", ""),
             "telegram_chat_id": shared_state.get("telegram_chat_id", ""),
+            "has_gemini_key": has_key,
+            "gemini_api_key_masked": masked_key,
             "fps": video_stream.actual_fps if video_stream else 0.0,
             "ref_status": ref_status,
             "esp32": esp_data,
@@ -102,6 +109,15 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
     def api_update_settings():
         data = request.get_json() or {}
         changed = False
+
+        if "gemini_api_key" in data:
+            key = str(data["gemini_api_key"]).strip()
+            if key:
+                if config_mgr:
+                    config_mgr.set("gemini", "api_key", key)
+                if gemini_ai:
+                    gemini_ai.update_api_key(key)
+                changed = True
 
         if "total_fish" in data:
             try:

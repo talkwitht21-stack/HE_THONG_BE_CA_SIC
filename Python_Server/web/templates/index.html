@@ -149,10 +149,19 @@
             </div>
           </div>
 
-          <!-- Cài Đặt Số Cá & Telegram ID -->
+          <!-- Cài Đặt Hệ Thống Bể Cá -->
           <div class="card">
             <div class="card-title">Cài Đặt Hệ Thống Bể Cá</div>
             
+            <label style="font-size:0.8em;font-weight:bold;color:#475569">
+              Google Gemini Vision API Key: 
+              <span id="gemini-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
+            </label>
+            <div class="form-row">
+              <input type="password" id="inp-gemini-key" class="form-input" placeholder="Nhập API Key từ aistudio.google.com">
+              <button class="form-btn" onclick="saveSettings('gemini')">Lưu API Key</button>
+            </div>
+
             <label style="font-size:0.8em;font-weight:bold;color:#475569">Tổng Số Cá Thả Vào Bể:</label>
             <div class="form-row">
               <input type="number" id="inp-total-fish" class="form-input" min="1" max="100" placeholder="Số cá thả (VD: 10)">
@@ -315,7 +324,11 @@
 
     function saveSettings(type) {
       let payload = {};
-      if (type === 'fish') {
+      if (type === 'gemini') {
+        let k = document.getElementById('inp-gemini-key').value.trim();
+        if (!k) return alert('Vui lòng nhập API Key!');
+        payload.gemini_api_key = k;
+      } else if (type === 'fish') {
         let f = parseInt(document.getElementById('inp-total-fish').value);
         if (isNaN(f) || f < 1) return alert('Vui lòng nhập số cá hợp lệ!');
         payload.total_fish = f;
@@ -333,6 +346,7 @@
       .then(r => r.json())
       .then(d => {
         alert(d.message || 'Đã lưu thành công!');
+        if (type === 'gemini') document.getElementById('inp-gemini-key').value = '';
         fetchStatus();
       });
     }
@@ -349,6 +363,18 @@
       fetch('/api/status')
         .then(r => r.json())
         .then(d => {
+          // Gemini Key Status
+          let gemLbl = document.getElementById('gemini-status-lbl');
+          if (gemLbl) {
+            if (d.has_gemini_key) {
+              gemLbl.textContent = `(Đã kích hoạt: ${d.gemini_api_key_masked})`;
+              gemLbl.style.color = '#10b981';
+            } else {
+              gemLbl.textContent = '(Chưa có API Key - đang dùng chế độ dự phòng)';
+              gemLbl.style.color = '#f59e0b';
+            }
+          }
+
           // Cloudflare Tunnel
           if (d.public_url) {
             document.getElementById('tunnel-text').innerHTML = `<a class="tunnel-link" href="${d.public_url}" target="_blank">${d.public_url}</a>`;

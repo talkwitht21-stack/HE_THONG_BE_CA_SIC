@@ -60,6 +60,33 @@ class GeminiVisionAnalyzer:
         else:
             print("[GEMINI WARN] Chua nhap Gemini API Key! He thong se su dung che do Computer Vision du phong.")
 
+    def update_api_key(self, new_api_key):
+        """
+        Cập nhật API Key mới trực tiếp từ Web Dashboard và khởi tạo lại Model.
+        """
+        self.api_key = str(new_api_key).strip()
+        self.enabled = bool(self.api_key and self.api_key != "YOUR_GEMINI_API_KEY")
+        if self.enabled:
+            if not HAS_GENAI:
+                print("[GEMINI WARN] Chua cai dat thu vien 'google-generativeai'.")
+                self.enabled = False
+                return False
+            try:
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel(
+                    model_name=self.model_name,
+                    generation_config={"temperature": self.temperature, "response_mime_type": "application/json"}
+                )
+                print(f"[GEMINI AI] Da cap nhat API Key moi tu Web thanh cong! Model: {self.model_name}")
+                return True
+            except Exception as e:
+                print(f"[GEMINI ERROR] Loi cap nhat API Key: {e}")
+                self.enabled = False
+                return False
+        else:
+            self.model = None
+            return False
+
     def analyze_frame(self, frame):
         """
         Gửi frame ảnh hiện tại cùng các ảnh mẫu tham chiếu sang Gemini Vision API.
