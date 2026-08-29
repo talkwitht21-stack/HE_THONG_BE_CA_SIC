@@ -75,12 +75,14 @@ def main():
 
     # 6. Khoi tao ThingsBoard AI MQTT Client (Device rieng)
     tb_cfg = cfg.get("thingsboard")
+    tb_token = tb_cfg.get("access_token", "")
     mqtt_ai = MQTTAIClient(
         host=tb_cfg.get("host", "thingsboard.cloud"),
         port=tb_cfg.get("port", 1883),
-        access_token=tb_cfg.get("access_token", "")
+        access_token=tb_token,
+        shared_state=shared_state
     )
-    if tb_cfg.get("enabled", False):
+    if tb_cfg.get("enabled", False) or mqtt_ai.enabled:
         mqtt_ai.start()
 
     # 7. Khoi tao Telegram Bot Service
