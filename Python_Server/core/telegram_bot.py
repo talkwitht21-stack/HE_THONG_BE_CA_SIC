@@ -5,15 +5,15 @@ import requests
 
 class TelegramBotService:
     """
-    Dịch vụ Telegram Bot:
-      - Tự động gửi link Cloudflare Tunnel khi khởi động.
-      - Tự động gửi cảnh báo khẩn cấp đính kèm ảnh snapshot khi có sự cố.
+    Dịch vụ Telegram Bot thông minh:
+      - Tự động gửi link Cloudflare Tunnel và thông báo khi khởi động.
+      - Tự động chụp và gửi ảnh snapshot khi phát hiện cá chết hoặc nước đục.
       - Có cơ chế Cooldown chống spam.
       - Hỗ trợ tương tác 2 chiều: /status, /snapshot, /data, /feed, /url, /setref, /refstatus.
     """
     def __init__(self, bot_token, chat_id, cooldown_minutes=10, video_stream=None, gemini_ai=None, esp32_client=None, shared_state=None, ref_manager=None):
-        self.bot_token = bot_token
-        self.chat_id = str(chat_id)
+        self.bot_token = str(bot_token).strip()
+        self.chat_id = str(chat_id).strip()
         self.cooldown_sec = cooldown_minutes * 60
         self.video_stream = video_stream
         self.gemini_ai = gemini_ai
@@ -21,40 +21,46 @@ class TelegramBotService:
         self.shared_state = shared_state or {}
         self.ref_manager = ref_manager
         
-        self.enabled = bool(bot_token and chat_id and bot_token != "YOUR_TELEGRAM_BOT_TOKEN")
+        self.enabled = bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN" and self.chat_id != "YOUR_TELEGRAM_CHAT_ID")
         self.last_alert_time = 0
         self.last_update_id = 0
         self.running = False
         self.thread = None
 
     def update_chat_id(self, new_chat_id):
-        self.chat_id = str(new_chat_id)
-        self.enabled = bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN")
+        self.chat_id = str(new_chat_id).strip()
+        self.enabled = bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN" and self.chat_id != "YOUR_TELEGRAM_CHAT_ID")
         print(f"[TELEGRAM] Cap nhat Chat ID moi: {self.chat_id}")
-        if self.enabled and not self.running:
-            self.start()
+        if self.enabled:
+            if not self.running:
+                self.start()
+            pub_url = self.shared_state.get("public_url", "")
+            if pub_url:
+                self.send_tunnel_url(pub_url)
+            else:
+                self.send_message("✅ <b>Da lien ket thanh cong voi He Thong Be Ca SIC!</b>")
 
     def update_bot_token(self, new_token):
-        """
-        Cập nhật Bot Token mới trực tiếp từ Web Dashboard và khởi động Bot.
-        """
         self.bot_token = str(new_token).strip()
-        self.enabled = bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN")
-        print(f"[TELEGRAM] Cap nhat Bot Token moi tu Web thanh cong!")
+        self.enabled = bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN" and self.chat_id != "YOUR_TELEGRAM_CHAT_ID")
+        print(f"[TELEGRAM] Cap nhat Bot Token moi thanh cong!")
         if self.enabled and not self.running:
             self.start()
         return self.enabled
 
     def start(self):
-        if not self.enabled:
-            print("[TELEGRAM WARN] Telegram Bot chua duoc bat hoac chua co Token/Chat ID.")
+        tok = str(self.bot_token).strip()
+        cid = str(self.chat_id).strip()
+        if not tok or not cid or tok == "YOUR_TELEGRAM_BOT_TOKEN" or cid == "YOUR_TELEGRAM_CHAT_ID":
+            print("[TELEGRAM WARN] Telegram Bot chua duoc cau hinh Token hoac Chat ID hop le.")
             return
             
         self.running = True
+        self.enabled = True
         self.thread = threading.Thread(target=self._polling_loop, daemon=True)
         self.thread.start()
         print(f"[TELEGRAM] Bot da khoi dong cho Chat ID: {self.chat_id}")
-        self.send_message("<b>HE THONG BE CA SIC</b>\nBot AI da khoi dong thanh cong tren Raspberry Pi 5!\nGo <code>/help</code> de xem danh sach lenh.")
+        self.send_message("🟢 <b>HE THONG BE CA SIC DA KHOI DONG!</b>\nTrung tam AI & Gateway tren Raspberry Pi 5 da san sang 24/7!\nGo <code>/help</code> de xem danh sach lenh.")
 
     def send_message(self, text):
         tok = str(self.bot_token).strip()
@@ -74,22 +80,23 @@ class TelegramBotService:
         except Exception as e:
             print(f"[TELEGRAM ERROR] Loi gui text: {e}")
             return False
-            payload = {"chat_id": self.chat_id, "text": text, "parse_mode": "HTML"}
-            r = requests.post(url, json=payload, timeout=5)
-            return r.status_code == 200
-        except Exception as e:
-            print(f"[TELEGRAM ERROR] Loi gui text: {e}")
-            return False
 
     def send_photo(self, image_bytes, caption=""):
-        if not self.enabled or not image_bytes:
+        tok = str(self.bot_token).strip()
+        cid = str(self.chat_id).strip()
+        if not tok or not cid or tok == "YOUR_TELEGRAM_BOT_TOKEN" or cid == "YOUR_TELEGRAM_CHAT_ID" or not image_bytes:
             return False
         try:
-            url = f"https://api.telegram.org/bot{self.bot_token}/sendPhoto"
+            url = f"https://api.telegram.org/bot{tok}/sendPhoto"
             files = {"photo": ("snapshot.jpg", image_bytes, "image/jpeg")}
-            data = {"chat_id": self.chat_id, "caption": caption, "parse_mode": "HTML"}
-            r = requests.post(url, data=data, files=files, timeout=10)
-            return r.status_code == 200
+            data = {"chat_id": cid, "caption": caption[:1000], "parse_mode": "HTML"}
+            r = requests.post(url, data=data, files=files, timeout=12)
+            if r.status_code == 200:
+                print(f"[TELEGRAM PHOTO] Da gui anh snapshot thanh cong toi Telegram!")
+                return True
+            else:
+                print(f"[TELEGRAM PHOTO WARN] Gui anh that bai (HTTP {r.status_code}): {r.text}")
+                return False
         except Exception as e:
             print(f"[TELEGRAM ERROR] Loi gui anh: {e}")
             return False
@@ -98,24 +105,22 @@ class TelegramBotService:
         if not public_url:
             return False
         msg = (
-            "🟢 <b>HE THONG BE CA SIC DA KHOI DONG!</b>\n\n"
+            "🟢 <b>HE THONG BE CA SIC DA KHOI DONG THANH CONG!</b>\n\n"
             "🌐 <b>DUONG DAN TRUY CAP WEB TU XA (CLOUDFLARE):</b>\n"
             f"🔗 <a href='{public_url}'>{public_url}</a>\n\n"
-            "📱 <i>Ban co the mo link tren tu dien thoai (4G/WiFi ngoai duong) de xem Camera AI va dieu khien be ca truc tiep!</i>"
+            "📱 <i>Ban co the mo link tren tu dien thoai de xem Camera AI va dieu khien be ca truc tiep!</i>"
         )
         return self.send_message(msg)
 
     def check_and_send_alert(self, ai_result):
-        if not self.enabled:
+        tok = str(self.bot_token).strip()
+        cid = str(self.chat_id).strip()
+        if not tok or not cid or tok == "YOUR_TELEGRAM_BOT_TOKEN" or cid == "YOUR_TELEGRAM_CHAT_ID":
             return
             
-        is_alert = ai_result.get("is_alert", False)
         dead = ai_result.get("confirmed_dead_fish", ai_result.get("dead_fish", 0))
         turb = ai_result.get("water_turbidity", 0)
         
-        if not is_alert and dead == 0 and turb < 40:
-            return
-            
         now = time.time()
         if now - self.last_alert_time < self.cooldown_sec:
             return
@@ -125,26 +130,31 @@ class TelegramBotService:
         total = self.shared_state.get("total_fish_configured", 10)
         alive = max(0, total - dead)
         
-        alert_msg = f"<b>CANH BAO KHAN CAP TU BE CA!</b>\n"
+        alert_msg = f"🚨 <b>CANH BAO KHAN CAP TU BE CA SIC!</b>\n\n"
         if dead > 0:
-            alert_msg += f"- XAC NHAN 100%: <b>{dead} CA THE BI CHET!</b>\n"
-            alert_msg += f"- So ca con song: <b>{alive} / {total}</b>\n"
+            alert_msg += f"☠️ <b>XAC NHAN 100%: CO {dead} CA THE BI CHET!</b>\n"
+            alert_msg += f"🐟 So ca con song: <b>{alive} / {total}</b> con\n"
         if turb >= 40:
-            alert_msg += f"- Do duc cua nuoc rat cao: <b>{turb}%</b>\n"
-        alert_msg += f"- Nhan xet AI: <i>{ai_result.get('summary', '')}</i>\n"
-        alert_msg += f"- Thoi gian: {time.strftime('%H:%M:%S %d/%m/%Y')}"
+            alert_msg += f"🌊 Do duc cua nuoc: <b>{turb}%</b> (Nguy co o nhiem)\n"
+        alert_msg += f"🤖 Nhan xet AI: <i>{ai_result.get('summary', '')}</i>\n"
+        alert_msg += f"⏱️ Thoi gian: {time.strftime('%H:%M:%S %d/%m/%Y')}"
         
         img_bytes = self.video_stream.get_jpeg_bytes() if self.video_stream else None
         if img_bytes:
-            self.send_photo(img_bytes, caption=alert_msg)
+            ok = self.send_photo(img_bytes, caption=alert_msg[:1000])
+            if not ok:
+                self.send_message(alert_msg)
         else:
             self.send_message(alert_msg)
-        print(f"[TELEGRAM ALERT SENT] Da gui canh bao: {alert_msg}")
 
     def _polling_loop(self):
         while self.running:
             try:
-                url = f"https://api.telegram.org/bot{self.bot_token}/getUpdates"
+                tok = str(self.bot_token).strip()
+                if not tok or tok == "YOUR_TELEGRAM_BOT_TOKEN":
+                    time.sleep(3.0)
+                    continue
+                url = f"https://api.telegram.org/bot{tok}/getUpdates"
                 params = {"offset": self.last_update_id + 1, "timeout": 20}
                 r = requests.get(url, params=params, timeout=25)
                 
@@ -222,13 +232,13 @@ class TelegramBotService:
         elif cmd == "/snapshot":
             img_bytes = self.video_stream.get_jpeg_bytes() if self.video_stream else None
             if img_bytes:
-                caption = f"Anh chup truc tiep luc: {time.strftime('%H:%M:%S %d/%m/%Y')}"
+                caption = f"📸 Anh chup truc tiep luc: {time.strftime('%H:%M:%S %d/%m/%Y')}"
                 self.send_photo(img_bytes, caption=caption)
             else:
                 self.send_message("Khong the lay anh tu Camera.")
 
         elif cmd == "/status":
-            self.send_message("Dang chup anh va phan tich qua Gemini Vision AI (co doi chieu anh mau), vui long doi giay lat...")
+            self.send_message("⏳ Dang chup anh va phan tich qua Gemini 3.5 Flash VLM, vui long doi giay lat...")
             frame = self.video_stream.get_frame() if self.video_stream else None
             ai_res = self.gemini_ai.analyze_frame(frame) if self.gemini_ai else {}
             
@@ -236,17 +246,15 @@ class TelegramBotService:
             dead = ai_res.get("dead_fish", 0)
             total = self.shared_state.get("total_fish_configured", 10)
             alive = max(0, total - dead)
-            ref_count = ai_res.get("ref_count_used", 0)
             
             caption = (
-                f"<b>KET QUA PHAN TICH AI ({ai_res.get('ai_engine', 'AI')})</b>\n"
+                f"<b>KET QUA PHAN TICH AI ({ai_res.get('ai_engine', 'Gemini 3.5 Flash')})</b>\n"
                 f"• Tong so ca tha: <b>{total}</b>\n"
                 f"• Ca dang song khoe: <b>{alive}</b>\n"
                 f"• Ca chet / bat thuong: <b>{dead}</b>\n"
                 f"• Do duc nuoc: <b>{ai_res.get('water_turbidity', 0)}%</b>\n"
-                f"• Anh mau tham chieu su dung: <b>{ref_count}/5 anh</b>\n"
                 f"• Nhan xet: <i>{ai_res.get('summary', '')}</i>\n"
-                f"• Thoi gian: {ai_res.get('analyzed_at', time.strftime('%H:%M:%S'))}"
+                f"• Thoi gian: {time.strftime('%H:%M:%S %d/%m/%Y')}"
             )
             img_bytes = self.video_stream.get_jpeg_bytes() if self.video_stream else None
             if img_bytes:
@@ -278,8 +286,8 @@ class TelegramBotService:
             if self.esp32_client:
                 ok = self.esp32_client.control_device("feed")
                 if ok:
-                    self.send_message("Da gui lenh rot thuc an xuong ESP32 thanh cong!")
+                    self.send_message("🍱 Da gui lenh rot thuc an xuong ESP32 thanh cong!")
                 else:
-                    self.send_message("Loi gui lenh rot thuc an xuong ESP32.")
+                    self.send_message("❌ Loi gui lenh rot thuc an xuong ESP32.")
             else:
                 self.send_message("Chua khoi tao ket noi ESP32 LAN.")

@@ -95,7 +95,7 @@ def main():
         shared_state=shared_state,
         ref_manager=ref_manager
     )
-    if tg_cfg.get("enabled", False):
+    if telegram_bot.enabled or tg_cfg.get("enabled", False):
         telegram_bot.start()
 
     # 8. Khoi tao Cloudflare Tunnel
@@ -171,7 +171,7 @@ def main():
                             shared_state["confirmed_dead_fish"] = confirmed_dead
                             shared_state["ai_result"] = res
                             
-                            if tg_cfg.get("enabled", False):
+                            if telegram_bot and telegram_bot.enabled:
                                 telegram_bot.check_and_send_alert(res)
                                 
                             print(f"[AI CONFIRMED] DA XAC THUC CHINH XAC 100% {confirmed_dead} CA THE BI CHET!")
