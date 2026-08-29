@@ -27,6 +27,8 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         esp_data = esp32_client.get_data() if esp32_client else {}
         return jsonify({
             "ai": shared_state.get("ai_result", {}),
+            "confirmed_dead_fish": shared_state.get("confirmed_dead_fish", 0),
+            "verify_progress": shared_state.get("verify_progress", "0/5"),
             "total_fish_configured": shared_state.get("total_fish_configured", 10),
             "public_url": shared_state.get("public_url", ""),
             "telegram_chat_id": shared_state.get("telegram_chat_id", ""),
@@ -43,7 +45,10 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         frame = video_stream.get_frame() if video_stream else None
         if frame is not None and gemini_ai:
             res = gemini_ai.analyze_frame(frame)
+            dead = res.get("dead_fish", 0)
+            res["confirmed_dead_fish"] = dead
             shared_state["ai_result"] = res
+            shared_state["confirmed_dead_fish"] = dead
             return jsonify({"status": "success", "data": res})
         return jsonify({"status": "error", "message": "Camera hoac AI chua san sang"}), 500
 

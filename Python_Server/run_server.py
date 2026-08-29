@@ -20,14 +20,16 @@ def main():
     # 1. Tai cau hinh
     cfg = ConfigManager("config.yaml")
 
-    # Trang thai dung chung (Shared State)
     total_fish_init = cfg.get("aquarium", "total_fish", 10)
     chat_id_init = cfg.get("telegram", "chat_id", "")
 
+    # Trang thai dung chung (Shared State)
     shared_state = {
         "total_fish_configured": total_fish_init,
         "telegram_chat_id": chat_id_init,
         "public_url": "",
+        "confirmed_dead_fish": 0,
+        "verify_progress": "0/5",
         "ai_result": {
             "dead_fish": 0, "abnormal_fish": 0,
             "water_turbidity": 10, "is_alert": False,
@@ -98,45 +100,96 @@ def main():
         tunnel = CloudflareTunnel(port=port, on_url_ready=on_cloudflare_ready)
         tunnel.start()
 
-    # 8. Vong lap phan tich AI dinh ky linh hoat:
-    # - Binh thuong: Moi 2 phut (120s) chup 1 lan
-    # - Khi phat hien ca chet (dead_fish > 0): Chup lien tuc moi 10s
+    # 8. Vong lap phan tich AI voi co che XAC THUC 5 LAN LIEN TIEP CHONG BAO GIA:
+    # - Binh thuong: Moi 2 phut (120s) chup 1 lan.
+    # - Khi phat hien nghi ngo ca chet: Chup lien tuc moi 10s.
+    # - Neu ca 5 LAN LIEN TIEP deu xac nhan chet -> Cap nhat trang thai ca chet & Gui bao dong Telegram!
+    # - Neu trong 5 lan ca boi lai binh thuong -> Reset bo dem, huy bao dong gia.
     interval_normal = cam_cfg.get("interval_normal_sec", 120)
     interval_alert = cam_cfg.get("interval_alert_sec", 10)
+    CONFIRM_THRESHOLD = 5
 
     def ai_worker_loop():
-        print(f"[AI WORKER] Bat dau chu ky: Binh thuong {interval_normal}s / Khi co ca chet {interval_alert}s...")
+        dead_streak = 0
+        confirmed_dead = 0
+        print(f"[AI WORKER] Bat dau chu ky: Binh thuong {interval_normal}s / Chup xac thuc {interval_alert}s (5 lan lien tiep)...")
+        
         while True:
             try:
                 frame = video_stream.get_frame()
                 if frame is not None:
                     res = gemini_ai.analyze_frame(frame)
-                    shared_state["ai_result"] = res
+                    raw_dead = res.get("dead_fish", 0)
+                    turb = res.get("water_turbidity", 0)
                     
-                    dead = res.get("dead_fish", 0)
-                    total = shared_state.get("total_fish_configured", 10)
-                    alive = max(0, total - dead)
-                    
-                    # Day Telemetry len ThingsBoard Device rieng
-                    if tb_cfg.get("enabled", False):
-                        ai_telemetry = {
-                            "total_fish": total,
-                            "alive_fish": alive,
-                            "dead_fish": dead,
-                            "water_turbidity": res.get("water_turbidity", 0),
-                            "summary": res.get("summary", ""),
-                            "ai_engine": res.get("ai_engine", "AI"),
-                            "is_alert": res.get("is_alert", False)
-                        }
-                        mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
+                    if raw_dead > 0:
+                        dead_streak += 1
+                        shared_state["verify_progress"] = f"{dead_streak}/{CONFIRM_THRESHOLD}"
+                        print(f"[AI VERIFY] Phat hien nghi ngo ca chet ({raw_dead} con): Xac thuc lan {dead_streak}/{CONFIRM_THRESHOLD}...")
                         
-                    # Kiem tra gui canh bao Telegram
-                    if tg_cfg.get("enabled", False):
-                        telegram_bot.check_and_send_alert(res)
-
-                    # Tinh toan thoi gian sleep tiep theo
-                    sleep_time = interval_alert if dead > 0 else interval_normal
-                    time.sleep(sleep_time)
+                        # Neu dat du 5 lan lien tiep
+                        if dead_streak >= CONFIRM_THRESHOLD:
+                            confirmed_dead = raw_dead
+                            res["confirmed_dead_fish"] = confirmed_dead
+                            res["is_alert"] = True
+                            shared_state["confirmed_dead_fish"] = confirmed_dead
+                            shared_state["ai_result"] = res
+                            
+                            # Gui canh bao khan cap Telegram
+                            if tg_cfg.get("enabled", False):
+                                telegram_bot.check_and_send_alert(res)
+                                
+                            print(f"[AI CONFIRMED] DA XAC THUC CHINH XAC 100% {confirmed_dead} CA THE BI CHET!")
+                        else:
+                            # Dang trong qua trinh xac thuc
+                            res["confirmed_dead_fish"] = confirmed_dead
+                            shared_state["ai_result"] = res
+                            
+                        # Day Telemetry len ThingsBoard
+                        if tb_cfg.get("enabled", False):
+                            total = shared_state.get("total_fish_configured", 10)
+                            alive = max(0, total - confirmed_dead)
+                            ai_telemetry = {
+                                "total_fish": total,
+                                "alive_fish": alive,
+                                "dead_fish": confirmed_dead,
+                                "water_turbidity": turb,
+                                "summary": res.get("summary", ""),
+                                "ai_engine": res.get("ai_engine", "AI"),
+                                "is_alert": (confirmed_dead > 0 or turb >= 40)
+                            }
+                            mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
+                            
+                        # Chup tiep moi 10 giay de xac thuc / giam sat
+                        time.sleep(interval_alert)
+                        
+                    else:
+                        # Ca dang boi binh thuong -> Reset streak
+                        if dead_streak > 0:
+                            print(f"[AI VERIFY] Ca da boi lai binh thuong. Huy bo bao dong gia (Streak {dead_streak}->0).")
+                        dead_streak = 0
+                        confirmed_dead = 0
+                        shared_state["verify_progress"] = "0/5 (Bình thường)"
+                        shared_state["confirmed_dead_fish"] = 0
+                        
+                        res["confirmed_dead_fish"] = 0
+                        shared_state["ai_result"] = res
+                        
+                        # Day Telemetry ThingsBoard
+                        if tb_cfg.get("enabled", False):
+                            total = shared_state.get("total_fish_configured", 10)
+                            ai_telemetry = {
+                                "total_fish": total,
+                                "alive_fish": total,
+                                "dead_fish": 0,
+                                "water_turbidity": turb,
+                                "summary": res.get("summary", ""),
+                                "ai_engine": res.get("ai_engine", "AI"),
+                                "is_alert": (turb >= 40)
+                            }
+                            mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
+                            
+                        time.sleep(interval_normal)
                 else:
                     time.sleep(5.0)
             except Exception as e:

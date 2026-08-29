@@ -410,34 +410,35 @@ Python Server được thiết kế để chạy trên **Raspberry Pi 5** (hoặ
 
 ---
 
-### 11.1. Logic Chụp Ảnh & Xử Lý Thị Giác (Vision Sampling & Photo Capture Pipeline)
+### 11.1. Logic Chụp Ảnh & Cơ Chế Xác Thực Cá Chết 5 Lần Liên Tiếp (5-Sample Anti-False-Alarm Filter)
 
 ```mermaid
 graph TD
     CAM["Camera (Webcam USB / IP Camera RTSP)"] -->|"Thread đọc non-blocking 15 FPS"| BUF["Bộ đệm khung hình (Video Frame Buffer)"]
     
-    BUF -->|"1. Mỗi 10s lấy 1 snapshot JPEG"| GEMINI["Mô hình Gemini Flash Vision VLM<br/>(Phân tích cá chết, cá yếu, độ đục)"]
-    BUF -->|"2. Khi dead_fish > 0 hoặc độ đục >= 40%"| ALERT["Cảnh Báo Khẩn Cấp Telegram<br/>(Gửi ảnh bằng chứng + Cooldown 10p)"]
-    BUF -->|"3. Khi người dùng gõ /snapshot hoặc /status"| CMD["Phản Hồi Telegram Ngay Lập Tức<br/>(Gửi ảnh chụp tức thì)"]
-    BUF -->|"4. Luồng liên tục 15 FPS"| MJPEG["MJPEG Video Stream trên Web<br/>http://<ip-pi5>:5000/video_feed"]
-
-    GEMINI -->|"Cập nhật kết quả JSON"| CALC["Tính toán số lượng cá:<br/>Cá Sống = Tổng Cá Thả (Web) - Cá Chết"]
-    CALC -->|"Đẩy dữ liệu AI"| TB["Device AI ThingsBoard"]
-    CALC -->|"Hiển thị"| WEB["Web Dashboard Pi 5"]
+    BUF -->|"1. Chu kỳ bình thường: Mỗi 2 phút chụp 1 ảnh"| GEMINI["Mô hình Gemini Flash Vision VLM"]
+    
+    GEMINI -->|"Phát hiện nghi ngờ dead_fish > 0"| VERIFY["Kích Hoạt Chu Kỳ Xác Thực (Mỗi 10s chụp 1 lần)"]
+    VERIFY -->|"Bộ đếm Streak: 1..5 lần"| CHECK{"Cả 5 lần liên tiếp<br/>đều có cá chết?"}
+    
+    CHECK -->|"CÓ (Đạt 5/5 lần)"| CONFIRM["XÁC NHẬN CÁ CHẾT 100%:<br/>- Trừ số cá sống: Sống = Tổng - Chết<br/>- Gửi ảnh bằng chứng + Cảnh báo Telegram<br/>- Đẩy Telemetry lên ThingsBoard AI"]
+    CHECK -->|"KHÔNG (Cá bơi lại bình thường)"| RESET["HỦY BÁO ĐỘNG GIẢ:<br/>- Reset Streak về 0/5<br/>- Quay lại chu kỳ bình thường 2 phút/lần"]
+    
+    BUF -->|"2. Người dùng bấm nút trên Web hoặc gõ /snapshot"| INSTANT["Chụp & Phân Tích AI Tức Thì (< 2s)"]
+    BUF -->|"3. Luồng liên tục 15 FPS"| MJPEG["MJPEG Video Stream trên Web<br/>http://<ip-pi5>:5000/video_feed"]
 ```
 
-#### Chi tiết 4 luồng chụp ảnh:
-1. **Luồng 1 - Chụp ảnh định kỳ phân tích AI (Mỗi 10 - 15 giây):**
-   - Lấy 1 frame từ camera $\rightarrow$ Nén chuẩn JPEG độ phân giải $640 \times 480$ tối ưu băng thông.
-   - Gửi lên mô hình **Gemini Flash Vision** với prompt chuyên sâu.
-   - **Công thức quản lý số lượng cá:**
-     $$\text{Số Cá Đang Sống} = \text{Tổng Số Cá Thả (Nhập từ Web)} - \text{Số Cá Chết (Phát hiện bởi AI)}$$
-2. **Luồng 2 - Chụp ảnh bằng chứng khi có sự cố khẩn cấp (Emergency Snapshot):**
-   - Khi phát hiện `dead_fish > 0` hoặc `độ đục >= 40%` $\rightarrow$ Chụp ngay 1 ảnh bằng chứng chất lượng cao và gửi trực tiếp vào Telegram của người dùng (kèm Cooldown chống spam 10 phút).
-3. **Luồng 3 - Chụp ảnh theo yêu cầu người dùng (On-Demand Snapshot):**
-   - Khi người dùng gửi lệnh `/snapshot` hoặc `/status` trên Telegram $\rightarrow$ Chụp ngay frame tại thời điểm đó và phản hồi kèm báo cáo trong $< 2\text{s}$.
-4. **Luồng 4 - Phát trực tiếp Video MJPEG Stream:**
-   - Cung cấp luồng video thời gian thực liên tục tại endpoint `/video_feed` cho Web Dashboard.
+#### Chi tiết các luồng xử lý:
+1. **Chu kỳ lấy mẫu bình thường (Mỗi 2 phút / 120s):**
+   - Chụp 1 snapshot nén JPEG $640 \times 480$ gửi sang Gemini Flash Vision.
+2. **Cơ chế xác thực 5 lần liên tiếp chống báo động giả (5 Consecutive Positives):**
+   - Khi có nghi ngờ cá chết, hệ thống **không báo động ngay** mà chuyển sang chế độ xác thực **chụp liên tục mỗi 10 giây**.
+   - Nếu **cả 5 lần chụp liên tiếp** đều phát hiện cá chết $\rightarrow$ Xác nhận chính xác cá chết, cập nhật số cá sống: $\text{Số Cá Sống} = \text{Tổng Cá Thả} - \text{Số Cá Chết}$, đồng thời gửi ảnh snapshot bằng chứng và cảnh báo khẩn cấp qua Telegram!
+   - Nếu trong 5 lần đó cá bơi lại bình thường $\rightarrow$ Reset bộ đếm xác thực về 0, quay lại chu kỳ 2 phút/lần (tránh báo động giả).
+3. **Nút chụp tức thì trên Web & Lệnh Telegram:**
+   - Người dùng bấm nút **📸 CHỤP ẢNH & PHÂN TÍCH AI NGAY** trên Web Dashboard hoặc gõ `/status` trên Telegram để chụp và nhận kết quả tức thì trong $< 2\text{s}$.
+4. **Luồng phát Video trực tiếp MJPEG:**
+   - Duy trì liên tục tại endpoint `/video_feed` cho Web Dashboard.
 
 ---
 
