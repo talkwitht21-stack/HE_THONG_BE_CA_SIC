@@ -187,29 +187,39 @@ def main():
                         shared_state["collage_jpeg_bytes"] = collage_jpeg
                         shared_state["verify_progress"] = "5/5 (Đang gửi Gemini Flash đối chiếu chuyển động...)"
 
-                        # Gửi 1 ảnh Collage duy nhất lên Gemini Flash AI
-                        print("[AI MOTION] Dang gui Collage 5 frames len Gemini 3.5 Flash Vision...")
-                        motion_res = gemini_ai.analyze_5frame_collage(collage_img, total_fish=total_cfg)
-                        
-                        confirmed_dead = motion_res.get("dead_fish", 0)
-                        alive_fish = motion_res.get("alive_fish", max(0, total_cfg - confirmed_dead))
-                        
-                        motion_res["confirmed_dead_fish"] = confirmed_dead
-                        shared_state["ai_result"] = motion_res
-                        shared_state["confirmed_dead_fish"] = confirmed_dead
+                        # Lấy số cá chết đã xác nhận trước đó để so sánh chống trừ ảo
+                        prev_dead = shared_state.get("confirmed_dead_fish", 0)
 
-                        if confirmed_dead > 0:
-                            shared_state["confirmed_dead_fish"] = confirmed_dead
-                            shared_state["suspected_dead_fish"] = 0 # XÓA NGHI NGỜ KHI ĐÃ XÁC NHẬN CHẾT
-                            shared_state["verify_progress"] = f"5/5 (Xác nhận {confirmed_dead} cá chết)"
-                            print(f"[AI MOTION CONFIRMED] XAC NHAN 100% CO {confirmed_dead} CA CHET QUA 5 KHUNG HINH (DA XOA NGHI NGO)!")
-                            if telegram_bot and telegram_bot.enabled:
-                                telegram_bot.check_and_send_alert(motion_res)
+                        # Gửi 1 ảnh Collage duy nhất lên Gemini Flash AI kèm số cá chết đã biết
+                        print(f"[AI MOTION] Dang gui Collage 5 frames len Gemini 3.5 Flash (Tong: {total_cfg}, Da biet: {prev_dead} ca chet)...")
+                        motion_res = gemini_ai.analyze_5frame_collage(collage_img, total_fish=total_cfg, known_dead_fish=prev_dead)
+                        
+                        detected_dead = int(motion_res.get("dead_fish", 0))
+                        
+                        # CHỐNG TRỪ ẢO: Luôn tính cá sống = Tổng số cá - Tổng số cá chết hiện diện trong bể
+                        alive_fish = max(0, total_cfg - detected_dead)
+                        
+                        motion_res["confirmed_dead_fish"] = detected_dead
+                        motion_res["alive_fish"] = alive_fish
+                        shared_state["ai_result"] = motion_res
+                        shared_state["confirmed_dead_fish"] = detected_dead
+
+                        if detected_dead > 0:
+                            shared_state["suspected_dead_fish"] = 0 # XÓA NGHI NGỜ VÌ ĐÃ XÁC THỰC
+                            shared_state["verify_progress"] = f"5/5 (Xác nhận {detected_dead} cá chết)"
+                            
+                            # SO SÁNH VỚI SỐ CÁ CHẾT ĐÃ BIẾT:
+                            if detected_dead > prev_dead:
+                                print(f"[AI MOTION ALERT] PHAT HIEN THEM CA CHET MOI! (Tang tu {prev_dead} len {detected_dead} con). Gui canh bao Telegram!")
+                                if telegram_bot and telegram_bot.enabled:
+                                    telegram_bot.check_and_send_alert(motion_res)
+                            else:
+                                print(f"[AI MOTION TRACK] Duy tri {detected_dead} ca chet da xac nhan tu truoc (Khong tru ao, Ca song: {alive_fish}/{total_cfg}).")
                         else:
                             shared_state["confirmed_dead_fish"] = 0
-                            shared_state["suspected_dead_fish"] = 0 # XÓA NGHI NGỜ KHI CÁ BƠI LẠI
+                            shared_state["suspected_dead_fish"] = 0
                             shared_state["verify_progress"] = "0/5 (An toàn - Cá đã cử động qua 5 frames)"
-                            print("[AI MOTION SAFE] Ca da cu dong/boi loi qua 5 frames -> Xac nhan ca song khoe!")
+                            print(f"[AI MOTION SAFE] Ca da cu dong/boi loi qua 5 frames -> Xac nhan {alive_fish}/{total_cfg} ca song khoe!")
 
                         # Đồng bộ ThingsBoard
                         if mqtt_ai and mqtt_ai.enabled:

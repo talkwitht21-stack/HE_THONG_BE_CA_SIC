@@ -124,7 +124,7 @@ class GeminiVisionAnalyzer:
             return True
         return False
 
-    def analyze_5frame_collage(self, collage_img, total_fish=10):
+    def analyze_5frame_collage(self, collage_img, total_fish=10, known_dead_fish=0):
         """
         Phân tích ảnh ghép Collage 5 khung hình theo dòng thời gian để kiểm tra chuyển động (Chết vs Sống).
         """
@@ -141,7 +141,10 @@ class GeminiVisionAnalyzer:
                 "data": buf.tobytes()
             }
 
-            contents = [PROMPT_5FRAME_MOTION]
+            contents = [
+                PROMPT_5FRAME_MOTION,
+                f"THÔNG TIN THAM CHIẾU: Tổng số cá thả: {total_fish} con. Số cá chết đã xác nhận trước đó: {known_dead_fish} con."
+            ]
             if self.ref_manager and self.ref_manager.has_references():
                 ref_parts = self.ref_manager.get_reference_image_parts()
                 if ref_parts:
