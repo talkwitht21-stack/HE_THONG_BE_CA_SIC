@@ -70,9 +70,11 @@
     .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .ctrl-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
     .ctrl-lbl { font-size: 0.84em; font-weight: 700; color: #1e293b; }
-    .btn { padding: 7px 14px; border: none; border-radius: 6px; font-weight: 800; font-size: 0.8em; cursor: pointer; color: white; min-width: 60px; text-align: center; }
+    .btn { padding: 7px 14px; border: none; border-radius: 6px; font-weight: 800; font-size: 0.8em; cursor: pointer; color: white; min-width: 60px; text-align: center; transition: all 0.15s ease; user-select: none; }
     .btn.on { background: #10b981; }
     .btn.off { background: #94a3b8; }
+    .btn.loading { opacity: 0.75; cursor: wait; transform: scale(0.96); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
     .btn.action { background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); width: 100%; padding: 11px; margin-top: 10px; font-size: 0.88em; border-radius: 8px; }
     
     /* IFrame ThingsBoard */
@@ -234,8 +236,8 @@
               <div class="ctrl-item"><span class="ctrl-lbl">Đèn LED</span><button class="btn off" id="b-led" onclick="sendLAN('led')">TẮT</button></div>
             </div>
             
-            <button class="btn action" onclick="sendLAN('feed')">CHO ĂN NGAY TỨC THÌ (SERVO)</button>
-            <button class="btn action" style="background:#ef4444;margin-top:8px" onclick="sendLAN('system')">KHÓA / MỞ TOÀN BỘ HỆ THỐNG</button>
+            <button class="btn action" id="btn-action-feed" onclick="sendLAN('feed')">CHO ĂN NGAY TỨC THÌ (SERVO)</button>
+            <button class="btn action" id="btn-action-sys" style="background:#ef4444;margin-top:8px" onclick="sendLAN('system')">KHÓA / MỞ TOÀN BỘ HỆ THỐNG</button>
           </div>
         </div>
       </div>
@@ -389,6 +391,21 @@
   <script>
     let _currentMode = 'lan';
     let _uploadSlot = null;
+
+    // Bảng ánh xạ thiết bị -> ID nút và key cảm biến từ ESP32
+    const DEV_BTN_MAP = {
+      'heater': { id: 'b-heater', espKey: 'h' },
+      'fan': { id: 'b-fan', espKey: 'f' },
+      'pump': { id: 'b-pump', espKey: 'p' },
+      'oxy': { id: 'b-oxy', espKey: 'o' },
+      'drain': { id: 'b-drain', espKey: 'd' },
+      'filter': { id: 'b-filter', espKey: 'fl' },
+      'filter_cycle': { id: 'b-filter_cycle', espKey: 'fcm' },
+      'led': { id: 'b-led', espKey: 'l' }
+    };
+
+    let _cooldownMap = {};
+    let _pendingOptimistic = {}; // Lưu trạng thái vừa bấm Optimistic Update
 
     function openSettingsModal() {
       document.getElementById('settings-modal').classList.add('show');
@@ -568,12 +585,76 @@
       });
     }
 
+    // =========================================================================
+    // DIEU KHIEN LAN VOI OPTIMISTIC UPDATE 0MS & CHONG BAM LIEN TUC (DEBOUNCE)
+    // =========================================================================
     function sendLAN(dev) {
+      let now = Date.now();
+      
+      // 1. Chống bấm liên tục (Rate Limit / Cooldown per button)
+      let cooldownDuration = (dev === 'feed') ? 3000 : (dev === 'system' ? 2000 : 1200);
+      if (_cooldownMap[dev] && (now - _cooldownMap[dev] < cooldownDuration)) {
+        return; // Bỏ qua nếu đang spam click
+      }
+      _cooldownMap[dev] = now;
+
+      // 2. Xử lý các nút Action đặc thù
+      if (dev === 'feed') {
+        let btnFeed = document.getElementById('btn-action-feed');
+        if (btnFeed) {
+          btnFeed.disabled = true;
+          btnFeed.textContent = '⏳ ĐANG CHO ĂN (SERVO)...';
+          setTimeout(() => {
+            btnFeed.disabled = false;
+            btnFeed.textContent = 'CHO ĂN NGAY TỨC THÌ (SERVO)';
+          }, 3000);
+        }
+      } else if (dev === 'system') {
+        let btnSys = document.getElementById('btn-action-sys');
+        if (btnSys) {
+          btnSys.disabled = true;
+          btnSys.style.opacity = '0.7';
+          setTimeout(() => {
+            btnSys.disabled = false;
+            btnSys.style.opacity = '1';
+          }, 2000);
+        }
+      }
+
+      // 3. OPTIMISTIC UPDATE: Đổi màu & text nút ngay lập tức 0ms!
+      if (DEV_BTN_MAP[dev]) {
+        let btnId = DEV_BTN_MAP[dev].id;
+        let b = document.getElementById(btnId);
+        if (b) {
+          let isCurrentlyOn = b.classList.contains('on');
+          let targetState = !isCurrentlyOn;
+          
+          // Đổi màu ngay lập tức
+          setBtn(btnId, targetState);
+          
+          // Khóa Optimistic trong 2.5s để bảo vệ giao diện không bị polling giật lại
+          _pendingOptimistic[dev] = {
+            state: targetState,
+            expireAt: now + 2500
+          };
+
+          // Hiệu ứng phản hồi chạm
+          b.classList.add('loading');
+          setTimeout(() => b.classList.remove('loading'), 1000);
+        }
+      }
+
+      // 4. Gửi HTTP Request REST API ngầm dưới nền
       fetch('/api/lan_control', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({device: dev})
-      }).then(() => fetchStatus());
+      })
+      .then(r => r.json())
+      .then(() => {
+        setTimeout(fetchStatus, 400);
+      })
+      .catch(() => {});
     }
 
     function fetchStatus() {
@@ -702,7 +783,7 @@
           let inpChat = document.getElementById('inp-chat-id');
           if (inpChat && !inpChat.value && d.telegram_chat_id) inpChat.value = d.telegram_chat_id;
 
-          // ESP32 LAN Data
+          // ESP32 LAN Data (Dong bo voi Optimistic State)
           if (d.esp32) {
             let esp = d.esp32;
             document.getElementById('v-wt').textContent = (esp.wt > -50) ? esp.wt.toFixed(1) : '--';
@@ -710,14 +791,24 @@
             document.getElementById('v-ah').textContent = (esp.ah > -50) ? esp.ah.toFixed(1) : '--';
             document.getElementById('v-wl').textContent = (esp.wcm > 0) ? esp.wcm.toFixed(1) : 'Lỗi';
 
-            setBtn('b-heater', esp.h);
-            setBtn('b-fan', esp.f);
-            setBtn('b-pump', esp.p);
-            setBtn('b-oxy', esp.o);
-            setBtn('b-drain', esp.d);
-            setBtn('b-filter', esp.fl);
-            setBtn('b-filter_cycle', esp.fcm);
-            setBtn('b-led', esp.l);
+            let now = Date.now();
+            for (let dev in DEV_BTN_MAP) {
+              let btnInfo = DEV_BTN_MAP[dev];
+              let espState = Boolean(esp[btnInfo.espKey]);
+
+              // Nếu đang có Optimistic pending chưa hết hạn -> Giữ trạng thái mong muốn
+              if (_pendingOptimistic[dev] && now < _pendingOptimistic[dev].expireAt) {
+                if (espState === _pendingOptimistic[dev].state) {
+                  delete _pendingOptimistic[dev];
+                  setBtn(btnInfo.id, espState);
+                } else {
+                  setBtn(btnInfo.id, _pendingOptimistic[dev].state);
+                }
+              } else {
+                delete _pendingOptimistic[dev];
+                setBtn(btnInfo.id, espState);
+              }
+            }
           }
         }).catch(() => {});
     }
@@ -725,7 +816,7 @@
     function setBtn(id, st) {
       let b = document.getElementById(id);
       if (!b) return;
-      b.className = st ? 'btn on' : 'btn off';
+      b.className = 'btn ' + (st ? 'on' : 'off');
       b.textContent = st ? 'BẬT' : 'TẮT';
     }
 
