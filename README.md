@@ -14,6 +14,7 @@
 7. [Bảng Mã Điều Khiển Remote Hồng Ngoại IR](#7-bảng-mã-điều-khiển-remote-hồng-ngoại-ir)
 8. [Giao Diện Web Dashboard & mDNS Local](#8-giao-diện-web-dashboard--mdns-local)
 9. [Hướng Dẫn Cài Đặt & Nạp Firmware](#9-hướng-dẫn-cài-đặt--nạp-firmware)
+10. [Hướng Dẫn Tạo Dashboard Trên ThingsBoard Cloud](#10-hướng-dẫn-tạo-dashboard-trên-thingsboard-cloud)
 
 ---
 
@@ -253,9 +254,11 @@ Hệ thống sử dụng chuẩn giao thức **NEC (20 phím tiêu chuẩn)**. N
 
 ---
 
+---
+
 ## 8. GIAO DIỆN WEB DASHBOARD & mDNS LOCAL
 
-Hệ thống tích hợp máy chủ Web trực tiếp trên ESP32-Master với công nghệ Single Page Application (SPA), không cần kết nối Internet vẫn hoạt động đầy đủ 100%:
+Hệ thống tích hợp máy chủ Web trực tiếp trên ESP32-Master với công nghệ Single Page Application (SPA), phong cách **Theme Trắng & Xanh Aqua (Aqua Ocean)** hiện đại, không cần kết nối Internet vẫn hoạt động đầy đủ 100%:
 
 - **Tên miền truy cập cố định (mDNS):**
   - **`http://beca.local`** (hoặc `http://beca/` trên Windows).
@@ -263,22 +266,19 @@ Hệ thống tích hợp máy chủ Web trực tiếp trên ESP32-Master với c
 
 ### Các Phân Hệ Trên Giao Diện Web:
 1. **Tab BẢNG ĐIỀU KHIỂN (Dashboard):**
-   - Giám sát các chỉ số cảm biến: Nhiệt độ nước, Nhiệt độ & Độ ẩm không khí, Mực nước (cm), Đồng hồ thời gian thực NTP.
-   - Luồng Video Camera trực tiếp (nhúng luồng IP Camera).
+   - Giám sát các chỉ số cảm biến: Nhiệt độ nước, Nhiệt độ & Độ ẩm không khí, Mực nước (cm), Cường độ sóng WiFi (RSSI dBm), Đồng hồ thời gian thực NTP.
    - Nút bật/tắt thủ công cho từng thiết bị có đèn báo trạng thái `ON`/`OFF`.
    - Cụm Hẹn giờ đếm lùi độc lập (Giờ - Phút - Giây) cho Sưởi, Quạt, Bơm Rút, Lọc Nước và Đèn LED.
    - Nút kích hoạt **Chu Kỳ Lọc Nước Tự Động** (`[CHU KY: BAT / TAT]`).
-   - Công tắc Tổng Hệ Thống (Kill Switch).
+   - Nút **Cho Ăn Tức Thì** và **Công tắc Tổng Hệ Thống (Kill Switch)**.
 2. **Tab CÀI ĐẶT (Settings):**
-   - Thiết lập ngưỡng nhiệt độ sưởi và quạt làm mát.
+   - Thiết lập ngưỡng nhiệt độ sưởi và quạt làm mát (tự động chuẩn hóa).
    - Thiết lập các mốc khoảng cách mực nước siêu âm (Đầy, Thấp, Cạn).
    - Cài đặt số phút Bật/Nghỉ của **Chu Kỳ Sục Oxy** và **Chu Kỳ Lọc Nước**.
    - Cài đặt khung giờ bật/tắt đèn LED tự động.
    - Cài đặt 3 mốc thời gian cho ăn tự động (`HH:MM:SS`) và **Góc Quay Rotor Cho Ăn ($10^\circ - 180^\circ$)**.
-   - Cấu hình thông tin WiFi, IP Camera và Access Token kết nối **ThingsBoard MQTT**.
+   - Cấu hình thông tin WiFi và Access Token kết nối **ThingsBoard MQTT**.
    - Bảng học mã và gán mã phím Remote IR linh hoạt.
-3. **Tab THÔNG TIN HỆ THỐNG:**
-   - Xem thông số cấu hình phần cứng, bộ nhớ Flash, trạng thái liên lạc UART giữa Master và Slave.
 
 ---
 
@@ -298,12 +298,99 @@ Hệ thống tích hợp máy chủ Web trực tiếp trên ESP32-Master với c
 
 ### 9.2. Quy trình nạp Firmware
 1. **Nạp Firmware cho ESP32-Master:**
-   - Mở file [`Firmware/ESP32_Master/ESP32_Master.ino`](file:///F:/BECA_SIC/Firmware/ESP32_Master/ESP32_Master.ino).
+   - Mở file [`Firmware/ESP32_Master/ESP32_Master.ino`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Firmware/ESP32_Master/ESP32_Master.ino).
    - Chọn Board: `DOIT ESP32 DEVKIT V1` (hoặc `ESP32 Dev Module`).
    - Bấm **Upload**.
 2. **Nạp Firmware cho ESP32-Slave:**
-   - Mở file [`Firmware/ESP32_Slave/ESP32_Slave.ino`](file:///F:/BECA_SIC/Firmware/ESP32_Slave/ESP32_Slave.ino).
+   - Mở file [`Firmware/ESP32_Slave/ESP32_Slave.ino`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Firmware/ESP32_Slave/ESP32_Slave.ino).
    - Chọn Board: `DOIT ESP32 DEVKIT V1`.
    - Bấm **Upload**.
 3. **Kết nối và Trải nghiệm:**
    - Bật nguồn cho cả 2 ESP32 và mở trình duyệt truy cập vào **`http://beca.local`** để bắt đầu sử dụng!
+
+---
+
+## 10. HƯỚNG DẪN TẠO DASHBOARD TRÊN THINGSBOARD CLOUD
+
+Hệ thống hỗ trợ giám sát và điều khiển 2 chiều thời gian thực thông qua nền tảng **ThingsBoard Cloud** (hoặc ThingsBoard Community Server tự host). Dưới đây là quy trình từng bước thiết lập Dashboard hoàn chỉnh:
+
+```mermaid
+graph LR
+    ESP[ESP32-Master] <==>|"MQTT Port 1883<br/>Telemetry & 2-Way RPC"| TB[ThingsBoard Cloud]
+    TB <==>|"Web Dashboard / Mobile App"| User[Người Dùng]
+```
+
+### Bước 1: Tạo Thiết Bị (Device) Trên ThingsBoard
+1. Đăng nhập vào [ThingsBoard](https://demo.thingsboard.io) (hoặc Server ThingsBoard của bạn).
+2. Vào menu **Device Center** $\rightarrow$ **Devices** $\rightarrow$ bấm nút `+` (**Add Device**).
+3. Đặt tên thiết bị: `ESP32_Master_BeCa` (Device profile: `default`).
+4. Bấm **Add**. Sau khi tạo xong, mở chi tiết thiết bị $\rightarrow$ tab **Credentials** $\rightarrow$ Copy chuỗi **Access Token** (ví dụ: `A1b2C3d4E5f6G7h8`).
+
+---
+
+### Bước 2: Cấu Hình Kết Nối Trên ESP32-Master
+1. Kết nối điện thoại hoặc máy tính vào cùng mạng WiFi với ESP32.
+2. Mở trình duyệt truy cập vào **`http://beca.local`** (hoặc địa chỉ IP của ESP32).
+3. Chuyển sang tab **CÀI ĐẶT HỆ THỐNG** $\rightarrow$ cuộn xuống mục **Kết Nối ThingsBoard Cloud (MQTT)**:
+   - **Kích hoạt MQTT:** Chọn `BẬT`
+   - **MQTT Server:** Điền `demo.thingsboard.io` (hoặc tên miền / IP server ThingsBoard của bạn)
+   - **Access Token:** Dán chuỗi Token đã copy ở Bước 1.
+4. Bấm **💾 LƯU TOÀN BỘ CÀI ĐẶT**.
+5. Sau 2-3 giây, trạng thái sẽ báo **ONLINE** màu xanh lá. Vào tab **Latest Telemetry** của thiết bị trên ThingsBoard để thấy các dữ liệu cảm biến nhảy liên tục!
+
+---
+
+### Bước 3: Tạo Dashboard & Thiết Lập Entity Alias
+1. Vào menu **Dashboard Center** $\rightarrow$ **Dashboards** $\rightarrow$ bấm nút `+` (**Create new dashboard**).
+2. Đặt tiêu đề: `GIÁM SÁT & ĐIỀU KHIỂN BỂ CÁ THÔNG MINH`.
+3. Mở Dashboard vừa tạo $\rightarrow$ bấm nút **Edit Mode** (biểu tượng cây bút góc dưới bên phải).
+4. Bấm biểu tượng **Entity Aliases** (trên thanh công cụ trên cùng) $\rightarrow$ **Add Alias**:
+   - **Alias name:** `BeCa`
+   - **Filter type:** `Single entity`
+   - **Type:** `Device`
+   - **Device:** Chọn `ESP32_Master_BeCa`
+5. Bấm **Add** và **Save**.
+
+---
+
+### Bước 4: Tạo Các Widget Giám Sát (Latest Telemetry)
+
+Bấm **Add new widget** $\rightarrow$ chọn **Datasource:** Alias `BeCa`:
+
+| Nhóm Widget (Bundle) | Tên Widget Khuyên Dùng | Keys Telemetry | Nhãn & Đơn Vị Hiển Thị |
+|---|---|---|---|
+| **Cards** | *Simple Card* hoặc *Value Card* | `water_temp` | Nhiệt Độ Nước (°C) |
+| **Cards** | *Simple Card* | `air_temp`, `air_hum` | Nhiệt Độ (°C) & Độ Ẩm Không Khí (%) |
+| **Cards** | *Simple Card* | `water_cm` | Mực Nước (cm cách nắp bể) |
+| **Cards** | *Simple Card* | `rssi` | Cường Độ Sóng WiFi (dBm) |
+| **Analogue gauges** | *Radial gauge* hoặc *Digital gauge* | `water_temp` (Min: 10, Max: 40) | Đồng hồ nhiệt độ nước |
+| **Analogue gauges** | *Radial gauge* | `water_cm` (Min: 0, Max: 50) | Thước đo khoảng cách mực nước |
+| **Charts** | *Timeseries chart* | `water_temp`, `air_temp`, `air_hum`, `water_cm` | Biểu đồ lịch sử biến thiên 24h |
+
+---
+
+### Bước 5: Tạo Các Widget Điều Khiển 2 Chiều (Control RPC)
+
+Vào thư viện **Control widgets** $\rightarrow$ chọn các widget công tắc / nút bấm:
+
+| Tên Thiết Bị | Loại Widget | Method RPC (`method`) | Key Trạng Thái (Target Key) | Mô Tả Chức Năng |
+|---|---|---|---|---|
+| **Máy Sưởi** | Switch control / Round switch | `setHeater` | `heater` | Bật / Tắt thanh sưởi |
+| **Quạt Làm Mát** | Switch control | `setFan` | `fan` | Bật / Tắt quạt tản nhiệt |
+| **Bơm Bù Nước** | Switch control | `setPump` | `pump` | Bật / Tắt bơm cấp nước sạch |
+| **Sục Khí Oxy** | Switch control | `setOxy` | `oxy` | Bật / Tắt máy sục bọt khí oxy |
+| **Bơm Rút Nước** | Switch control | `setDrain` | `drain` | Bật / Tắt bơm xả nước cũ |
+| **Lọc Nước Song Song**| Switch control | `setFilter` | `filter` | Bật / Tắt tuần hoàn lọc 2 bơm |
+| **Chu Kỳ Lọc Tự Động**| Switch control | `setFilterCycle` | `filter_cycle` | Bật / Tắt chu kỳ chạy/nghỉ tự động |
+| **Đèn LED Bể Cá** | Switch control / Light switch | `setLed` | `led` | Bật / Tắt đèn chiếu sáng |
+| **Nút Cho Ăn Tức Thì**| Action Button / Push button | `setFeed` (params: `true`)| N/A | Kích hoạt quay Servo rót thức ăn |
+| **Công Tắc Tổng Khẩn Cấp**| Switch control / Power switch | `setSystem` | `system` | Khóa / Tắt khẩn cấp toàn bộ hệ thống |
+
+> 💡 **Lưu ý quan trọng về RPC:** Firmware ESP32-Master đã được tích hợp sẵn cơ chế **2-Way RPC Response** (`v1/devices/me/rpc/response/{requestId}`). Khi bạn gạt công tắc hoặc bấm nút trên ThingsBoard, ESP32 sẽ lập tức gửi xác nhận thành công về Cloud, giúp giao diện widget cập nhật tức thì trong vòng $< 50\text{ms}$ mà không bao giờ bị báo lỗi timeout!
+
+---
+
+### Bước 6: Lưu Và Sử Dụng
+1. Bấm nút **Apply changes** (dấu tích màu cam) để lưu giao diện Dashboard.
+2. Bây giờ bạn có thể mở ThingsBoard trên trình duyệt máy tính hoặc tải ứng dụng **ThingsBoard Mobile App** (iOS / Android) đăng nhập vào để theo dõi và chăm sóc bể cá của mình từ bất kỳ đâu trên thế giới! 🌐🐟
+
