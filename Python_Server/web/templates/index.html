@@ -443,15 +443,25 @@
               <span>📸 CHỤP ẢNH &amp; PHÂN TÍCH AI NGAY</span>
             </button>
 
-            <div class="ai-grid">
-              <div class="ai-box"><div class="ai-val" id="ai-total">--</div><div class="ai-lbl">Tổng Cá Thả</div></div>
-              <div class="ai-box"><div class="ai-val" id="ai-alive" style="color:#10b981">--</div><div class="ai-lbl">Cá Đang Sống</div></div>
-              <div class="ai-box"><div class="ai-val" id="ai-dead" style="color:#ef4444">0</div><div class="ai-lbl">Cá Chết Xác Nhận</div></div>
+            <div class="ai-grid" style="grid-template-columns: repeat(4, 1fr)">
+              <div class="ai-box"><div class="ai-val" id="ai-total" style="color:#0284c7">--</div><div class="ai-lbl">Tổng Cá</div></div>
+              <div class="ai-box"><div class="ai-val" id="ai-alive" style="color:#10b981">--</div><div class="ai-lbl">Cá Sống</div></div>
+              <div class="ai-box"><div class="ai-val" id="ai-suspected" style="color:#f59e0b">0</div><div class="ai-lbl">Nghi Ngờ</div></div>
+              <div class="ai-box"><div class="ai-val" id="ai-dead" style="color:#ef4444">0</div><div class="ai-lbl">Cá Chết (5/5)</div></div>
             </div>
 
-            <div class="ai-grid" style="grid-template-columns: 1fr 1fr; margin-top:8px">
+            <div class="ai-grid" style="grid-template-columns: 1fr 1.5fr; margin-top:8px">
               <div class="ai-box"><div class="ai-val" id="ai-turb">--%</div><div class="ai-lbl">Độ Đục Nước</div><div id="turb-filter-badge" style="font-size:0.68em;margin-top:2px;font-weight:700;color:#64748b">Tự lọc: &gt;70% ON | &lt;60% OFF</div></div>
-              <div class="ai-box"><div class="ai-val" id="ai-verify" style="color:#f59e0b">0/5</div><div class="ai-lbl">Xác Thực Cá Chết</div></div>
+              <div class="ai-box" style="padding:10px 8px">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                  <span class="ai-lbl" style="font-size:0.75em;text-transform:uppercase;font-weight:800;color:#475569">Tiến Trình Xác Thực (5 Lần)</span>
+                  <span id="ai-verify-badge" style="font-size:0.75em;font-weight:bold;color:#10b981;background:#dcfce7;padding:2px 6px;border-radius:10px">0/5 (An toàn)</span>
+                </div>
+                <div style="background:#e2e8f0;border-radius:8px;height:8px;overflow:hidden;width:100%">
+                  <div id="ai-verify-bar" style="background:#10b981;height:100%;width:0%;transition:width 0.4s ease"></div>
+                </div>
+                <div id="ai-verify-desc" style="font-size:0.7em;color:#64748b;margin-top:4px;text-align:left">Chụp xác thực 5 lần liên tiếp để loại trừ 100% báo động giả.</div>
+              </div>
             </div>
 
             <div class="ai-summary">
@@ -1338,10 +1348,44 @@
           let confirmedDead = (d.confirmed_dead_fish !== undefined) ? d.confirmed_dead_fish : ((d.ai && d.ai.confirmed_dead_fish) ? d.ai.confirmed_dead_fish : 0);
           let alive = Math.max(0, total - confirmedDead);
 
+          let suspected = d.suspected_dead_fish || (d.ai ? (d.ai.dead_fish || 0) : 0);
           document.getElementById('ai-total').textContent = total;
           document.getElementById('ai-alive').textContent = alive;
+          if (document.getElementById('ai-suspected')) document.getElementById('ai-suspected').textContent = suspected;
           document.getElementById('ai-dead').textContent = confirmedDead;
-          document.getElementById('ai-verify').textContent = d.verify_progress || '0/5';
+          
+          // Thanh tiến trình xác thực 5 lần trực quan
+          let progStr = d.verify_progress || '0/5';
+          let progBadge = document.getElementById('ai-verify-badge');
+          let progBar = document.getElementById('ai-verify-bar');
+          let progDesc = document.getElementById('ai-verify-desc');
+          
+          if (progBadge && progBar) {
+            progBadge.textContent = progStr;
+            let currentStep = 0;
+            if (progStr.includes('/5')) {
+              currentStep = parseInt(progStr.split('/5')[0].slice(-1)) || 0;
+            }
+            let percent = (currentStep / 5) * 100;
+            progBar.style.width = percent + '%';
+
+            if (currentStep === 0) {
+              progBar.style.background = '#10b981';
+              progBadge.style.color = '#166534';
+              progBadge.style.background = '#dcfce7';
+              if (progDesc) progDesc.textContent = 'Trạng thái bình thường. Không phát hiện cá chết.';
+            } else if (currentStep < 5) {
+              progBar.style.background = '#f59e0b';
+              progBadge.style.color = '#9a3412';
+              progBadge.style.background = '#ffedd5';
+              if (progDesc) progDesc.textContent = `🚨 Đang chụp đối chiếu lần ${currentStep}/5 (${d.interval_alert_sec || 10}s/lần)...`;
+            } else {
+              progBar.style.background = '#ef4444';
+              progBadge.style.color = '#991b1b';
+              progBadge.style.background = '#fee2e2';
+              if (progDesc) progDesc.textContent = `☠️ ĐÃ XÁC NHẬN 100% CÓ CÁ CHẾT! (Đã gửi Telegram)`;
+            }
+          }
           
           if (d.ai) {
             document.getElementById('ai-turb').textContent = (d.ai.water_turbidity || 0) + '%';

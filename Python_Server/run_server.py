@@ -33,7 +33,8 @@ def main():
         "telegram_chat_id": chat_id_init,
         "public_url": "",
         "confirmed_dead_fish": 0,
-        "verify_progress": "0/5",
+        "suspected_dead_fish": 0,
+        "verify_progress": "0/5 (Bình thường)",
         "interval_normal_sec": interval_normal_init,
         "interval_alert_sec": interval_alert_init,
         "auto_turb_filter_active": False,
@@ -163,6 +164,7 @@ def main():
                     
                     if raw_dead > 0:
                         dead_streak += 1
+                        shared_state["suspected_dead_fish"] = raw_dead
                         shared_state["verify_progress"] = f"{dead_streak}/{CONFIRM_THRESHOLD}"
                         print(f"[AI VERIFY] Phat hien nghi ngo ca chet ({raw_dead} con): Xac thuc lan {dead_streak}/{CONFIRM_THRESHOLD}...")
                         
@@ -171,6 +173,7 @@ def main():
                             res["confirmed_dead_fish"] = confirmed_dead
                             res["is_alert"] = True
                             shared_state["confirmed_dead_fish"] = confirmed_dead
+                            shared_state["verify_progress"] = "5/5 (Đã xác nhận 100%)"
                             shared_state["ai_result"] = res
                             
                             if telegram_bot and telegram_bot.enabled:
@@ -178,7 +181,8 @@ def main():
                                 
                             print(f"[AI CONFIRMED] DA XAC THUC CHINH XAC 100% {confirmed_dead} CA THE BI CHET!")
                         else:
-                            res["confirmed_dead_fish"] = confirmed_dead
+                            res["confirmed_dead_fish"] = 0
+                            shared_state["confirmed_dead_fish"] = 0
                             shared_state["ai_result"] = res
                             
                         if mqtt_ai and mqtt_ai.enabled:
@@ -203,8 +207,9 @@ def main():
                         if dead_streak > 0:
                             print(f"[AI RESET] Ca da boi lai binh thuong sau {dead_streak} lan nghi ngo. Reset streak!")
                             dead_streak = 0
-                            shared_state["verify_progress"] = "0/5"
                             
+                        shared_state["suspected_dead_fish"] = 0
+                        shared_state["verify_progress"] = "0/5 (An toàn)"
                         confirmed_dead = 0
                         res["confirmed_dead_fish"] = 0
                         res["is_alert"] = False
