@@ -450,7 +450,7 @@
             </div>
 
             <div class="ai-grid" style="grid-template-columns: 1fr 1fr; margin-top:8px">
-              <div class="ai-box"><div class="ai-val" id="ai-turb">--%</div><div class="ai-lbl">Độ Đục Nước</div></div>
+              <div class="ai-box"><div class="ai-val" id="ai-turb">--%</div><div class="ai-lbl">Độ Đục Nước</div><div id="turb-filter-badge" style="font-size:0.68em;margin-top:2px;font-weight:700;color:#64748b">Tự lọc: &gt;70% ON | &lt;60% OFF</div></div>
               <div class="ai-box"><div class="ai-val" id="ai-verify" style="color:#f59e0b">0/5</div><div class="ai-lbl">Xác Thực Cá Chết</div></div>
             </div>
 
@@ -1326,6 +1326,17 @@
           
           if (d.ai) {
             document.getElementById('ai-turb').textContent = (d.ai.water_turbidity || 0) + '%';
+            
+            const turbBadge = document.getElementById('turb-filter-badge');
+            if (turbBadge) {
+              if (d.auto_turb_filter_active) {
+                turbBadge.innerHTML = '⚡ ĐANG TỰ ĐỘNG LỌC (&gt;70%)';
+                turbBadge.style.color = '#ef4444';
+              } else {
+                turbBadge.innerHTML = 'Tự lọc: &gt;70% ON | &lt;60% OFF';
+                turbBadge.style.color = '#64748b';
+              }
+            }
             document.getElementById('ai-text').textContent = d.ai.summary || '--';
             document.getElementById('ai-engine-lbl').textContent = d.ai.ai_engine || 'Gemini AI';
             document.getElementById('ai-time').textContent = d.ai.analyzed_at || '--';

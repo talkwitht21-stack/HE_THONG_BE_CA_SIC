@@ -36,6 +36,7 @@ def main():
         "verify_progress": "0/5",
         "interval_normal_sec": interval_normal_init,
         "interval_alert_sec": interval_alert_init,
+        "auto_turb_filter_active": False,
         "ai_result": {
             "dead_fish": 0, "abnormal_fish": 0,
             "water_turbidity": 10, "is_alert": False,
@@ -126,6 +127,37 @@ def main():
                     res = gemini_ai.analyze_frame(frame)
                     raw_dead = res.get("dead_fish", 0)
                     turb = res.get("water_turbidity", 0)
+
+                    # --- TỰ ĐỘNG CHẠY MÁY LỌC KHI ĐỘ ĐỤC >= 70% CHO ĐẾN KHI < 60% ---
+                    auto_turb_active = shared_state.get("auto_turb_filter_active", False)
+                    if turb >= 70:
+                        if not auto_turb_active:
+                            shared_state["auto_turb_filter_active"] = True
+                            print(f"[AI AUTO-FILTER] PHAT HIEN DO DUC CAO ({turb}% >= 70%) -> TU DONG BAT MAY LOC NUOC LIEN TUC!")
+                            if esp32_client:
+                                esp_data = esp32_client.get_data()
+                                if not esp_data.get("fl", False):
+                                    esp32_client.control_device("filter")
+                            if tg_cfg.get("enabled", False) and telegram_bot:
+                                telegram_bot.send_message(
+                                    f"🚨 <b>[CẢNH BÁO NƯỚC ĐỤC & TỰ ĐỘNG LỌC]</b>\n"
+                                    f"• Độ đục nước đo được: <b>{turb}%</b> (Vượt ngưỡng 70%)\n"
+                                    f"• Hệ thống AI đã <b>TỰ ĐỘNG BẬT MÁY LỌC NƯỚC LIÊN TỤC</b> để xử lý nước cho đến khi độ đục giảm xuống dưới 60%!"
+                                )
+                    elif turb < 60:
+                        if auto_turb_active:
+                            shared_state["auto_turb_filter_active"] = False
+                            print(f"[AI AUTO-FILTER] DO DUC DA GIAM AN TOAN ({turb}% < 60%) -> TU DONG TAT MAY LOC NUOC TANG CUONG!")
+                            if esp32_client:
+                                esp_data = esp32_client.get_data()
+                                if esp_data.get("fl", False):
+                                    esp32_client.control_device("filter")
+                            if tg_cfg.get("enabled", False) and telegram_bot:
+                                telegram_bot.send_message(
+                                    f"✅ <b>[NƯỚC ĐÃ TRONG SẠCH]</b>\n"
+                                    f"• Độ đục nước hiện tại: <b>{turb}%</b> (Đã an toàn &lt; 60%)\n"
+                                    f"• Hệ thống AI đã <b>TỰ ĐỘNG TẮT MÁY LỌC TĂNG CƯỜNG</b>."
+                                )
                     
                     if raw_dead > 0:
                         dead_streak += 1
@@ -147,7 +179,7 @@ def main():
                             res["confirmed_dead_fish"] = confirmed_dead
                             shared_state["ai_result"] = res
                             
-                        if tb_cfg.get("enabled", False):
+                        if mqtt_ai and mqtt_ai.enabled:
                             total = shared_state.get("total_fish_configured", 10)
                             alive = max(0, total - confirmed_dead)
                             ai_telemetry = {
@@ -156,7 +188,7 @@ def main():
                                 "dead_fish": confirmed_dead,
                                 "water_turbidity": turb,
                                 "summary": res.get("summary", ""),
-                                "ai_engine": res.get("ai_engine", "Gemini Flash VLM"),
+                                "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
                                 "is_alert": (confirmed_dead > 0 or turb >= 40)
                             }
                             mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
@@ -177,7 +209,7 @@ def main():
                         shared_state["confirmed_dead_fish"] = 0
                         shared_state["ai_result"] = res
                         
-                        if tb_cfg.get("enabled", False):
+                        if mqtt_ai and mqtt_ai.enabled:
                             total = shared_state.get("total_fish_configured", 10)
                             ai_telemetry = {
                                 "total_fish": total,
@@ -185,7 +217,7 @@ def main():
                                 "dead_fish": 0,
                                 "water_turbidity": turb,
                                 "summary": res.get("summary", ""),
-                                "ai_engine": res.get("ai_engine", "Gemini Flash VLM"),
+                                "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
                                 "is_alert": (turb >= 40)
                             }
                             mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
