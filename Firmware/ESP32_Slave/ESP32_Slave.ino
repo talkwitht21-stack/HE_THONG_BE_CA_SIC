@@ -72,10 +72,16 @@ bool ledState    = false;
 float waterLevelCm = 0.0; // Khoảng cách siêu âm
 
 
-// Trạng thái Servo
+// Trạng thái Servo (Máy trạng thái 2 pha Zero-Delay)
+enum FeedPhase {
+  FEED_IDLE = 0,
+  FEED_OPENING,
+  FEED_CLOSING
+};
+
+FeedPhase feedPhase     = FEED_IDLE;
+unsigned long feedPhaseStart = 0;
 bool feedingActive     = false;
-unsigned long feedStart = 0;
-const unsigned long FEED_DURATION_MS = 2000; // 2 giây
 uint8_t feed_angle     = 180; // Góc quay cho ăn (10-180 độ)
 
 // Logic Sục Oxy
@@ -245,22 +251,33 @@ void handleIR() {
 // ===================== LOGIC THIẾT BỊ =====================
 
 void startFeeding() {
-  if (!feedingActive) {
-    Serial.printf("[SLAVE] Servo: Cho an START (Goc: %d do)\n", feed_angle);
+  if (feedPhase == FEED_IDLE) {
+    Serial.printf("[SLAVE] Servo: Cho an START (Goc: %d do, Pha: MO)\n", feed_angle);
     feedingActive = true;
-    feedStart = millis();
+    feedPhase = FEED_OPENING;
+    feedPhaseStart = millis();
     servoFeed.attach(SERVO_FEED_PIN);
     servoFeed.write(feed_angle);
   }
 }
 
 void handleFeeding() {
-  if (feedingActive && (millis() - feedStart >= FEED_DURATION_MS)) {
-    Serial.println("[SLAVE] Servo: Cho an STOP & Detach PWM");
-    servoFeed.write(0);
-    delay(200); // Chờ servo quay về vị trí 0 rồi ngắt PWM
-    servoFeed.detach();
-    feedingActive = false;
+  if (feedPhase == FEED_OPENING) {
+    // Giu mo cua xa moi trong 1500ms
+    if (millis() - feedPhaseStart >= 1500UL) {
+      Serial.println("[SLAVE] Servo: Quay ve 0 do (Pha: DONG)");
+      servoFeed.write(0);
+      feedPhase = FEED_CLOSING;
+      feedPhaseStart = millis();
+    }
+  } else if (feedPhase == FEED_CLOSING) {
+    // Cho 1000ms de banh rang co khi dong kin 100% roi moi ngat PWM (Khong dung delay)
+    if (millis() - feedPhaseStart >= 1000UL) {
+      Serial.println("[SLAVE] Servo: Da dong kin 100% -> Detach PWM an toan");
+      servoFeed.detach();
+      feedPhase = FEED_IDLE;
+      feedingActive = false;
+    }
   }
 }
 

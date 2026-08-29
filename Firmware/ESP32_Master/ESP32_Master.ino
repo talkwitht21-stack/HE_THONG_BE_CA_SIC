@@ -125,8 +125,13 @@ uint16_t oxy_off_min = 15;
 bool   feed_en_1 = false;  String feed_time_1 = "08:00:00";
 bool   feed_en_2 = false;  String feed_time_2 = "12:00:00";
 bool   feed_en_3 = false;  String feed_time_3 = "18:00:00";
-int    feed_last_min = -1; // Phut trong ngay cua lan cho an cuoi (chong trung lap)
+int    last_feed_day   = -1; // Theo doi ngay de reset cac moc
+bool   feed_done_slot1 = false;
+bool   feed_done_slot2 = false;
+bool   feed_done_slot3 = false;
 uint8_t feed_angle   = 180; // Goc quay cho an (10-180 do)
+
+int    led_last_transition_min = -1; // Theo doi moc chuyen trang thai Den LED
 
 // Cong tac tong he thong
 bool systemEnabled = true; // false = tat toan bo relay, khoa khong cho bat
@@ -756,10 +761,13 @@ String getTimeStr() {
 }
 
 int parseTimeToMinutes(String tStr) {
-  int colon = tStr.indexOf(':');
-  if (colon == -1) return -1;
-  int h = tStr.substring(0, colon).toInt();
-  int m = tStr.substring(colon + 1).toInt();
+  tStr.trim();
+  int colon1 = tStr.indexOf(':');
+  if (colon1 == -1) return -1;
+  int colon2 = tStr.indexOf(':', colon1 + 1);
+  int h = tStr.substring(0, colon1).toInt();
+  int m = (colon2 != -1) ? tStr.substring(colon1 + 1, colon2).toInt() : tStr.substring(colon1 + 1).toInt();
+  if (h < 0 || h > 23 || m < 0 || m > 59) return -1;
   return h * 60 + m;
 }
 
@@ -987,54 +995,61 @@ void checkLogic() {
     }
   }
 
-  // ===================== 4. HEN GIO DEN LED THEO LICH =====================
-  if (led_timer_mode) {
-    struct tm ti;
-    if (getLocalTime(&ti)) {
-      int curMin = ti.tm_hour * 60 + ti.tm_min;
+  // ===================== 4. HEN GIO DEN LED THEO LICH (EDGE-TRIGGER) =====================
+  struct tm ti;
+  bool hasTime = getLocalTime(&ti, 50); // Timeout 50ms tranh blocking
+  if (hasTime) {
+    int curMin = ti.tm_hour * 60 + ti.tm_min;
+    int curDay = ti.tm_yday;
+
+    if (led_timer_mode) {
       int onMin  = parseTimeToMinutes(led_on_time);
       int offMin = parseTimeToMinutes(led_off_time);
-      bool shouldBeOn = isTimeInWindow(curMin, onMin, offMin);
 
-      if (shouldBeOn != ledState && !timer_led_active) {
-        ledState = shouldBeOn;
-        if (ledState) start_led = ms;
-        stateChanged = true;
-        Serial.printf("[LOGIC] Lich Hen Gio: Gio hien tai %02d:%02d (%d) -> %s Den LED\n",
-                      ti.tm_hour, ti.tm_min, curMin, ledState ? "BAT" : "TAT");
+      if (onMin >= 0 && offMin >= 0 && onMin != offMin) {
+        // Chi chuyen doi trang thai dung vao phut chuyen tiep moc gio
+        if (curMin == onMin && led_last_transition_min != onMin) {
+          led_last_transition_min = onMin;
+          ledState = true;
+          start_led = ms;
+          stateChanged = true;
+          Serial.printf("[LOGIC] Lich Den LED: Dung moc gio BAT (%02d:%02d) -> BAT Den LED\n", ti.tm_hour, ti.tm_min);
+        } else if (curMin == offMin && led_last_transition_min != offMin) {
+          led_last_transition_min = offMin;
+          ledState = false;
+          timer_led_active = false;
+          stateChanged = true;
+          Serial.printf("[LOGIC] Lich Den LED: Dung moc gio TAT (%02d:%02d) -> TAT Den LED\n", ti.tm_hour, ti.tm_min);
+        } else if (curMin != onMin && curMin != offMin) {
+          // Giai phong co san sang cho moc tiep theo
+          if (led_last_transition_min == onMin || led_last_transition_min == offMin) {
+            led_last_transition_min = -1;
+          }
+        }
       }
     }
-  }
 
-  // ===================== 5. HEN GIO CHO AN TU DONG =====================
-  struct tm ti;
-  if (getLocalTime(&ti)) {
-    int curTotalMin = ti.tm_hour * 60 + ti.tm_min;
-    int curSec = ti.tm_sec;
+    // ===================== 5. HEN GIO CHO AN TU DONG (NON-BLOCKING) =====================
+    // Tu dong reset sach se tat ca cac moc cho an khi sang ngay moi
+    if (curDay != last_feed_day) {
+      last_feed_day = curDay;
+      feed_done_slot1 = feed_done_slot2 = feed_done_slot3 = false;
+      Serial.printf("[LOGIC] Sang ngay moi (Day %d) -> Reset toan bo cac moc cho an\n", curDay);
+    }
 
-    auto checkFeed = [&](bool en, String tStr, int slot) {
-      if (!en) return;
-      int colon1 = tStr.indexOf(':');
-      if (colon1 == -1) return;
-      int colon2 = tStr.indexOf(':', colon1 + 1);
-      int h = tStr.substring(0, colon1).toInt();
-      int m = (colon2 != -1) ? tStr.substring(colon1 + 1, colon2).toInt() : tStr.substring(colon1 + 1).toInt();
-      int s = (colon2 != -1) ? tStr.substring(colon2 + 1).toInt() : 0;
-
-      int fMin = h * 60 + m;
-      if (curTotalMin == fMin && curSec >= s && curSec < s + 10 && feed_last_min != fMin) {
-        feed_last_min = fMin;
+    auto checkFeed = [&](bool en, String tStr, bool &feedDone, int slot) {
+      if (!en || feedDone) return;
+      int fMin = parseTimeToMinutes(tStr);
+      if (fMin >= 0 && curMin == fMin) {
+        feedDone = true;
         sendToSlave(true);
-        Serial.printf("[LOGIC] Hen gio Cho An Buoi %d (%02d:%02d:%02d) -> Kich hoat Servo\n", slot, h, m, s);
+        Serial.printf("[LOGIC] Hen gio Cho An MOC %d (%s) -> Kich hoat Servo xan moi\n", slot, tStr.c_str());
       }
     };
 
-    checkFeed(feed_en_1, feed_time_1, 1);
-    checkFeed(feed_en_2, feed_time_2, 2);
-    checkFeed(feed_en_3, feed_time_3, 3);
-
-    // Reset co qua ngay moi luc 00:00
-    if (curTotalMin == 0 && curSec < 5) feed_last_min = -1;
+    checkFeed(feed_en_1, feed_time_1, feed_done_slot1, 1);
+    checkFeed(feed_en_2, feed_time_2, feed_done_slot2, 2);
+    checkFeed(feed_en_3, feed_time_3, feed_done_slot3, 3);
   }
 
   // ===================== 6. TIMER COUNTDOWN TU TAT =====================
