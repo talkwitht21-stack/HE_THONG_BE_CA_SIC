@@ -76,9 +76,41 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         if frame is not None and gemini_ai:
             res = gemini_ai.analyze_frame(frame)
             dead = res.get("dead_fish", 0)
+            turb = res.get("water_turbidity", 0)
             res["confirmed_dead_fish"] = dead
             shared_state["ai_result"] = res
             shared_state["confirmed_dead_fish"] = dead
+
+            # 1. Kiem tra tu dong loc khi do duc cao
+            auto_active = shared_state.get("auto_turb_filter_active", False)
+            if turb >= 70 and not auto_active:
+                shared_state["auto_turb_filter_active"] = True
+                if esp32_client:
+                    esp_d = esp32_client.get_data()
+                    if not esp_d.get("fl", False):
+                        esp32_client.control_device("filter")
+            elif turb < 60 and auto_active:
+                shared_state["auto_turb_filter_active"] = False
+                if esp32_client:
+                    esp_d = esp32_client.get_data()
+                    if esp_d.get("fl", False):
+                        esp32_client.control_device("filter")
+
+            # 2. Tinh toan va day ngay Telemetry AI len ThingsBoard
+            if mqtt_ai and mqtt_ai.enabled:
+                total_fish = shared_state.get("total_fish_configured", 10)
+                alive_fish = max(0, total_fish - dead)
+                ai_telemetry = {
+                    "total_fish": total_fish,
+                    "alive_fish": alive_fish,
+                    "dead_fish": dead,
+                    "water_turbidity": turb,
+                    "summary": res.get("summary", ""),
+                    "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
+                    "is_alert": (dead > 0 or turb >= 40)
+                }
+                mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps if video_stream else 15.0)
+
             return jsonify({"status": "success", "data": res})
         return jsonify({"status": "error", "message": "Camera hoac AI chua san sang"}), 500
 

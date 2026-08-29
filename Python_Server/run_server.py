@@ -138,7 +138,7 @@ def main():
                                 esp_data = esp32_client.get_data()
                                 if not esp_data.get("fl", False):
                                     esp32_client.control_device("filter")
-                            if tg_cfg.get("enabled", False) and telegram_bot:
+                            if telegram_bot and telegram_bot.enabled:
                                 telegram_bot.send_message(
                                     f"🚨 <b>[CẢNH BÁO NƯỚC ĐỤC & TỰ ĐỘNG LỌC]</b>\n"
                                     f"• Độ đục nước đo được: <b>{turb}%</b> (Vượt ngưỡng 70%)\n"
@@ -152,7 +152,7 @@ def main():
                                 esp_data = esp32_client.get_data()
                                 if esp_data.get("fl", False):
                                     esp32_client.control_device("filter")
-                            if tg_cfg.get("enabled", False) and telegram_bot:
+                            if telegram_bot and telegram_bot.enabled:
                                 telegram_bot.send_message(
                                     f"✅ <b>[NƯỚC ĐÃ TRONG SẠCH]</b>\n"
                                     f"• Độ đục nước hiện tại: <b>{turb}%</b> (Đã an toàn &lt; 60%)\n"
