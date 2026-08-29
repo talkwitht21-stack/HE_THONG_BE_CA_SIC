@@ -23,6 +23,9 @@ def main():
 
     total_fish_init = cfg.get("aquarium", "total_fish", 10)
     chat_id_init = cfg.get("telegram", "chat_id", "")
+    cam_cfg = cfg.get("camera")
+    interval_normal_init = cam_cfg.get("interval_normal_sec", 120)
+    interval_alert_init = cam_cfg.get("interval_alert_sec", 10)
 
     # Trang thai dung chung (Shared State)
     shared_state = {
@@ -31,6 +34,8 @@ def main():
         "public_url": "",
         "confirmed_dead_fish": 0,
         "verify_progress": "0/5",
+        "interval_normal_sec": interval_normal_init,
+        "interval_alert_sec": interval_alert_init,
         "ai_result": {
             "dead_fish": 0, "abnormal_fish": 0,
             "water_turbidity": 10, "is_alert": False,
@@ -43,7 +48,6 @@ def main():
     ref_manager = ReferenceManager("reference_images", max_slots=5)
 
     # 3. Khoi tao Camera Video Stream
-    cam_cfg = cfg.get("camera")
     video_stream = VideoStream(
         source=cam_cfg.get("source", 0),
         width=cam_cfg.get("width", 640),
@@ -102,19 +106,18 @@ def main():
         if tg_cfg.get("enabled", False):
             telegram_bot.send_tunnel_url(pub_url)
 
+    tunnel = None
     if web_cfg.get("enable_cloudflare", True):
         tunnel = CloudflareTunnel(port=port, on_url_ready=on_cloudflare_ready)
         tunnel.start()
 
-    # 9. Vong lap phan tich AI voi co che XAC THUC 5 LAN LIEN TIEP:
-    interval_normal = cam_cfg.get("interval_normal_sec", 120)
-    interval_alert = cam_cfg.get("interval_alert_sec", 10)
+    # 9. Vong lap phan tich AI voi co che XAC THUC 5 LAN LIEN TIEP (Chu ky dong):
     CONFIRM_THRESHOLD = 5
 
     def ai_worker_loop():
         dead_streak = 0
         confirmed_dead = 0
-        print(f"[AI WORKER] Bat dau chu ky: Binh thuong {interval_normal}s / Chup xac thuc {interval_alert}s (5 lan lien tiep)...")
+        print("[AI WORKER] Bat dau luong AI doc lap voi chu ky lay mau dong...")
         
         while True:
             try:
@@ -153,22 +156,25 @@ def main():
                                 "dead_fish": confirmed_dead,
                                 "water_turbidity": turb,
                                 "summary": res.get("summary", ""),
-                                "ai_engine": res.get("ai_engine", "AI"),
+                                "ai_engine": res.get("ai_engine", "Gemini Flash VLM"),
                                 "is_alert": (confirmed_dead > 0 or turb >= 40)
                             }
                             mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
                             
-                        time.sleep(interval_alert)
-                        
+                        # Chu ky xac thuc lay dong tu shared_state
+                        wait_sec = shared_state.get("interval_alert_sec", 10)
+                        for _ in range(wait_sec):
+                            time.sleep(1)
                     else:
                         if dead_streak > 0:
-                            print(f"[AI VERIFY] Ca da boi lai binh thuong. Huy bo bao dong gia (Streak {dead_streak}->0).")
-                        dead_streak = 0
+                            print(f"[AI RESET] Ca da boi lai binh thuong sau {dead_streak} lan nghi ngo. Reset streak!")
+                            dead_streak = 0
+                            shared_state["verify_progress"] = "0/5"
+                            
                         confirmed_dead = 0
-                        shared_state["verify_progress"] = "0/5 (Bình thường)"
-                        shared_state["confirmed_dead_fish"] = 0
-                        
                         res["confirmed_dead_fish"] = 0
+                        res["is_alert"] = False
+                        shared_state["confirmed_dead_fish"] = 0
                         shared_state["ai_result"] = res
                         
                         if tb_cfg.get("enabled", False):
@@ -179,27 +185,43 @@ def main():
                                 "dead_fish": 0,
                                 "water_turbidity": turb,
                                 "summary": res.get("summary", ""),
-                                "ai_engine": res.get("ai_engine", "AI"),
+                                "ai_engine": res.get("ai_engine", "Gemini Flash VLM"),
                                 "is_alert": (turb >= 40)
                             }
                             mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
                             
-                        time.sleep(interval_normal)
+                        # Chu ky binh thuong lay dong tu shared_state
+                        wait_sec = shared_state.get("interval_normal_sec", 120)
+                        for _ in range(wait_sec):
+                            time.sleep(1)
+                            
                 else:
-                    time.sleep(5.0)
+                    time.sleep(2)
             except Exception as e:
                 print(f"[AI WORKER ERROR] {e}")
-                time.sleep(5.0)
+                time.sleep(5)
 
     ai_thread = threading.Thread(target=ai_worker_loop, daemon=True)
     ai_thread.start()
 
     # 10. Khoi chay Web Server Flask
-    app = create_app(video_stream, gemini_ai, esp32_client, shared_state, 
-                     config_mgr=cfg, telegram_bot=telegram_bot, ref_manager=ref_manager, mqtt_ai=mqtt_ai)
+    app = create_app(
+        video_stream=video_stream,
+        gemini_ai=gemini_ai,
+        esp32_client=esp32_client,
+        shared_state=shared_state,
+        config_mgr=cfg,
+        telegram_bot=telegram_bot,
+        ref_manager=ref_manager,
+        mqtt_ai=mqtt_ai,
+        tunnel=tunnel
+    )
+
     host = web_cfg.get("host", "0.0.0.0")
-    print(f"[WEB SERVER] Dang chay tai: http://{host}:{port}/ (hoac http://localhost:{port}/)")
-    app.run(host=host, port=port, debug=False, threaded=True)
+    print("=" * 65)
+    print(f" WEB DASHBOARD SAN SANG TAI: http://localhost:{port}")
+    print("=" * 65)
+    app.run(host=host, port=port, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
     main()

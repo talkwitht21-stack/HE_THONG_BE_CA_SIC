@@ -259,18 +259,22 @@ python run_server.py
 * **Tự động mở Cloudflare Tunnel:** Ngay khi khởi động, hệ thống tự động sinh Public URL (`https://*.trycloudflare.com`) và gửi thẳng vào Telegram của bạn!
 * **Truy cập Web Dashboard:** Mở trình duyệt vào **`http://localhost:5000`** (hoặc đường link Cloudflare từ 4G/ngoài đường).
 
----
-
 ## 11. HƯỚNG DẪN SỬ DỤNG CHI TIẾT TOÀN BỘ HỆ THỐNG TỪ A - Z
 
-### 11.1. Cài Đặt Khóa API & Token Trong Hộp Thoại Modal (Bấm nút ⚙️ Cài Đặt):
+### 11.1. Cài Đặt Khóa API, Nguồn Camera & Chu Kỳ Chụp Trong Hộp Thoại Modal:
 Mở Web Dashboard tại `http://localhost:5000` $\rightarrow$ Bấm nút **⚙️ CÀI ĐẶT HỆ THỐNG** trên góc phải Header:
-1. **Google Gemini Vision API Key:** Lấy key miễn phí tại [Google AI Studio](https://aistudio.google.com/) $\rightarrow$ Dán vào ô và bấm **Lưu API Key** (Hệ thống tự nạp model ngay lập tức).
-2. **ThingsBoard Access Token (Device AI Node):** Tạo Device mới trên ThingsBoard $\rightarrow$ Sao chép Access Token $\rightarrow$ Dán vào ô và bấm **Lưu Token TB**.
-3. **ThingsBoard Public Dashboard Link:** Dán link Public Dashboard của bạn (VD: `https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e`) $\rightarrow$ Bấm **Lưu Link TB** (iframe tự cập nhật ngay).
-4. **Telegram Bot Token:** Nhắn tin với [@BotFather](https://t.me/botfather) tạo bot mới $\rightarrow$ Dán token vào ô và bấm **Lưu Token Bot**.
-5. **Telegram Chat ID / User ID:** Nhắn tin `/start` với [@userinfobot](https://t.me/userinfobot) để lấy ID của bạn $\rightarrow$ Dán vào ô và bấm **Lưu ID Telegram**.
-6. **Tổng Số Cá Thả:** Nhập số cá đang thả trong bể (VD: 10) $\rightarrow$ Bấm **Lưu Số Cá**.
+1. **Camera & Chu Kỳ Phân Tích AI:**
+   - **Nguồn Camera:** Nhập `0` (Webcam USB) hoặc chuỗi RTSP/HTTP IP Camera (`rtsp://admin:123456@192.168.1.100:554/stream1`).
+   - **Chu kỳ bình thường (giây):** Số giây tự động chụp định kỳ (Mặc định: `120` giây = 2 phút/lần).
+   - **Chu kỳ khi nghi ngờ cá chết (giây):** Số giây chụp xác thực liên tiếp 5 lần (Mặc định: `10` giây/lần).
+   - Bấm **Lưu Cài Đặt Camera & Chu Kỳ** (áp dụng động ngay trong runtime).
+2. **Google Gemini Vision API Key:** Lấy key miễn phí tại [Google AI Studio](https://aistudio.google.com/) $\rightarrow$ Dán vào ô và bấm **Lưu API Key** (Hệ thống tự nạp model ngay lập tức).
+3. **ThingsBoard Access Token (Device AI Node):** Tạo Device mới trên ThingsBoard $\rightarrow$ Sao chép Access Token $\rightarrow$ Dán vào ô và bấm **Lưu Token TB**.
+4. **ThingsBoard Public Dashboard Link:** Dán link Public Dashboard của bạn (VD: `https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e`) $\rightarrow$ Bấm **Lưu Link TB** (iframe tự cập nhật ngay).
+5. **Telegram Bot Token:** Nhắn tin với [@BotFather](https://t.me/botfather) tạo bot mới $\rightarrow$ Dán token vào ô và bấm **Lưu Token Bot**.
+6. **Telegram Chat ID / User ID:** Nhắn tin `/start` với [@userinfobot](https://t.me/userinfobot) để lấy ID của bạn $\rightarrow$ Dán vào ô và bấm **Lưu ID Telegram**.
+7. **Tổng Số Cá Thả:** Nhập số cá đang thả trong bể (VD: 10) $\rightarrow$ Bấm **Lưu Số Cá**.
+8. **Tạo Lại Đường Hầm Cloudflare:** Bấm nút **"🔄 Tạo Lại Đường Hầm"** trên thanh Banner Web bất kỳ lúc nào để làm mới Public URL.
 
 ---
 

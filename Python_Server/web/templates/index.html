@@ -25,9 +25,11 @@
     .btn-settings-open:hover { transform: translateY(-1px); opacity: 0.95; }
 
     /* Cloudflare URL Banner */
-    .tunnel-banner { background: #ecfeff; border: 1px solid #a5f3fc; padding: 8px 16px; border-radius: 10px; font-size: 0.82em; color: #0e7490; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .tunnel-banner { background: #ecfeff; border: 1px solid #a5f3fc; padding: 10px 16px; border-radius: 12px; font-size: 0.84em; color: #0e7490; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
     .tunnel-link { color: #0284c7; font-weight: bold; text-decoration: none; word-break: break-all; }
     .tunnel-link:hover { text-decoration: underline; }
+    .btn-tunnel-refresh { background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; padding: 4px 10px; border-radius: 6px; font-size: 0.78em; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+    .btn-tunnel-refresh:hover { background: #0284c7; color: white; }
 
     /* Main Grid */
     .main-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 16px; }
@@ -99,7 +101,7 @@
     .modal-box {
       background: #ffffff;
       width: 100%;
-      max-width: 640px;
+      max-width: 660px;
       max-height: 90vh;
       overflow-y: auto;
       border-radius: 18px;
@@ -164,8 +166,11 @@
 
     <!-- Cloudflare Tunnel Banner -->
     <div class="tunnel-banner" id="tunnel-box">
-      <span>🌐 <strong>Public URL (Cloudflare):</strong> <span id="tunnel-text">Đang tạo đường hầm...</span></span>
-      <span class="badge-mode" id="freq-mode-lbl">Chu kỳ: 2 phút / lần</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span>🌐 <strong>Public URL (Cloudflare):</strong> <span id="tunnel-text">Đang tạo đường hầm...</span></span>
+        <button class="btn-tunnel-refresh" onclick="restartTunnel()">🔄 Tạo Lại Đường Hầm</button>
+      </div>
+      <span class="badge-mode" id="freq-mode-lbl">Chu kỳ: 120s / lần</span>
     </div>
 
     <!-- KHU VỰC CHẾ ĐỘ 1: LAN DIRECT MODE -->
@@ -268,19 +273,35 @@
         <button class="btn-modal-close" onclick="closeSettingsModal()">✖</button>
       </div>
 
-      <!-- 1. Cài Đặt Nguồn Camera / IP Camera -->
-      <div class="setting-section" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px;border-radius:12px">
-        <label class="setting-label" style="color:#166534">
-          📹 Nguồn Camera / IP Camera (RTSP / HTTP / USB): 
-          <span id="cam-status-lbl" style="font-size:0.85em;color:#059669;font-weight:normal"></span>
-        </label>
-        <p style="font-size:0.75em;color:#475569;margin-bottom:8px">
-          Nhập <strong>0</strong> (Webcam USB) hoặc chuỗi RTSP/HTTP IP Camera (Ví dụ: <code>rtsp://admin:123456@192.168.1.100:554/stream1</code> hoặc <code>http://192.168.1.50:8080/video</code>).
-        </p>
-        <div class="setting-row">
-          <input type="text" id="inp-cam-source" class="setting-input" placeholder="0 hoặc rtsp://...">
-          <button class="setting-btn" style="background:#16a34a" onclick="saveSettings('camera')">Lưu Nguồn Camera</button>
+      <!-- 1. Cài Đặt Camera & Chu Kỳ Phân Tích AI -->
+      <div class="setting-section" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:14px;border-radius:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <strong style="color:#166534;font-size:0.86em;text-transform:uppercase">📹 Camera &amp; Chu Kỳ Phân Tích AI</strong>
+          <span id="cam-status-lbl" style="font-size:0.8em;color:#059669;font-weight:bold"></span>
         </div>
+        <p style="font-size:0.75em;color:#475569;margin-bottom:10px">
+          Cấu hình nguồn Camera (USB/RTSP) và khoảng thời gian tự động chụp ảnh gửi Gemini Flash Vision phân tích.
+        </p>
+        
+        <!-- Nguồn Camera -->
+        <label class="setting-label" style="color:#15803d">Nguồn Camera (0 = Webcam USB hoặc Chuỗi RTSP/HTTP IP Camera):</label>
+        <input type="text" id="inp-cam-source" class="setting-input" style="width:100%;margin-bottom:10px" placeholder="0 hoặc rtsp://admin:123456@192.168.1.100:554/stream1">
+
+        <!-- Chu kỳ chụp -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div>
+            <label class="setting-label" style="color:#15803d">Chu kỳ bình thường (giây):</label>
+            <input type="number" id="inp-cam-inv-norm" class="setting-input" style="width:100%" min="5" placeholder="120 (2 phút)">
+          </div>
+          <div>
+            <label class="setting-label" style="color:#15803d">Chu kỳ khi nghi ngờ cá chết (giây):</label>
+            <input type="number" id="inp-cam-inv-alert" class="setting-input" style="width:100%" min="3" placeholder="10 (10 giây/lần)">
+          </div>
+        </div>
+
+        <button class="setting-btn" style="background:#16a34a;width:100%;padding:10px" onclick="saveSettings('camera')">
+          💾 LƯU CÀI ĐẶT CAMERA &amp; CHU KỲ
+        </button>
       </div>
 
       <!-- 2. Quản lý 5 Ảnh Mẫu Tham Chiếu -->
@@ -413,6 +434,15 @@
         });
     }
 
+    function restartTunnel() {
+      document.getElementById('tunnel-text').textContent = 'Đang tạo lại đường hầm...';
+      fetch('/api/restart_tunnel', {method: 'POST'})
+        .then(r => r.json())
+        .then(d => {
+          fetchStatus();
+        });
+    }
+
     // 5 Reference Slots Management
     function captureRefSlot(slot) {
       fetch('/api/reference/capture', {
@@ -504,8 +534,13 @@
       let payload = {};
       if (type === 'camera') {
         let src = document.getElementById('inp-cam-source').value.trim();
-        if (!src) return alert('Vui lòng nhập nguồn Camera (0 hoặc chuỗi RTSP/HTTP)!');
+        let invNorm = parseInt(document.getElementById('inp-cam-inv-norm').value);
+        let invAlert = parseInt(document.getElementById('inp-cam-inv-alert').value);
+
+        if (!src) return alert('Vui lòng nhập nguồn Camera!');
         payload.camera_source = src;
+        if (!isNaN(invNorm)) payload.interval_normal_sec = invNorm;
+        if (!isNaN(invAlert)) payload.interval_alert_sec = invAlert;
       } else if (type === 'gemini') {
         let k = document.getElementById('inp-gemini-key').value.trim();
         if (!k) return alert('Vui lòng nhập API Key!');
@@ -559,7 +594,7 @@
       fetch('/api/status')
         .then(r => r.json())
         .then(d => {
-          // Camera Source Status
+          // Camera & Intervals Status
           let camLbl = document.getElementById('cam-status-lbl');
           if (camLbl && d.camera_source) {
             camLbl.textContent = `(Đang kết nối: ${d.camera_source})`;
@@ -567,6 +602,14 @@
           let inpCam = document.getElementById('inp-cam-source');
           if (inpCam && !inpCam.value && d.camera_source) {
             inpCam.value = d.camera_source;
+          }
+          let inpNorm = document.getElementById('inp-cam-inv-norm');
+          if (inpNorm && !inpNorm.value && d.interval_normal_sec) {
+            inpNorm.value = d.interval_normal_sec;
+          }
+          let inpAlert = document.getElementById('inp-cam-inv-alert');
+          if (inpAlert && !inpAlert.value && d.interval_alert_sec) {
+            inpAlert.value = d.interval_alert_sec;
           }
 
           // Gemini Key Status
@@ -653,16 +696,19 @@
 
           // Chu kỳ chụp
           let freqLbl = document.getElementById('freq-mode-lbl');
+          let invNorm = d.interval_normal_sec || 120;
+          let invAlert = d.interval_alert_sec || 10;
+
           if (confirmedDead > 0) {
             freqLbl.textContent = 'Cảnh báo cá chết: Đã xác nhận!';
             freqLbl.style.background = '#fee2e2';
             freqLbl.style.color = '#dc2626';
           } else if (d.verify_progress && d.verify_progress.startsWith('0/5')) {
-            freqLbl.textContent = 'Chu kỳ bình thường: 2 phút/lần';
+            freqLbl.textContent = `Chu kỳ: ${invNorm}s / lần`;
             freqLbl.style.background = '#fef3c7';
             freqLbl.style.color = '#d97706';
           } else {
-            freqLbl.textContent = `Đang xác thực cá chết: ${d.verify_progress} (10s/lần)`;
+            freqLbl.textContent = `Đang xác thực: ${d.verify_progress} (${invAlert}s/lần)`;
             freqLbl.style.background = '#ffedd5';
             freqLbl.style.color = '#ea580c';
           }

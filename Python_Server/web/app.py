@@ -3,7 +3,7 @@ import time
 import os
 import io
 
-def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=None, telegram_bot=None, ref_manager=None, mqtt_ai=None):
+def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=None, telegram_bot=None, ref_manager=None, mqtt_ai=None, tunnel=None):
     app = Flask(__name__, template_folder="templates")
     app.config["SECRET_KEY"] = "beca_secret_key"
 
@@ -43,6 +43,8 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
 
         tb_dash_url = config_mgr.get("thingsboard", "dashboard_url", "https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e") if config_mgr else ""
         cam_src = config_mgr.get("camera", "source", 0) if config_mgr else 0
+        inv_normal = shared_state.get("interval_normal_sec", 120)
+        inv_alert = shared_state.get("interval_alert_sec", 10)
 
         return jsonify({
             "ai": shared_state.get("ai_result", {}),
@@ -59,6 +61,8 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "tg_token_masked": masked_tg,
             "tb_dashboard_url": tb_dash_url,
             "camera_source": str(cam_src),
+            "interval_normal_sec": inv_normal,
+            "interval_alert_sec": inv_alert,
             "fps": video_stream.actual_fps if video_stream else 0.0,
             "ref_status": ref_status,
             "esp32": esp_data,
@@ -76,6 +80,14 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             shared_state["confirmed_dead_fish"] = dead
             return jsonify({"status": "success", "data": res})
         return jsonify({"status": "error", "message": "Camera hoac AI chua san sang"}), 500
+
+    @app.route("/api/restart_tunnel", methods=["POST"])
+    def api_restart_tunnel():
+        if tunnel:
+            shared_state["public_url"] = ""
+            tunnel.restart()
+            return jsonify({"status": "success", "message": "Dang tao lai duong ham Cloudflare..."})
+        return jsonify({"status": "error", "message": "Cloudflare Tunnel chua bat"}), 400
 
     # API QUAN LY 5 ANH MAU THAM CHIEU
     @app.route("/api/reference/status", methods=["GET"])
@@ -136,6 +148,28 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
                 if video_stream:
                     video_stream.update_source(src_val)
                 changed = True
+
+        if "interval_normal_sec" in data:
+            try:
+                inv_n = int(data["interval_normal_sec"])
+                if inv_n >= 5:
+                    shared_state["interval_normal_sec"] = inv_n
+                    if config_mgr:
+                        config_mgr.set("camera", "interval_normal_sec", inv_n)
+                    changed = True
+            except ValueError:
+                pass
+
+        if "interval_alert_sec" in data:
+            try:
+                inv_a = int(data["interval_alert_sec"])
+                if inv_a >= 3:
+                    shared_state["interval_alert_sec"] = inv_a
+                    if config_mgr:
+                        config_mgr.set("camera", "interval_alert_sec", inv_a)
+                    changed = True
+            except ValueError:
+                pass
 
         if "gemini_api_key" in data:
             key = str(data["gemini_api_key"]).strip()
