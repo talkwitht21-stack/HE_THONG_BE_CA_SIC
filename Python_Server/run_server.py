@@ -165,10 +165,9 @@ def main():
                     if raw_dead > 0:
                         dead_streak += 1
                         shared_state["suspected_dead_fish"] = raw_dead
-                        shared_state["verify_progress"] = f"{dead_streak}/{CONFIRM_THRESHOLD}"
-                        print(f"[AI VERIFY] Phat hien nghi ngo ca chet ({raw_dead} con): Xac thuc lan {dead_streak}/{CONFIRM_THRESHOLD}...")
                         
                         if dead_streak >= CONFIRM_THRESHOLD:
+                            # ĐÃ ĐỦ 5 LẦN LIÊN TIẾP -> XÁC THỰC 100% CÁ CHẾT THẬT
                             confirmed_dead = raw_dead
                             res["confirmed_dead_fish"] = confirmed_dead
                             res["is_alert"] = True
@@ -179,40 +178,68 @@ def main():
                             if telegram_bot and telegram_bot.enabled:
                                 telegram_bot.check_and_send_alert(res)
                                 
-                            print(f"[AI CONFIRMED] DA XAC THUC CHINH XAC 100% {confirmed_dead} CA THE BI CHET!")
+                            print(f"[AI CONFIRMED] DA XAC THUC CHINH XAC 100% {confirmed_dead} CA THE BI CHET (Lan 5/5)!")
+                            
+                            # Đẩy dữ liệu chính thức lên ThingsBoard
+                            if mqtt_ai and mqtt_ai.enabled:
+                                total = shared_state.get("total_fish_configured", 10)
+                                alive = max(0, total - confirmed_dead)
+                                ai_telemetry = {
+                                    "total_fish": total,
+                                    "alive_fish": alive,
+                                    "dead_fish": confirmed_dead,
+                                    "water_turbidity": turb,
+                                    "summary": res.get("summary", ""),
+                                    "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
+                                    "is_alert": True
+                                }
+                                mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
+                                
+                            # Sau khi đã xác nhận 5/5, quay lại chu kỳ bình thường (120s) tránh spam API
+                            wait_sec = shared_state.get("interval_normal_sec", 120)
+                            for _ in range(wait_sec):
+                                time.sleep(1)
+                                
                         else:
+                            # ĐANG TRONG TIẾN TRÌNH XÁC MINH (1/5 -> 4/5)
+                            confirmed_dead = 0
                             res["confirmed_dead_fish"] = 0
+                            res["is_alert"] = False
+                            res["summary"] = f"Đang chụp xác minh chuyển động cá thể nghi vấn ({dead_streak}/{CONFIRM_THRESHOLD})..."
                             shared_state["confirmed_dead_fish"] = 0
+                            shared_state["verify_progress"] = f"{dead_streak}/{CONFIRM_THRESHOLD}"
                             shared_state["ai_result"] = res
+                            print(f"[AI VERIFY] Nghi ngo ca chet ({raw_dead} con): Dang xac thuc lan {dead_streak}/{CONFIRM_THRESHOLD}...")
                             
-                        if mqtt_ai and mqtt_ai.enabled:
-                            total = shared_state.get("total_fish_configured", 10)
-                            alive = max(0, total - confirmed_dead)
-                            ai_telemetry = {
-                                "total_fish": total,
-                                "alive_fish": alive,
-                                "dead_fish": confirmed_dead,
-                                "water_turbidity": turb,
-                                "summary": res.get("summary", ""),
-                                "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
-                                "is_alert": (confirmed_dead > 0 or turb >= 40)
-                            }
-                            mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
-                            
-                        # Chu ky xac thuc lay dong tu shared_state
-                        wait_sec = shared_state.get("interval_alert_sec", 10)
-                        for _ in range(wait_sec):
-                            time.sleep(1)
+                            # Đồng bộ ThingsBoard trạng thái an toàn trong lúc đếm
+                            if mqtt_ai and mqtt_ai.enabled:
+                                total = shared_state.get("total_fish_configured", 10)
+                                ai_telemetry = {
+                                    "total_fish": total,
+                                    "alive_fish": total,
+                                    "dead_fish": 0,
+                                    "water_turbidity": turb,
+                                    "summary": res.get("summary", ""),
+                                    "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
+                                    "is_alert": (turb >= 40)
+                                }
+                                mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
+                                
+                            # Chu kỳ lấy mẫu khẩn cấp (10s/lần) để đếm đủ 5 lần nhanh chóng
+                            wait_sec = shared_state.get("interval_alert_sec", 10)
+                            for _ in range(wait_sec):
+                                time.sleep(1)
                     else:
+                        # CÁ BƠI LẠI BÌNH THƯỜNG -> RESET TOÀN BỘ TIẾN TRÌNH VỀ 0/5
                         if dead_streak > 0:
-                            print(f"[AI RESET] Ca da boi lai binh thuong sau {dead_streak} lan nghi ngo. Reset streak!")
+                            print(f"[AI RESET] Ca da boi lai binh thuong sau {dead_streak} lan nghi ngo. Reset tien trinh ve 0/5!")
                             dead_streak = 0
                             
                         shared_state["suspected_dead_fish"] = 0
                         shared_state["verify_progress"] = "0/5 (An toàn)"
                         confirmed_dead = 0
                         res["confirmed_dead_fish"] = 0
-                        res["is_alert"] = False
+                        res["is_alert"] = (turb >= 40)
                         shared_state["confirmed_dead_fish"] = 0
                         shared_state["ai_result"] = res
                         
@@ -229,7 +256,7 @@ def main():
                             }
                             mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
                             
-                        # Chu ky binh thuong lay dong tu shared_state
+                        # Chu kỳ binh thuong 120s
                         wait_sec = shared_state.get("interval_normal_sec", 120)
                         for _ in range(wait_sec):
                             time.sleep(1)
