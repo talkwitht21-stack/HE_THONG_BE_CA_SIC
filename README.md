@@ -79,7 +79,7 @@ graph TD
     ESPSlave -->|"Kích rơ-le"| RELAYS
     ESPSlave -->|"Kéo góc quay"| SERVO
 
-    ESPMaster <==>|"Giao tiếp UART (9600 baud)<br/>GPIO 16/17 ($DATA...*CS)"| ESPSlave
+    ESPMaster <==>|"Giao tiếp UART (9600 baud)<br/>GPIO 16/17 ($CMD...*CS)"| ESPSlave
     
     Camera -->|"Luồng Video 15 FPS"| RPi5
     RPi5 <==>|"REST API LAN < 5ms"| ESPMaster
@@ -96,14 +96,14 @@ graph TD
 ## 4. CÁC TÍNH NĂNG CỐT LÕI CHI TIẾT
 
 ### 4.1. Điều Khiển Nhiệt Độ Thông Minh (Thermostat)
-- **Tự động Bật/Tắt Sưởi:** Bật sưởi khi nhiệt độ nước $< 18.0^\circ	ext{C}$, Tắt sưởi khi nước $\ge 20.0^\circ	ext{C}$ (ngưỡng tùy chỉnh linh hoạt).
-- **Tự động Bật/Tắt Quạt Làm Mát:** Bật quạt khi nước $> 30.0^\circ	ext{C}$, Tắt quạt khi nước $\le 28.0^\circ	ext{C}$.
-- **Failsafe Quá Nhiệt Tuyệt Đối:** Bất kể bật tay hay tự động, khi nhiệt độ nước $\ge 35.0^\circ	ext{C}$ $ightarrow$ Lập tức ngắt sưởi cưỡng bức để bảo vệ cá.
+- **Tự động Bật/Tắt Sưởi:** Bật sưởi khi nhiệt độ nước $< 18.0^\circ\text{C}$, Tắt sưởi khi nước $\ge 20.0^\circ\text{C}$ (ngưỡng tùy chỉnh linh hoạt).
+- **Tự động Bật/Tắt Quạt Làm Mát:** Bật quạt khi nước $> 30.0^\circ\text{C}$, Tắt quạt khi nước $\le 28.0^\circ\text{C}$.
+- **Failsafe Quá Nhiệt Tuyệt Đối:** Bất kể bật tay hay tự động, khi nhiệt độ nước $\ge 35.0^\circ\text{C}$ $\rightarrow$ Lập tức ngắt sưởi cưỡng bức để bảo vệ cá.
 
 ### 4.2. Quản Lý Mực Nước Siêu Âm Chống Cạn & Chống Tràn
 - **Bộ lọc trung vị 5 mẫu (Median Filter):** Khử hoàn toàn xung nhiễu do bọt khí oxy hoặc sóng nước dao động.
-- **Tự động Bơm Bù Nước:** Bật bơm bù khi khoảng cách nước $> 15.0	ext{cm}$, ngắt khi nước đầy $\le 5.0	ext{cm}$.
-- **Bảo Vệ Chống Tràn & Khóa Bơm Rút:** Ngắt bơm rút khi nước chạm đáy $\ge 30.0	ext{cm}$ để chống cháy bơm.
+- **Tự động Bơm Bù Nước:** Bật bơm bù khi khoảng cách nước $> 15.0\text{cm}$, ngắt khi nước đầy $\le 5.0\text{cm}$.
+- **Bảo Vệ Chống Tràn & Khóa Bơm Rút:** Ngắt bơm rút khi nước chạm đáy $\ge 30.0\text{cm}$ để chống cháy bơm.
 
 ### 4.3. Hệ Thống Cho Ăn Tự Động Với Servo Kéo Góc
 - **Cơ chế `attach()` / `detach()`:** Chỉ cấp xung PWM khi quay rót thức ăn, sau đó lập tức ngắt xung để chống rung, chống nóng và tăng tuổi thọ servo gấp 10 lần.
@@ -116,10 +116,10 @@ graph TD
 ### 5.1. Bảng Phân Bổ Chân ESP32-Master:
 | Chân ESP32 | Thiết Bị Ngoại Vi | Chức Năng | Ghi Chú |
 |---|---|---|---|
-| **GPIO 4** | Cảm biến DS18B20 | Đọc nhiệt độ nước | Kèm trở kéo lên $4.7	ext{k}\Omega$ lên 3.3V |
+| **GPIO 4** | Cảm biến DS18B20 | Đọc nhiệt độ nước | Kèm trở kéo lên $4.7\text{k}\Omega$ lên 3.3V |
 | **GPIO 5** | Cảm biến DHT11 | Đọc nhiệt/ẩm không khí | Chân DATA DHT11 |
 | **GPIO 18** | Cảm biến HC-SR04 (Trig) | Phát xung siêu âm | Output |
-| **GPIO 19** | Cảm biến HC-SR04 (Echo) | Nhận xung siêu âm | Input (Qua cầu phân áp $1	ext{k}\Omega / 2	ext{k}\Omega$ bảo vệ 3.3V) |
+| **GPIO 19** | Cảm biến HC-SR04 (Echo) | Nhận xung siêu âm | Input (Qua cầu phân áp $1\text{k}\Omega / 2\text{k}\Omega$ bảo vệ 3.3V) |
 | **GPIO 16** | Chân RX2 UART | Nhận dữ liệu từ Slave TX | Nối chéo với TX Slave (GPIO 17) |
 | **GPIO 17** | Chân TX2 UART | Gửi lệnh sang Slave RX | Nối chéo với RX Slave (GPIO 16) |
 | **GPIO 2** | LED Onboard | Đèn báo trạng thái mạng | Nhấp nháy khi mất mạng, sáng đứng khi online |
@@ -146,10 +146,10 @@ graph TD
 Giao tiếp UART2 hoạt động tại baudrate **9600 bps**, định dạng gói tin ASCII kèm Checksum XOR bảo đảm tính toàn vẹn:
 
 * **Master gửi sang Slave (Heartbeat & Lệnh mỗi 200ms):**
-  $$	exttt{\$CMD,<heater>,<fan>,<pump>,<oxy>,<drain>,<led>,<feed>,<system>*<CS>\n}$$
+  $$\texttt{\$CMD,<heater>,<fan>,<pump>,<oxy>,<drain>,<led>,<feed>,<system>*<CS>\n}$$
 * **Slave phản hồi sang Master:**
-  $$	exttt{\$ACK,<relay_states>,<ir_cmd>*<CS>\n}$$
-* **Cơ chế Watchdog 10 phút:** Nếu Slave không nhận được gói tin `$CMD` hợp lệ từ Master trong 10 phút liên tục $ightarrow$ Slave tự động ngắt toàn bộ 6 Relay để đưa bể cá về trạng thái an toàn tuyệt đối.
+  $$\texttt{\$ACK,<relay_states>,<ir_cmd>*<CS>\n}$$
+* **Cơ chế Watchdog 10 phút:** Nếu Slave không nhận được gói tin `$CMD` hợp lệ từ Master trong 10 phút liên tục $\rightarrow$ Slave tự động ngắt toàn bộ 6 Relay để đưa bể cá về trạng thái an toàn tuyệt đối.
 
 ---
 
@@ -175,14 +175,14 @@ Hệ thống hỗ trợ điều khiển tức thì (độ trễ 0ms) qua Remote 
 
 ### 8.1. Chuẩn bị môi trường nạp:
 1. Tải và cài đặt **Arduino IDE 2.x** từ [arduino.cc](https://www.arduino.cc/en/software).
-2. Vào **File** $ightarrow$ **Preferences** $ightarrow$ Thêm URL Board ESP32 vào ô *Additional Board Manager URLs*:
+2. Vào **File** $\rightarrow$ **Preferences** $\rightarrow$ Thêm URL Board ESP32 vào ô *Additional Board Manager URLs*:
    ```
    https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
    ```
-3. Vào **Tools** $ightarrow$ **Board** $ightarrow$ **Boards Manager**, tìm `esp32` và bấm **Install** (phiên bản 2.0.x hoặc 3.0.x).
+3. Vào **Tools** $\rightarrow$ **Board** $\rightarrow$ **Boards Manager**, tìm `esp32` và bấm **Install** (phiên bản 2.0.x hoặc 3.0.x).
 
 ### 8.2. Cài đặt các thư viện cần thiết:
-Vào **Tools** $ightarrow$ **Manage Libraries**, tìm và cài đặt các thư viện:
+Vào **Tools** $\rightarrow$ **Manage Libraries**, tìm và cài đặt các thư viện:
 - `OneWire` và `DallasTemperature` (đọc DS18B20)
 - `DHT sensor library` (đọc DHT11)
 - `PubSubClient` (kết nối MQTT ThingsBoard)
@@ -212,10 +212,10 @@ Hệ thống đã có sẵn file mẫu thiết kế siêu đẹp theo tiêu chu�
 - [`ThingsBoard_Dashboard_BeCa.json`](file:///g:/BECA/HE_THONG_BE_CA_SIC/ThingsBoard_Dashboard_BeCa.json)
 
 ### 🚀 Cách Import Nhanh (Chỉ mất 10 giây):
-1. Đăng nhập vào **[ThingsBoard Cloud](https://demo.thingsboard.io)**.
-2. Vào menu **Dashboards** $ightarrow$ bấm biểu tượng **`+`** (Import Dashboard góc trên bên phải).
+1. Đăng nhập vào **[ThingsBoard Cloud](https://thingsboard.cloud)**.
+2. Vào menu **Dashboards** $\rightarrow$ bấm biểu tượng **`+`** (Import Dashboard góc trên bên phải).
 3. Chọn file [`giám_sát_&_điều_khiển_bể_cá_thông_minh.json`](file:///g:/BECA/HE_THONG_BE_CA_SIC/gi%C3%A1m_s%C3%A1t_&_%C4%91i%E1%BB%81u_khi%E1%BB%83n_b%E1%BB%83_c%C3%A1_th%C3%B4ng_minh.json).
-4. Bấm **Import** $ightarrow$ Bạn sẽ có ngay một bảng điều khiển hoàn chỉnh hợp nhất cả ESP32 lẫn Edge AI!
+4. Bấm **Import** $\rightarrow$ Bạn sẽ có ngay một bảng điều khiển hoàn chỉnh hợp nhất cả ESP32 lẫn Edge AI!
 
 ---
 
@@ -263,47 +263,49 @@ python run_server.py
 
 ## 11. HƯỚNG DẪN SỬ DỤNG CHI TIẾT TOÀN BỘ HỆ THỐNG TỪ A - Z
 
-### 11.1. Cài Đặt Khóa API & Token Trực Tiếp Từ Web Dashboard (Không Cần Sửa Code):
-Mở Web Dashboard tại `http://localhost:5000` $ightarrow$ Cuộn xuống mục **Cài Đặt & Khóa API Hệ Thống**:
-1. **Google Gemini Vision API Key:** Lấy key miễn phí tại [Google AI Studio](https://aistudio.google.com/) $ightarrow$ Dán vào ô và bấm **Lưu API Key** (Hệ thống tự nạp model ngay lập tức).
-2. **ThingsBoard Access Token (Device AI Node):** Tạo Device mới trên ThingsBoard $ightarrow$ Sao chép Access Token $ightarrow$ Dán vào ô và bấm **Lưu Token TB**.
-3. **Telegram Bot Token:** Nhắn tin với [@BotFather](https://t.me/botfather) tạo bot mới $ightarrow$ Dán token vào ô và bấm **Lưu Token Bot**.
-4. **Telegram Chat ID / User ID:** Nhắn tin `/start` với [@userinfobot](https://t.me/userinfobot) để lấy ID của bạn $ightarrow$ Dán vào ô và bấm **Lưu ID Telegram**.
-5. **Tổng Số Cá Thả:** Nhập số cá đang thả trong bể (VD: 10) $ightarrow$ Bấm **Lưu Số Cá**.
+### 11.1. Cài Đặt Khóa API & Token Trong Hộp Thoại Modal (Bấm nút ⚙️ Cài Đặt):
+Mở Web Dashboard tại `http://localhost:5000` $\rightarrow$ Bấm nút **⚙️ CÀI ĐẶT HỆ THỐNG** trên góc phải Header:
+1. **Google Gemini Vision API Key:** Lấy key miễn phí tại [Google AI Studio](https://aistudio.google.com/) $\rightarrow$ Dán vào ô và bấm **Lưu API Key** (Hệ thống tự nạp model ngay lập tức).
+2. **ThingsBoard Access Token (Device AI Node):** Tạo Device mới trên ThingsBoard $\rightarrow$ Sao chép Access Token $\rightarrow$ Dán vào ô và bấm **Lưu Token TB**.
+3. **ThingsBoard Public Dashboard Link:** Dán link Public Dashboard của bạn (VD: `https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e`) $\rightarrow$ Bấm **Lưu Link TB** (iframe tự cập nhật ngay).
+4. **Telegram Bot Token:** Nhắn tin với [@BotFather](https://t.me/botfather) tạo bot mới $\rightarrow$ Dán token vào ô và bấm **Lưu Token Bot**.
+5. **Telegram Chat ID / User ID:** Nhắn tin `/start` với [@userinfobot](https://t.me/userinfobot) để lấy ID của bạn $\rightarrow$ Dán vào ô và bấm **Lưu ID Telegram**.
+6. **Tổng Số Cá Thả:** Nhập số cá đang thả trong bể (VD: 10) $\rightarrow$ Bấm **Lưu Số Cá**.
 
 ---
 
 ### 11.2. Thiết Lập 5 Ảnh Mẫu Tham Chiếu (Baseline Calibration):
 * **Mục đích:** Loại bỏ $100\%$ việc AI nhìn nhầm gỗ lũa, đá sỏi, hang hốc dưới đáy bể thành cá chết.
 * **Cách thực hiện:**
-  1. Trong mục **5 Ảnh Mẫu Tham Chiếu**, bạn có 5 slot (`Mẫu 1` .. `Mẫu 5`).
+  1. Trong Hộp Thoại Cài Đặt, mục **5 Ảnh Mẫu Tham Chiếu**, bạn có 5 slot (`Mẫu 1` .. `Mẫu 5`).
   2. Bấm nút **Chụp Cam** (để lấy frame camera hiện tại) hoặc bấm **Tải Ảnh** (tải ảnh chụp bể cá lúc bình thường ở các góc sáng, tối, lũa đá).
   3. Hoặc trên Telegram, gõ lệnh `/setref 1` .. `/setref 5` để chụp lưu ảnh mẫu trực tiếp từ điện thoại!
 
 ---
 
-### 11.3. Cơ Chế Xác Thực Cá Chết 5 Lần Liên Tiếp (Chống Báo Động Giả):
-* **Chu kỳ bình thường:** Mỗi **2 phút (120s)** chụp 1 ảnh gửi Gemini AI phân tích.
-* **Khi nghi ngờ cá chết:** Hệ thống tự động kích hoạt chu kỳ xác thực **chụp liên tục mỗi 10 giây/lần**.
-  * Nếu **cả 5 lần chụp liên tiếp** đều phát hiện cá chết $ightarrow$ Xác nhận chính xác $100\%$, cập nhật $	ext{Cá Sống} = 	ext{Tổng Cá} - 	ext{Cá Chết}$, gửi ảnh snapshot bằng chứng và cảnh báo khẩn cấp qua Telegram!
-  * Nếu cá bơi lại bình thường $ightarrow$ Reset streak về `0/5`, quay lại chu kỳ 2 phút/lần.
-* **Nút chụp tức thì:** Bấm nút **📸 CHỤP ẢNH & PHÂN TÍCH AI NGAY** trên Web để đọc kết quả trong $< 2	ext{s}$.
+### 11.3. Chuyển Đổi & Nhúng Public Dashboard ThingsBoard (Chế Độ 2):
+* Chuyển sang **CHẾ ĐỘ 2: CLOUD (ThingsBoard)** trên Web:
+  - Phía trên có thanh công cụ: Bạn có thể **dán link Public Dashboard bất kỳ** $\rightarrow$ Bấm **"Lưu & Tải Lại Dashboard"** để đổi giao diện tức thì!
+  - Bấm nút **"Mở Tab Mới ↗"** để xem toàn màn hình trên trình duyệt.
 
 ---
 
-### 11.4. Bảng Lệnh Tương Tác Qua Telegram Chatbot:
+### 11.4. Cơ Chế Xác Thực Cá Chết 5 Lần Liên Tiếp (Chống Báo Động Giả):
+* **Chu kỳ bình thường:** Mỗi **2 phút (120s)** chụp 1 ảnh gửi Gemini AI phân tích.
+* **Khi nghi ngờ cá chết:** Hệ thống tự động kích hoạt chu kỳ xác thực **chụp liên tục mỗi 10 giây/lần**.
+  * Nếu **cả 5 lần chụp liên tiếp** đều phát hiện cá chết $\rightarrow$ Xác nhận chính xác $100\%$, cập nhật $\text{Cá Sống} = \text{Tổng Cá} - \text{Cá Chết}$, gửi ảnh snapshot bằng chứng và cảnh báo khẩn cấp qua Telegram!
+  * Nếu cá bơi lại bình thường $\rightarrow$ Reset streak về `0/5`, quay lại chu kỳ 2 phút/lần.
+* **Nút chụp tức thì:** Bấm nút **📸 CHỤP ẢNH & PHÂN TÍCH AI NGAY** trên Web để đọc kết quả trong $< 2\text{s}$.
+
+---
+
+### 11.5. Bảng Lệnh Tương Tác Qua Telegram Chatbot:
 | Lệnh Telegram | Chức Năng Thực Hiện |
 |---|---|
-| `/status` | Chụp ảnh camera $ightarrow$ Gửi AI đối chiếu 5 ảnh mẫu $ightarrow$ Trả về ảnh snapshot + báo cáo chi tiết |
+| `/status` | Chụp ảnh camera $\rightarrow$ Gửi AI đối chiếu 5 ảnh mẫu $\rightarrow$ Trả về ảnh snapshot + báo cáo chi tiết |
 | `/snapshot` | Chụp và gửi ảnh trực tiếp từ camera ngay lập tức |
 | `/setref <1-5>` | Chụp frame camera hiện tại lưu làm ảnh mẫu tham chiếu số $1..5$ |
 | `/refstatus` | Xem danh sách và thời gian lưu của 5 ảnh mẫu tham chiếu |
 | `/url` | Lấy lại đường dẫn Public Web Cloudflare Tunnel (`https://*.trycloudflare.com`) |
 | `/data` | Đọc toàn bộ cảm biến môi trường (Nhiệt độ nước, mực nước, relay) từ ESP32 qua LAN |
 | `/feed` | Kích hoạt quay Servo rót thức ăn từ xa qua Telegram |
-
----
-
-### 11.5. Chuyển Đổi Linh Hoạt 2 Chế Độ Điều Khiển Trên Web:
-* **Chế độ 1 (LAN `beca.local`):** Bấm nút trên Web để điều khiển 6 Relay trực tiếp qua mạng nội bộ với độ trễ siêu thấp $< 5	ext{ms}$ ngay cả khi mất kết nối Internet.
-* **Chế độ 2 (Cloud ThingsBoard):** Nhúng Dashboard ThingsBoard trực tiếp trên Web để theo dõi biểu đồ lịch sử 24h và điều khiển từ xa.

@@ -74,7 +74,11 @@
     .btn.action { background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); width: 100%; padding: 11px; margin-top: 10px; font-size: 0.88em; border-radius: 8px; }
     
     /* IFrame ThingsBoard */
-    .tb-frame { width: 100%; height: 700px; border: none; border-radius: 12px; }
+    .tb-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; background: #f0f9ff; padding: 10px 14px; border-radius: 10px; border: 1px solid #bae6fd; }
+    .tb-input { flex: 1; min-width: 250px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.84em; }
+    .tb-btn { padding: 8px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.82em; cursor: pointer; }
+    .tb-btn:hover { background: #0369a1; }
+    .tb-frame { width: 100%; height: 700px; border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: 800; }
     .badge-lan { background: #e0f2fe; color: #0284c7; }
     .badge-mode { background: #fef3c7; color: #d97706; padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: bold; }
@@ -241,8 +245,16 @@
       <div class="card">
         <div class="card-title">
           <span>Bảng Điều Khiển ThingsBoard Cloud</span>
-          <a id="tb-direct-link" href="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e" target="_blank" style="font-size:0.75em;color:#0284c7;text-decoration:none;font-weight:bold">Mở Tab Mới ↗</a>
+          <a id="tb-direct-link" href="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e" target="_blank" style="font-size:0.78em;color:#0284c7;text-decoration:none;font-weight:bold">Mở Tab Mới ↗</a>
         </div>
+        
+        <!-- Ô CÀI ĐẶT NHẬP LINK PUBLIC DASHBOARD TRỰC TIẾP TRÊN CHẾ ĐỘ CLOUD -->
+        <div class="tb-toolbar">
+          <label style="font-size:0.8em;font-weight:bold;color:#0369a1;white-space:nowrap">Link Public Dashboard:</label>
+          <input type="text" id="inp-tb-url-cloud-view" class="tb-input" placeholder="Dán link ThingsBoard Public Dashboard tại đây...">
+          <button class="tb-btn" onclick="saveTbUrlFromCloudView()">Lưu &amp; Tải Lại Dashboard</button>
+        </div>
+
         <iframe class="tb-frame" id="tb-iframe" src="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e"></iframe>
       </div>
     </div>
@@ -296,7 +308,7 @@
 
       <!-- 4. ThingsBoard Public Dashboard Link -->
       <div class="setting-section">
-        <label class="setting-label">ThingsBoard Public Dashboard Link (Nhúng trên Web):</label>
+        <label class="setting-label">ThingsBoard Public Dashboard Link (Nhúng Web):</label>
         <div class="setting-row">
           <input type="text" id="inp-tb-url" class="setting-input" placeholder="https://thingsboard.cloud/dashboard/...">
           <button class="setting-btn" onclick="saveSettings('tb_url')">Lưu Link TB</button>
@@ -455,6 +467,24 @@
       document.getElementById('ref-count-badge').textContent = `${validCount}/5 Ảnh`;
     }
 
+    function saveTbUrlFromCloudView() {
+      let u = document.getElementById('inp-tb-url-cloud-view').value.trim();
+      if (!u) return alert('Vui lòng dán đường link Public Dashboard của ThingsBoard!');
+      
+      fetch('/api/update_settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({thingsboard_dashboard_url: u})
+      })
+      .then(r => r.json())
+      .then(d => {
+        alert('Đã cập nhật đường link ThingsBoard Dashboard!');
+        document.getElementById('tb-iframe').src = u;
+        document.getElementById('tb-direct-link').href = u;
+        fetchStatus();
+      });
+    }
+
     function saveSettings(type) {
       let payload = {};
       if (type === 'gemini') {
@@ -542,8 +572,12 @@
             }
             let directLink = document.getElementById('tb-direct-link');
             if (directLink) directLink.href = d.tb_dashboard_url;
+            
             let inpTbUrl = document.getElementById('inp-tb-url');
             if (inpTbUrl && !inpTbUrl.value) inpTbUrl.value = d.tb_dashboard_url;
+
+            let inpTbUrlCloud = document.getElementById('inp-tb-url-cloud-view');
+            if (inpTbUrlCloud && !inpTbUrlCloud.value) inpTbUrlCloud.value = d.tb_dashboard_url;
           }
 
           // Telegram Bot Token Status

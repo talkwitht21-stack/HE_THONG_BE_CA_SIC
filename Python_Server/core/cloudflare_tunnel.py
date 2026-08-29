@@ -40,7 +40,7 @@ class CloudflareTunnel:
                 self._notify_ready()
                 return
         except Exception as e:
-            print(f"[CLOUDFLARE WARN] pycloudflared try_cloudflare that bai ({e}), thu chay truc tiep...")
+            print(f"[CLOUDFLARE WARN] pycloudflared that bai ({e}), thu fallback sang subprocess...")
 
         # 2. Fallback sang Subprocess chay cloudflared
         cmd = None
