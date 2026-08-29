@@ -191,6 +191,7 @@ void setup() {
 
   mqtt.setServer(mqtt_server.c_str(), mqtt_port);
   mqtt.setCallback(mqttCallback);
+  mqtt.setBufferSize(1024); // Tăng buffer từ 128 lên 1024 bytes cho JSON Telemetry
 
   setupWeb();
 
@@ -1125,7 +1126,8 @@ void handleMQTT() {
       lastMqttAttempt = ms;
       Serial.println("[MQTT] Dang ket noi toi: " + mqtt_server);
       mqtt.setServer(mqtt_server.c_str(), mqtt_port);
-      if (mqtt.connect("ESP32_Master", mqtt_token.c_str(), NULL)) {
+      mqtt.setBufferSize(1024); // Đảm bảo buffer 1024 bytes cho packet lớn
+      if (mqtt.connect("ESP32_Master_BeCa", mqtt_token.c_str(), NULL)) {
         Serial.println("[MQTT] Ket noi thanh cong!");
         mqtt.subscribe("v1/devices/me/rpc/request/+");
 
@@ -1152,10 +1154,10 @@ void handleMQTT() {
   if (ms - lastMqttPublish >= 5000) {
     lastMqttPublish = ms;
 
-    StaticJsonDocument<450> d;
-    d["water_temp"]   = waterTemp;
-    d["air_temp"]     = airTemp;
-    d["air_hum"]      = airHum;
+    StaticJsonDocument<512> d;
+    d["water_temp"]   = (waterTemp > -500.0) ? waterTemp : 0.0;
+    d["air_temp"]     = (airTemp > -500.0)   ? airTemp   : 0.0;
+    d["air_hum"]      = (airHum > -500.0)    ? airHum    : 0.0;
     d["water_cm"]     = waterLevelCm;
     d["heater"]       = heaterState;
     d["fan"]          = fanState;
@@ -1171,10 +1173,14 @@ void handleMQTT() {
     d["ip"]           = WiFi.localIP().toString();
     if (last_ir.length() > 0) d["last_ir"] = last_ir;
 
-    char buf[450];
+    char buf[512];
     serializeJson(d, buf);
-    Serial.println("[MQTT SEND] " + String(buf));
-    mqtt.publish("v1/devices/me/telemetry", buf);
+    bool ok = mqtt.publish("v1/devices/me/telemetry", buf);
+    if (ok) {
+      Serial.println("[MQTT TELEMETRY OK] " + String(buf));
+    } else {
+      Serial.println("[MQTT TELEMETRY FAILED] Packet qua dai hoac socket bi loi!");
+    }
   }
 }
 
