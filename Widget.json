@@ -200,41 +200,35 @@
             {
               "type": "entity",
               "name": "",
-              "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
+              "entityAliasId": "7c7715eb-fe5b-944b-f45f-0ba9eadb2d6d",
               "dataKeys": [
                 {
                   "name": "ai_summary",
                   "type": "timeseries",
-                  "label": "ai_summary"
+                  "label": "ai_summary",
+                  "color": "#2196f3",
+                  "settings": {}
                 },
                 {
                   "name": "ai_engine",
                   "type": "timeseries",
-                  "label": "ai_engine"
+                  "label": "ai_engine",
+                  "color": "#4caf50",
+                  "settings": {}
                 },
                 {
                   "name": "ai_fps",
                   "type": "timeseries",
-                  "label": "ai_fps"
+                  "label": "ai_fps",
+                  "color": "#f44336",
+                  "settings": {}
                 }
               ],
-              "latestDataKeys": [
-                {
-                  "name": "ai_summary",
-                  "type": "timeseries",
-                  "label": "ai_summary"
-                },
-                {
-                  "name": "ai_engine",
-                  "type": "timeseries",
-                  "label": "ai_engine"
-                },
-                {
-                  "name": "ai_fps",
-                  "type": "timeseries",
-                  "label": "ai_fps"
-                }
-              ]
+              "alarmFilterConfig": {
+                "statusList": [
+                  "ACTIVE"
+                ]
+              }
             }
           ],
           "showTitle": true,
@@ -1052,12 +1046,12 @@
             {
               "type": "entity",
               "name": "",
-              "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
+              "entityAliasId": "7c7715eb-fe5b-944b-f45f-0ba9eadb2d6d",
               "dataKeys": [
                 {
                   "name": "ai_total_fish",
                   "type": "timeseries",
-                  "label": "Tổng Cá",
+                  "label": "ai_total_fish",
                   "color": "#0369a1",
                   "settings": {},
                   "units": "con",
@@ -1243,12 +1237,12 @@
             {
               "type": "entity",
               "name": "",
-              "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
+              "entityAliasId": "7c7715eb-fe5b-944b-f45f-0ba9eadb2d6d",
               "dataKeys": [
                 {
                   "name": "ai_alive_fish",
                   "type": "timeseries",
-                  "label": "Cá Sống",
+                  "label": "ai_alive_fish",
                   "color": "#10b981",
                   "settings": {},
                   "units": "con",
@@ -1434,12 +1428,12 @@
             {
               "type": "entity",
               "name": "",
-              "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
+              "entityAliasId": "7c7715eb-fe5b-944b-f45f-0ba9eadb2d6d",
               "dataKeys": [
                 {
                   "name": "ai_dead_fish",
                   "type": "timeseries",
-                  "label": "Cá Chết",
+                  "label": "ai_dead_fish",
                   "color": "#ef4444",
                   "settings": {},
                   "units": "con",
@@ -1625,12 +1619,12 @@
             {
               "type": "entity",
               "name": "",
-              "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
+              "entityAliasId": "7c7715eb-fe5b-944b-f45f-0ba9eadb2d6d",
               "dataKeys": [
                 {
                   "name": "ai_water_turbidity",
                   "type": "timeseries",
-                  "label": "Độ Đục",
+                  "label": "ai_water_turbidity",
                   "color": "#0ea5e9",
                   "settings": {},
                   "units": "%",
@@ -3677,6 +3671,18 @@
           "singleEntity": {
             "entityType": "DEVICE",
             "id": "274532d0-a39f-11f1-8523-a9586d32bc6e"
+          }
+        }
+      },
+      "7c7715eb-fe5b-944b-f45f-0ba9eadb2d6d": {
+        "id": "7c7715eb-fe5b-944b-f45f-0ba9eadb2d6d",
+        "alias": "AI_Beca",
+        "filter": {
+          "type": "singleEntity",
+          "resolveMultiple": false,
+          "singleEntity": {
+            "entityType": "DEVICE",
+            "id": "9d0b7bc0-92fe-11f1-b480-1301d0f2616d"
           }
         }
       }
