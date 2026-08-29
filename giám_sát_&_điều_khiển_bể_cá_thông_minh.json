@@ -191,7 +191,47 @@
         "sizeX": 8,
         "sizeY": 8,
         "config": {
-          "datasources": [],
+          "datasources": [
+            {
+              "type": "entity",
+              "name": "",
+              "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
+              "dataKeys": [
+                {
+                  "name": "summary",
+                  "type": "timeseries",
+                  "label": "summary"
+                },
+                {
+                  "name": "ai_engine",
+                  "type": "timeseries",
+                  "label": "ai_engine"
+                },
+                {
+                  "name": "ai_fps",
+                  "type": "timeseries",
+                  "label": "ai_fps"
+                }
+              ],
+              "latestDataKeys": [
+                {
+                  "name": "summary",
+                  "type": "timeseries",
+                  "label": "summary"
+                },
+                {
+                  "name": "ai_engine",
+                  "type": "timeseries",
+                  "label": "ai_engine"
+                },
+                {
+                  "name": "ai_fps",
+                  "type": "timeseries",
+                  "label": "ai_fps"
+                }
+              ]
+            }
+          ],
           "showTitle": true,
           "backgroundColor": "#ffffff",
           "color": "#0369a1",
