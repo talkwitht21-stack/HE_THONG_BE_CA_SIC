@@ -3122,7 +3122,7 @@
         "id": "7bf3aa8e-1b22-4fe0-81ec-f26804f2397d"
       },
       "8cf4bb9f-2c33-5af1-92fd-f37905f3408e": {
-        "typeFullFqn": "system.power_button",
+        "typeFullFqn": "system.button",
         "type": "rpc",
         "sizeX": 6,
         "sizeY": 3,
@@ -3132,125 +3132,44 @@
           "color": "#1e293b",
           "padding": "0px",
           "settings": {
-            "initialState": {
-              "action": "DO_NOTHING",
-              "defaultValue": false,
-              "executeRpc": {
-                "method": "feed",
-                "requestTimeout": 5000,
-                "requestPersistent": false,
-                "persistentPollingInterval": 1000
-              },
-              "getAttribute": {
-                "scope": null,
-                "key": "feed"
-              },
-              "getTimeSeries": {
-                "key": "feed"
-              },
-              "getAlarmStatus": {
-                "severityList": null,
-                "typeList": null
-              },
-              "dataToValue": {
-                "type": "NONE",
-                "dataToValueFunction": "/* Should return boolean value */\nreturn data;",
-                "compareToValue": true
-              }
+            "action": "EXECUTE_RPC",
+            "executeRpc": {
+              "method": "setFeed",
+              "requestTimeout": 5000,
+              "requestPersistent": false,
+              "persistentPollingInterval": 1000
             },
-            "onUpdateState": {
-              "action": "EXECUTE_RPC",
-              "executeRpc": {
-                "method": "setFeed",
-                "requestTimeout": 5000,
-                "requestPersistent": false,
-                "persistentPollingInterval": 1000
-              },
-              "setAttribute": {
-                "scope": "SERVER_SCOPE",
-                "key": "state"
-              },
-              "putTimeSeries": {
-                "key": "state"
-              },
-              "valueToData": {
-                "type": "CONSTANT",
-                "constantValue": true,
-                "valueToDataFunction": "/* Convert input boolean value to RPC parameters */\nreturn value;"
-              }
+            "valueToData": {
+              "type": "CONSTANT",
+              "constantValue": true,
+              "valueToDataFunction": "return true;"
             },
-            "offUpdateState": {
-              "action": "EXECUTE_RPC",
-              "executeRpc": {
-                "method": "setFeed",
-                "requestTimeout": 5000,
-                "requestPersistent": false,
-                "persistentPollingInterval": 1000
-              },
-              "setAttribute": {
-                "scope": "SERVER_SCOPE",
-                "key": "state"
-              },
-              "putTimeSeries": {
-                "key": "state"
-              },
-              "valueToData": {
-                "type": "CONSTANT",
-                "constantValue": false,
-                "valueToDataFunction": "/* Convert input boolean value to RPC parameters */ \n return value;"
-              }
-            },
-            "disabledState": {
-              "action": "DO_NOTHING",
-              "defaultValue": false,
-              "getAttribute": {
-                "key": "state",
-                "scope": null
-              },
-              "getTimeSeries": {
-                "key": "state"
-              },
-              "getAlarmStatus": {
-                "severityList": null,
-                "typeList": null
-              },
-              "dataToValue": {
-                "type": "NONE",
-                "compareToValue": true,
-                "dataToValueFunction": "return data;"
-              }
-            },
-            "layout": "default",
-            "onButtonIcon": {
+            "buttonText": "CHO ĂN NGAY TỨC THÌ",
+            "buttonIcon": {
               "showIcon": true,
-              "iconSize": 32,
+              "iconSize": 24,
               "iconSizeUnit": "px",
               "icon": "restaurant"
             },
-            "offButtonIcon": {
-              "showIcon": true,
-              "iconSize": 32,
-              "iconSizeUnit": "px",
-              "icon": "restaurant"
+            "buttonColor": "#ffffff",
+            "buttonBackgroundColor": "#0284c7",
+            "buttonBorderColor": "#0284c7",
+            "buttonBorderRadius": "10px",
+            "buttonFont": {
+              "family": "Segoe UI, Roboto, sans-serif",
+              "size": 13,
+              "sizeUnit": "px",
+              "style": "normal",
+              "weight": "700",
+              "lineHeight": "1"
             },
-            "mainColorOn": "#0284c7",
-            "backgroundColorOn": "#f0f9ff",
-            "mainColorOff": "#94a3b8",
-            "backgroundColorOff": "#f8fafc",
-            "mainColorDisabled": "rgba(0,0,0,0.12)",
-            "backgroundColorDisabled": "#FFFFFF",
-            "background": {
-              "type": "color",
-              "color": "#ffffff",
-              "overlay": {
-                "enabled": false,
-                "color": "rgba(255,255,255,0.72)",
-                "blur": 3
-              }
-            },
+            "showSuccessToast": true,
+            "successToastMessage": "Đã gửi lệnh rót thức ăn thành công!",
+            "showErrorToast": true,
+            "errorToastMessage": "Lỗi gửi lệnh rót thức ăn!",
             "padding": "12px"
           },
-          "title": "Cho Ăn Tức Thì (Servo)",
+          "title": "Cho Ăn Ngay (Servo)",
           "dropShadow": true,
           "enableFullscreen": false,
           "widgetStyle": {
@@ -3268,7 +3187,7 @@
             "style": "normal",
             "lineHeight": "1.4"
           },
-          "showTitleIcon": false,
+          "showTitleIcon": true,
           "titleTooltip": "",
           "titleStyle": {
             "fontSize": "14px",
