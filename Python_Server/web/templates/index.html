@@ -327,6 +327,72 @@
       max-width: 28px;
     }
 
+
+    /* AUTO FEATURES TOGGLES & SETTINGS */
+    .auto-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .auto-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .auto-card-title {
+      font-size: 0.82em;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .auto-card-desc {
+      font-size: 0.72em;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #cbd5e1;
+      transition: .3s;
+      border-radius: 24px;
+    }
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 18px;
+      width: 18px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    input:checked + .toggle-slider {
+      background-color: #10b981;
+    }
+    input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+    }
+
   </style>
 </head>
 <body>
@@ -442,6 +508,65 @@
             
             <button class="btn action" id="btn-action-feed" onclick="sendLAN('feed')">CHO ĂN NGAY TỨC THÌ (SERVO)</button>
             <button class="btn action" id="btn-action-sys" style="background:#ef4444;margin-top:8px" onclick="sendLAN('system')">KHÓA / MỞ TOÀN BỘ HỆ THỐNG</button>
+          </div>
+
+
+          <!-- KHỐI BẬT/TẮT CÁC TÍNH NĂNG TỰ ĐỘNG ESP32 (ĐỒNG BỘ 2 CHIỀU) -->
+          <div class="card" style="margin-top:14px">
+            <div class="card-title">
+              <span>⚡ Tính Năng Tự Động Hóa (ESP32 Master)</span>
+              <span class="badge" style="background:#10b981;color:white;font-size:0.72em">Tự Động 24/7</span>
+            </div>
+            
+            <div class="auto-grid">
+              <!-- 1. Tự Động Bơm Bù Nước -->
+              <div class="auto-card">
+                <div>
+                  <div class="auto-card-title">💧 Tự Động Bơm Bù Nước</div>
+                  <div class="auto-card-desc" id="desc-auto-pump">Bơm khi cạn &lt; ngưỡng</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="switch-auto-pump" onchange="toggleAutoFeature('sap', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <!-- 2. Chế Độ Sục Khí Oxy (Chu kỳ vs Liên tục) -->
+              <div class="auto-card">
+                <div>
+                  <div class="auto-card-title">🫧 Sục Oxy Liên Tục 24/7</div>
+                  <div class="auto-card-desc" id="desc-oxy-mode">Bật = 24/7 | Tắt = Chu kỳ</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="switch-oxy-continuous" onchange="toggleAutoFeature('om', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <!-- 3. Chu Kỳ Lọc Nước Tuần Hoàn -->
+              <div class="auto-card">
+                <div>
+                  <div class="auto-card-title">🔄 Chu Kỳ Lọc Tuần Hoàn</div>
+                  <div class="auto-card-desc" id="desc-filter-cycle">Chạy theo phút Bật/Nghỉ</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="switch-filter-cycle" onchange="toggleAutoFeature('fcm', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <!-- 4. Lịch Chiếu Sáng Đèn LED -->
+              <div class="auto-card">
+                <div>
+                  <div class="auto-card-title">💡 Hẹn Giờ Đèn LED</div>
+                  <div class="auto-card-desc" id="desc-led-schedule">Bật/Tắt theo giờ sinh học</div>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="switch-led-schedule" onchange="toggleAutoFeature('slm', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
           </div>
 
           <!-- KHỐI HẸN GIỜ & LỊCH TRÌNH THIẾT BỊ (ĐỒNG BỘ REST API ESP32) -->
@@ -678,6 +803,63 @@
           <input type="text" id="inp-chat-id" class="setting-input" placeholder="Nhập Telegram Chat ID của bạn">
           <button class="setting-btn" onclick="saveSettings('telegram')">Lưu ID Telegram</button>
         </div>
+      </div>
+
+
+      <!-- 8. CÀI ĐẶT THÔNG SỐ & NGƯỠNG CẢM BIẾN ESP32 MASTER -->
+      <div class="setting-section" style="background:#eff6ff;border:1px solid #bfdbfe;padding:14px;border-radius:12px">
+        <strong style="color:#1d4ed8;font-size:0.86em;text-transform:uppercase;display:block;margin-bottom:6px">
+          🌡️ Ngưỡng Cảm Biến &amp; Tự Động Hóa ESP32
+        </strong>
+        <p style="font-size:0.75em;color:#475569;margin-bottom:10px">
+          Đồng bộ các ngưỡng nhiệt độ (°C) và mực nước siêu âm (cm) lưu trực tiếp vào Flash ESP32 Master.
+        </p>
+
+        <!-- Ngưỡng Nhiệt Độ -->
+        <label class="setting-label" style="color:#1e40af">Ngưỡng Nhiệt Độ Nước (°C):</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Bật Sưởi khi &lt;:</span>
+            <input type="number" id="esp-sh-on" class="setting-input" style="width:100%" step="0.5" placeholder="24">
+          </div>
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Tắt Sưởi khi &gt;=:</span>
+            <input type="number" id="esp-sh-off" class="setting-input" style="width:100%" step="0.5" placeholder="28">
+          </div>
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Bật Quạt khi &gt;:</span>
+            <input type="number" id="esp-sf-on" class="setting-input" style="width:100%" step="0.5" placeholder="30">
+          </div>
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Tắt Quạt khi &lt;=:</span>
+            <input type="number" id="esp-sf-off" class="setting-input" style="width:100%" step="0.5" placeholder="27">
+          </div>
+        </div>
+
+        <!-- Ngưỡng Mực Nước Siêu Âm -->
+        <label class="setting-label" style="color:#1e40af;margin-top:6px">Ngưỡng Mực Nước Siêu Âm (cm):</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Chiều cao bể:</span>
+            <input type="number" id="esp-th-h" class="setting-input" style="width:100%" step="1" placeholder="40">
+          </div>
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Nước ĐẦY (dừng bơm):</span>
+            <input type="number" id="esp-th-wf" class="setting-input" style="width:100%" step="1" placeholder="8">
+          </div>
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Nước THẤP (bơm bù):</span>
+            <input type="number" id="esp-th-wl" class="setting-input" style="width:100%" step="1" placeholder="18">
+          </div>
+          <div>
+            <span style="font-size:0.72em;color:#64748b">Nước CẠN NGUY HIỂM:</span>
+            <input type="number" id="esp-th-we" class="setting-input" style="width:100%" step="1" placeholder="28">
+          </div>
+        </div>
+
+        <button class="setting-btn" style="background:#2563eb;width:100%;padding:10px" onclick="saveEspThresholds()">
+          💾 LƯU NGƯỠNG CẢM BIẾN ESP32
+        </button>
       </div>
 
       <!-- 7. Tổng Số Cá Thả -->
@@ -1183,6 +1365,56 @@
             document.getElementById('v-ah').textContent = (esp.ah > -50) ? esp.ah.toFixed(1) : '--';
             document.getElementById('v-wl').textContent = (esp.wcm > 0) ? esp.wcm.toFixed(1) : 'Lỗi';
 
+            // Đồng bộ trạng thái các công tắc Tự Động Hóa (Auto Switches)
+            const swAutoPump = document.getElementById('switch-auto-pump');
+            if (swAutoPump && esp.sap !== undefined) swAutoPump.checked = Boolean(esp.sap);
+
+            const swOxyCont = document.getElementById('switch-oxy-continuous');
+            if (swOxyCont && esp.om !== undefined) swOxyCont.checked = Boolean(esp.om);
+
+            const swFilterCycle = document.getElementById('switch-filter-cycle');
+            if (swFilterCycle && esp.fcm !== undefined) swFilterCycle.checked = Boolean(esp.fcm);
+
+            const swLedSched = document.getElementById('switch-led-schedule');
+            if (swLedSched && esp.slm !== undefined) swLedSched.checked = Boolean(esp.slm);
+
+            const schedLedEn = document.getElementById('sched-led-en');
+            if (schedLedEn && esp.slm !== undefined) schedLedEn.checked = Boolean(esp.slm);
+
+            // Điền giá trị ngưỡng ESP32 vào Modal cài đặt nếu đang trống
+            const fillIfEmpty = (id, val) => {
+              const el = document.getElementById(id);
+              if (el && !el.value && val !== undefined) el.value = val;
+            };
+
+            fillIfEmpty('esp-sh-on', esp.sh_on);
+            fillIfEmpty('esp-sh-off', esp.sh_off);
+            fillIfEmpty('esp-sf-on', esp.sf_on);
+            fillIfEmpty('esp-sf-off', esp.sf_off);
+            fillIfEmpty('esp-th-h', esp.th_h);
+            fillIfEmpty('esp-th-wf', esp.th_wf);
+            fillIfEmpty('esp-th-wl', esp.th_wl);
+            fillIfEmpty('esp-th-we', esp.th_we);
+
+            fillIfEmpty('sched-fon', esp.fon);
+            fillIfEmpty('sched-fof', esp.fof);
+            fillIfEmpty('sched-oon', esp.oo);
+            fillIfEmpty('sched-oof', esp.of);
+            fillIfEmpty('sched-led-on', esp.sl_on);
+            fillIfEmpty('sched-led-off', esp.sl_off);
+
+            fillIfEmpty('sched-feed-t1', esp.ft1);
+            fillIfEmpty('sched-feed-t2', esp.ft2);
+            fillIfEmpty('sched-feed-t3', esp.ft3);
+            fillIfEmpty('sched-feed-angle', esp.fa);
+
+            const chkFe1 = document.getElementById('sched-feed-en1');
+            if (chkFe1 && esp.fen1 !== undefined) chkFe1.checked = Boolean(esp.fen1);
+            const chkFe2 = document.getElementById('sched-feed-en2');
+            if (chkFe2 && esp.fen2 !== undefined) chkFe2.checked = Boolean(esp.fen2);
+            const chkFe3 = document.getElementById('sched-feed-en3');
+            if (chkFe3 && esp.fen3 !== undefined) chkFe3.checked = Boolean(esp.fen3);
+
             let now = Date.now();
             // Cập nhật nhãn chế độ Oxy
             const oxyModeLbl = document.getElementById('lbl-oxy-mode');
@@ -1331,6 +1563,70 @@
         if (d.status === "success") alert("✅ Đã lưu cấu hình chu kỳ Lọc & Sục Oxy!");
       } catch (e) {
         alert("❌ Lỗi: " + e);
+      }
+    }
+
+  
+    // =========================================================================
+    // TOGGLE FEATURES & ESP32 THRESHOLDS SYNC
+    // =========================================================================
+    async function toggleAutoFeature(key, val) {
+      let payload = {};
+      payload[key] = val;
+      try {
+        const res = await fetch('/api/update_schedule', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          fetchStatus();
+        } else {
+          alert('❌ Không thể lưu cài đặt: ' + (d.message || 'Lỗi thiết bị'));
+        }
+      } catch (e) {
+        alert('❌ Lỗi kết nối: ' + e);
+      }
+    }
+
+    async function saveEspThresholds() {
+      const sh_on  = parseFloat(document.getElementById('esp-sh-on').value);
+      const sh_off = parseFloat(document.getElementById('esp-sh-off').value);
+      const sf_on  = parseFloat(document.getElementById('esp-sf-on').value);
+      const sf_off = parseFloat(document.getElementById('esp-sf-off').value);
+
+      const th_h   = parseFloat(document.getElementById('esp-th-h').value);
+      const th_wf  = parseFloat(document.getElementById('esp-th-wf').value);
+      const th_wl  = parseFloat(document.getElementById('esp-th-wl').value);
+      const th_we  = parseFloat(document.getElementById('esp-th-we').value);
+
+      let payload = {};
+      if (!isNaN(sh_on))  payload.sh_on  = sh_on;
+      if (!isNaN(sh_off)) payload.sh_off = sh_off;
+      if (!isNaN(sf_on))  payload.sf_on  = sf_on;
+      if (!isNaN(sf_off)) payload.sf_off = sf_off;
+
+      if (!isNaN(th_h))   payload.th_h   = th_h;
+      if (!isNaN(th_wf))  payload.th_wf  = th_wf;
+      if (!isNaN(th_wl))  payload.th_wl  = th_wl;
+      if (!isNaN(th_we))  payload.th_we  = th_we;
+
+      try {
+        const res = await fetch('/api/update_schedule', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+          alert('✅ Đã lưu toàn bộ ngưỡng cảm biến vào Flash ESP32 Master!');
+          fetchStatus();
+        } else {
+          alert('❌ Lỗi lưu ngưỡng: ' + (d.message || 'Lỗi thiết bị'));
+        }
+      } catch (e) {
+        alert('❌ Lỗi: ' + e);
       }
     }
 
