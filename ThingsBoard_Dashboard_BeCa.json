@@ -198,9 +198,9 @@
               "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
               "dataKeys": [
                 {
-                  "name": "summary",
+                  "name": "ai_summary",
                   "type": "timeseries",
-                  "label": "summary"
+                  "label": "ai_summary"
                 },
                 {
                   "name": "ai_engine",
@@ -215,9 +215,9 @@
               ],
               "latestDataKeys": [
                 {
-                  "name": "summary",
+                  "name": "ai_summary",
                   "type": "timeseries",
-                  "label": "summary"
+                  "label": "ai_summary"
                 },
                 {
                   "name": "ai_engine",
@@ -237,7 +237,7 @@
           "color": "#0369a1",
           "padding": "0px",
           "settings": {
-            "cardHtml": "<div style='font-family: Segoe UI, Roboto, sans-serif; padding: 14px 18px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-sizing: border-box;'><div><div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;'><span style='background: #e0f2fe; color: #0284c7; font-weight: 800; font-size: 0.78em; padding: 4px 10px; border-radius: 20px;'>🤖 ${ai_engine:Gemini Flash VLM}</span><span style='color: #64748b; font-size: 0.78em; font-weight: 600;'>FPS: ${ai_fps:15.0}</span></div><div style='background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px; margin-bottom: 12px;'><div style='font-size: 0.85em; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;'>Chẩn Đoán Bể Cá:</div><div style='font-size: 0.95em; color: #1e293b; line-height: 1.5; font-weight: 500; font-style: italic;'>\"${summary:Hệ thống AI đang phân tích dữ liệu bể cá của bạn...}\"</div></div></div><div style='background: #ecfeff; border-radius: 8px; padding: 8px 12px; font-size: 0.75em; color: #0e7490; font-weight: 600; display: flex; align-items: center; gap: 6px;'><span>🛡️ Đã tích hợp đối chiếu 5 ảnh mẫu tham chiếu chống nhận diện nhầm.</span></div></div>",
+            "cardHtml": "<div style='font-family: Segoe UI, Roboto, sans-serif; padding: 14px 18px; display: flex; flex-direction: column; justify-content: space-between; height: 100%; box-sizing: border-box;'><div><div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;'><span style='background: #e0f2fe; color: #0284c7; font-weight: 800; font-size: 0.78em; padding: 4px 10px; border-radius: 20px;'>🤖 ${ai_engine:Gemini Flash VLM}</span><span style='color: #64748b; font-size: 0.78em; font-weight: 600;'>FPS: ${ai_fps:15.0}</span></div><div style='background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 14px; margin-bottom: 12px;'><div style='font-size: 0.85em; font-weight: 800; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;'>Chẩn Đoán Bể Cá:</div><div style='font-size: 0.95em; color: #1e293b; line-height: 1.5; font-weight: 500; font-style: italic;'>\"${ai_summary:Hệ thống AI đang phân tích dữ liệu bể cá của bạn...}\"</div></div></div><div style='background: #ecfeff; border-radius: 8px; padding: 8px 12px; font-size: 0.75em; color: #0e7490; font-weight: 600; display: flex; align-items: center; gap: 6px;'><span>🛡️ Đã tích hợp đối chiếu 5 ảnh mẫu tham chiếu chống nhận diện nhầm.</span></div></div>",
             "cardCss": "",
             "background": {
               "type": "color",
@@ -1050,9 +1050,9 @@
               "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
               "dataKeys": [
                 {
-                  "name": "total_fish",
+                  "name": "ai_total_fish",
                   "type": "timeseries",
-                  "label": "total_fish",
+                  "label": "Tổng Cá",
                   "color": "#0369a1",
                   "settings": {},
                   "units": "con",
@@ -1066,7 +1066,7 @@
               },
               "latestDataKeys": [
                 {
-                  "name": "total_fish",
+                  "name": "ai_total_fish",
                   "type": "timeseries",
                   "label": "Latest",
                   "color": "#0369a1",
@@ -1241,9 +1241,9 @@
               "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
               "dataKeys": [
                 {
-                  "name": "alive_fish",
+                  "name": "ai_alive_fish",
                   "type": "timeseries",
-                  "label": "alive_fish",
+                  "label": "Cá Sống",
                   "color": "#10b981",
                   "settings": {},
                   "units": "con",
@@ -1257,7 +1257,7 @@
               },
               "latestDataKeys": [
                 {
-                  "name": "alive_fish",
+                  "name": "ai_alive_fish",
                   "type": "timeseries",
                   "label": "Latest",
                   "color": "#10b981",
@@ -1432,9 +1432,9 @@
               "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
               "dataKeys": [
                 {
-                  "name": "dead_fish",
+                  "name": "ai_dead_fish",
                   "type": "timeseries",
-                  "label": "dead_fish",
+                  "label": "Cá Chết",
                   "color": "#ef4444",
                   "settings": {},
                   "units": "con",
@@ -1448,7 +1448,7 @@
               },
               "latestDataKeys": [
                 {
-                  "name": "dead_fish",
+                  "name": "ai_dead_fish",
                   "type": "timeseries",
                   "label": "Latest",
                   "color": "#ef4444",
@@ -1623,9 +1623,9 @@
               "entityAliasId": "23f5677e-f7ab-1283-c04a-2a8bef33b419",
               "dataKeys": [
                 {
-                  "name": "water_turbidity",
+                  "name": "ai_water_turbidity",
                   "type": "timeseries",
-                  "label": "water_turbidity",
+                  "label": "Độ Đục",
                   "color": "#0ea5e9",
                   "settings": {},
                   "units": "%",
@@ -1639,7 +1639,7 @@
               },
               "latestDataKeys": [
                 {
-                  "name": "water_turbidity",
+                  "name": "ai_water_turbidity",
                   "type": "timeseries",
                   "label": "Latest",
                   "color": "#0ea5e9",
