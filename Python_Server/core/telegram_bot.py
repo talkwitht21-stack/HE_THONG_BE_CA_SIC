@@ -31,6 +31,19 @@ class TelegramBotService:
         self.chat_id = str(new_chat_id)
         self.enabled = bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN")
         print(f"[TELEGRAM] Cap nhat Chat ID moi: {self.chat_id}")
+        if self.enabled and not self.running:
+            self.start()
+
+    def update_bot_token(self, new_token):
+        """
+        Cập nhật Bot Token mới trực tiếp từ Web Dashboard và khởi động Bot.
+        """
+        self.bot_token = str(new_token).strip()
+        self.enabled = bool(self.bot_token and self.chat_id and self.bot_token != "YOUR_TELEGRAM_BOT_TOKEN")
+        print(f"[TELEGRAM] Cap nhat Bot Token moi tu Web thanh cong!")
+        if self.enabled and not self.running:
+            self.start()
+        return self.enabled
 
     def start(self):
         if not self.enabled:

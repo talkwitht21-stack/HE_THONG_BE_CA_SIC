@@ -20,6 +20,25 @@ class MQTTAIClient:
         if self.enabled:
             self._init_mqtt()
 
+    def update_token(self, new_token):
+        """
+        Cập nhật Access Token mới trực tiếp từ Web Dashboard và kết nối lại ThingsBoard.
+        """
+        self.access_token = str(new_token).strip()
+        self.enabled = bool(self.access_token and self.access_token != "YOUR_RPI5_AI_DEVICE_TOKEN")
+        if self.client:
+            try:
+                self.client.loop_stop()
+                self.client.disconnect()
+            except Exception:
+                pass
+        if self.enabled:
+            self._init_mqtt()
+            self.start()
+            print("[MQTT AI] Da cap nhat Access Token moi tu Web va ket noi lai ThingsBoard thanh cong!")
+            return True
+        return False
+
     def _init_mqtt(self):
         try:
             self.client = mqtt.Client(client_id="RPi5_AI_Node")

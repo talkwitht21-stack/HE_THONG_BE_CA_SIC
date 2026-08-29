@@ -149,29 +149,52 @@
             </div>
           </div>
 
-          <!-- Cài Đặt Hệ Thống Bể Cá -->
+          <!-- Cài Đặt Hệ Thống Bể Cá Toàn Diện -->
           <div class="card">
-            <div class="card-title">Cài Đặt Hệ Thống Bể Cá</div>
+            <div class="card-title">Cài Đặt &amp; Khóa API Hệ Thống</div>
             
+            <!-- 1. Google Gemini API Key -->
             <label style="font-size:0.8em;font-weight:bold;color:#475569">
               Google Gemini Vision API Key: 
               <span id="gemini-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
             </label>
             <div class="form-row">
-              <input type="password" id="inp-gemini-key" class="form-input" placeholder="Nhập API Key từ aistudio.google.com">
+              <input type="password" id="inp-gemini-key" class="form-input" placeholder="Dán API Key từ aistudio.google.com">
               <button class="form-btn" onclick="saveSettings('gemini')">Lưu API Key</button>
             </div>
 
-            <label style="font-size:0.8em;font-weight:bold;color:#475569">Tổng Số Cá Thả Vào Bể:</label>
+            <!-- 2. ThingsBoard Access Token -->
+            <label style="font-size:0.8em;font-weight:bold;color:#475569">
+              ThingsBoard Device Access Token (AI Node): 
+              <span id="tb-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
+            </label>
             <div class="form-row">
-              <input type="number" id="inp-total-fish" class="form-input" min="1" max="100" placeholder="Số cá thả (VD: 10)">
-              <button class="form-btn" onclick="saveSettings('fish')">Lưu Số Cá</button>
+              <input type="password" id="inp-tb-token" class="form-input" placeholder="Dán Token Device AI ThingsBoard">
+              <button class="form-btn" onclick="saveSettings('thingsboard')">Lưu Token TB</button>
             </div>
 
+            <!-- 3. Telegram Bot Token -->
+            <label style="font-size:0.8em;font-weight:bold;color:#475569">
+              Telegram Bot Token (@BotFather): 
+              <span id="tg-token-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
+            </label>
+            <div class="form-row">
+              <input type="password" id="inp-tg-token" class="form-input" placeholder="Dán Token từ @BotFather">
+              <button class="form-btn" onclick="saveSettings('tg_token')">Lưu Token Bot</button>
+            </div>
+
+            <!-- 4. Telegram Chat ID -->
             <label style="font-size:0.8em;font-weight:bold;color:#475569">Telegram Chat ID / User ID Nhận Tin:</label>
             <div class="form-row">
               <input type="text" id="inp-chat-id" class="form-input" placeholder="Nhập Telegram Chat ID của bạn">
               <button class="form-btn" onclick="saveSettings('telegram')">Lưu ID Telegram</button>
+            </div>
+
+            <!-- 5. Tổng Số Cá Thả -->
+            <label style="font-size:0.8em;font-weight:bold;color:#475569">Tổng Số Cá Thả Vào Bể:</label>
+            <div class="form-row">
+              <input type="number" id="inp-total-fish" class="form-input" min="1" max="100" placeholder="Số cá thả (VD: 10)">
+              <button class="form-btn" onclick="saveSettings('fish')">Lưu Số Cá</button>
             </div>
           </div>
         </div>
@@ -328,6 +351,14 @@
         let k = document.getElementById('inp-gemini-key').value.trim();
         if (!k) return alert('Vui lòng nhập API Key!');
         payload.gemini_api_key = k;
+      } else if (type === 'thingsboard') {
+        let tok = document.getElementById('inp-tb-token').value.trim();
+        if (!tok) return alert('Vui lòng nhập Access Token của ThingsBoard!');
+        payload.thingsboard_token = tok;
+      } else if (type === 'tg_token') {
+        let tok = document.getElementById('inp-tg-token').value.trim();
+        if (!tok) return alert('Vui lòng nhập Telegram Bot Token!');
+        payload.telegram_bot_token = tok;
       } else if (type === 'fish') {
         let f = parseInt(document.getElementById('inp-total-fish').value);
         if (isNaN(f) || f < 1) return alert('Vui lòng nhập số cá hợp lệ!');
@@ -347,6 +378,8 @@
       .then(d => {
         alert(d.message || 'Đã lưu thành công!');
         if (type === 'gemini') document.getElementById('inp-gemini-key').value = '';
+        if (type === 'thingsboard') document.getElementById('inp-tb-token').value = '';
+        if (type === 'tg_token') document.getElementById('inp-tg-token').value = '';
         fetchStatus();
       });
     }
@@ -370,8 +403,32 @@
               gemLbl.textContent = `(Đã kích hoạt: ${d.gemini_api_key_masked})`;
               gemLbl.style.color = '#10b981';
             } else {
-              gemLbl.textContent = '(Chưa có API Key - đang dùng chế độ dự phòng)';
+              gemLbl.textContent = '(Chưa cấu hình API Key)';
               gemLbl.style.color = '#f59e0b';
+            }
+          }
+
+          // ThingsBoard Token Status
+          let tbLbl = document.getElementById('tb-status-lbl');
+          if (tbLbl) {
+            if (d.has_tb_token) {
+              tbLbl.textContent = `(Đã kích hoạt: ${d.tb_token_masked})`;
+              tbLbl.style.color = '#10b981';
+            } else {
+              tbLbl.textContent = '(Chưa cấu hình Token)';
+              tbLbl.style.color = '#f59e0b';
+            }
+          }
+
+          // Telegram Bot Token Status
+          let tgTokLbl = document.getElementById('tg-token-status-lbl');
+          if (tgTokLbl) {
+            if (d.has_tg_token) {
+              tgTokLbl.textContent = `(Đã kích hoạt: ${d.tg_token_masked})`;
+              tgTokLbl.style.color = '#10b981';
+            } else {
+              tgTokLbl.textContent = '(Chưa cấu hình Bot Token)';
+              tgTokLbl.style.color = '#f59e0b';
             }
           }
 

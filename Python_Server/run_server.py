@@ -196,7 +196,7 @@ def main():
 
     # 10. Khoi chay Web Server Flask
     app = create_app(video_stream, gemini_ai, esp32_client, shared_state, 
-                     config_mgr=cfg, telegram_bot=telegram_bot, ref_manager=ref_manager)
+                     config_mgr=cfg, telegram_bot=telegram_bot, ref_manager=ref_manager, mqtt_ai=mqtt_ai)
     host = web_cfg.get("host", "0.0.0.0")
     print(f"[WEB SERVER] Dang chay tai: http://{host}:{port}/ (hoac http://localhost:{port}/)")
     app.run(host=host, port=port, debug=False, threaded=True)

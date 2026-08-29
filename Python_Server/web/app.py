@@ -3,7 +3,7 @@ import time
 import os
 import io
 
-def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=None, telegram_bot=None, ref_manager=None):
+def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=None, telegram_bot=None, ref_manager=None, mqtt_ai=None):
     app = Flask(__name__, template_folder="templates")
     app.config["SECRET_KEY"] = "beca_secret_key"
 
@@ -33,6 +33,14 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         has_key = bool(current_api_key and current_api_key != "YOUR_GEMINI_API_KEY")
         masked_key = (current_api_key[:6] + "..." + current_api_key[-4:]) if len(current_api_key) > 10 else ("Đã lưu" if has_key else "")
 
+        current_tb_token = config_mgr.get("thingsboard", "access_token", "") if config_mgr else ""
+        has_tb = bool(current_tb_token and current_tb_token != "YOUR_RPI5_AI_DEVICE_TOKEN")
+        masked_tb = (current_tb_token[:6] + "..." + current_tb_token[-4:]) if len(current_tb_token) > 10 else ("Đã lưu" if has_tb else "")
+
+        current_tg_token = config_mgr.get("telegram", "bot_token", "") if config_mgr else ""
+        has_tg = bool(current_tg_token and current_tg_token != "YOUR_TELEGRAM_BOT_TOKEN")
+        masked_tg = (current_tg_token[:6] + "..." + current_tg_token[-4:]) if len(current_tg_token) > 10 else ("Đã lưu" if has_tg else "")
+
         return jsonify({
             "ai": shared_state.get("ai_result", {}),
             "confirmed_dead_fish": shared_state.get("confirmed_dead_fish", 0),
@@ -42,6 +50,10 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "telegram_chat_id": shared_state.get("telegram_chat_id", ""),
             "has_gemini_key": has_key,
             "gemini_api_key_masked": masked_key,
+            "has_tb_token": has_tb,
+            "tb_token_masked": masked_tb,
+            "has_tg_token": has_tg,
+            "tg_token_masked": masked_tg,
             "fps": video_stream.actual_fps if video_stream else 0.0,
             "ref_status": ref_status,
             "esp32": esp_data,
@@ -115,8 +127,29 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             if key:
                 if config_mgr:
                     config_mgr.set("gemini", "api_key", key)
+                    config_mgr.set("gemini", "enabled", True)
                 if gemini_ai:
                     gemini_ai.update_api_key(key)
+                changed = True
+
+        if "thingsboard_token" in data:
+            tb_tok = str(data["thingsboard_token"]).strip()
+            if tb_tok:
+                if config_mgr:
+                    config_mgr.set("thingsboard", "access_token", tb_tok)
+                    config_mgr.set("thingsboard", "enabled", True)
+                if mqtt_ai:
+                    mqtt_ai.update_token(tb_tok)
+                changed = True
+
+        if "telegram_bot_token" in data:
+            tg_tok = str(data["telegram_bot_token"]).strip()
+            if tg_tok:
+                if config_mgr:
+                    config_mgr.set("telegram", "bot_token", tg_tok)
+                    config_mgr.set("telegram", "enabled", True)
+                if telegram_bot:
+                    telegram_bot.update_bot_token(tg_tok)
                 changed = True
 
         if "total_fish" in data:
