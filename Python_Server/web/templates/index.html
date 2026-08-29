@@ -99,7 +99,7 @@
     .modal-box {
       background: #ffffff;
       width: 100%;
-      max-width: 620px;
+      max-width: 640px;
       max-height: 90vh;
       overflow-y: auto;
       border-radius: 18px;
@@ -268,7 +268,22 @@
         <button class="btn-modal-close" onclick="closeSettingsModal()">✖</button>
       </div>
 
-      <!-- 1. Quản lý 5 Ảnh Mẫu Tham Chiếu -->
+      <!-- 1. Cài Đặt Nguồn Camera / IP Camera -->
+      <div class="setting-section" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:12px;border-radius:12px">
+        <label class="setting-label" style="color:#166534">
+          📹 Nguồn Camera / IP Camera (RTSP / HTTP / USB): 
+          <span id="cam-status-lbl" style="font-size:0.85em;color:#059669;font-weight:normal"></span>
+        </label>
+        <p style="font-size:0.75em;color:#475569;margin-bottom:8px">
+          Nhập <strong>0</strong> (Webcam USB) hoặc chuỗi RTSP/HTTP IP Camera (Ví dụ: <code>rtsp://admin:123456@192.168.1.100:554/stream1</code> hoặc <code>http://192.168.1.50:8080/video</code>).
+        </p>
+        <div class="setting-row">
+          <input type="text" id="inp-cam-source" class="setting-input" placeholder="0 hoặc rtsp://...">
+          <button class="setting-btn" style="background:#16a34a" onclick="saveSettings('camera')">Lưu Nguồn Camera</button>
+        </div>
+      </div>
+
+      <!-- 2. Quản lý 5 Ảnh Mẫu Tham Chiếu -->
       <div class="setting-section" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
           <strong style="color:#0284c7;font-size:0.85em;text-transform:uppercase">5 Ảnh Mẫu Tham Chiếu (Baseline Calibration)</strong>
@@ -282,7 +297,7 @@
         </div>
       </div>
 
-      <!-- 2. Google Gemini API Key -->
+      <!-- 3. Google Gemini API Key -->
       <div class="setting-section">
         <label class="setting-label">
           Google Gemini Vision API Key: 
@@ -294,7 +309,7 @@
         </div>
       </div>
 
-      <!-- 3. ThingsBoard Access Token -->
+      <!-- 4. ThingsBoard Access Token -->
       <div class="setting-section">
         <label class="setting-label">
           ThingsBoard Device Access Token (AI Node): 
@@ -306,7 +321,7 @@
         </div>
       </div>
 
-      <!-- 4. ThingsBoard Public Dashboard Link -->
+      <!-- 5. ThingsBoard Public Dashboard Link -->
       <div class="setting-section">
         <label class="setting-label">ThingsBoard Public Dashboard Link (Nhúng Web):</label>
         <div class="setting-row">
@@ -315,7 +330,7 @@
         </div>
       </div>
 
-      <!-- 5. Telegram Bot Token -->
+      <!-- 6. Telegram Bot Token -->
       <div class="setting-section">
         <label class="setting-label">
           Telegram Bot Token (@BotFather): 
@@ -327,7 +342,7 @@
         </div>
       </div>
 
-      <!-- 6. Telegram Chat ID -->
+      <!-- 7. Telegram Chat ID -->
       <div class="setting-section">
         <label class="setting-label">Telegram Chat ID / User ID Nhận Tin:</label>
         <div class="setting-row">
@@ -336,7 +351,7 @@
         </div>
       </div>
 
-      <!-- 7. Tổng Số Cá Thả -->
+      <!-- 8. Tổng Số Cá Thả -->
       <div class="setting-section">
         <label class="setting-label">Tổng Số Cá Thả Vào Bể:</label>
         <div class="setting-row">
@@ -487,7 +502,11 @@
 
     function saveSettings(type) {
       let payload = {};
-      if (type === 'gemini') {
+      if (type === 'camera') {
+        let src = document.getElementById('inp-cam-source').value.trim();
+        if (!src) return alert('Vui lòng nhập nguồn Camera (0 hoặc chuỗi RTSP/HTTP)!');
+        payload.camera_source = src;
+      } else if (type === 'gemini') {
         let k = document.getElementById('inp-gemini-key').value.trim();
         if (!k) return alert('Vui lòng nhập API Key!');
         payload.gemini_api_key = k;
@@ -540,6 +559,16 @@
       fetch('/api/status')
         .then(r => r.json())
         .then(d => {
+          // Camera Source Status
+          let camLbl = document.getElementById('cam-status-lbl');
+          if (camLbl && d.camera_source) {
+            camLbl.textContent = `(Đang kết nối: ${d.camera_source})`;
+          }
+          let inpCam = document.getElementById('inp-cam-source');
+          if (inpCam && !inpCam.value && d.camera_source) {
+            inpCam.value = d.camera_source;
+          }
+
           // Gemini Key Status
           let gemLbl = document.getElementById('gemini-status-lbl');
           if (gemLbl) {

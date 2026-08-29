@@ -42,6 +42,7 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         masked_tg = (current_tg_token[:6] + "..." + current_tg_token[-4:]) if len(current_tg_token) > 10 else ("Đã lưu" if has_tg else "")
 
         tb_dash_url = config_mgr.get("thingsboard", "dashboard_url", "https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e") if config_mgr else ""
+        cam_src = config_mgr.get("camera", "source", 0) if config_mgr else 0
 
         return jsonify({
             "ai": shared_state.get("ai_result", {}),
@@ -57,6 +58,7 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "has_tg_token": has_tg,
             "tg_token_masked": masked_tg,
             "tb_dashboard_url": tb_dash_url,
+            "camera_source": str(cam_src),
             "fps": video_stream.actual_fps if video_stream else 0.0,
             "ref_status": ref_status,
             "esp32": esp_data,
@@ -124,6 +126,16 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
     def api_update_settings():
         data = request.get_json() or {}
         changed = False
+
+        if "camera_source" in data:
+            src = str(data["camera_source"]).strip()
+            if src:
+                src_val = int(src) if src.isdigit() else src
+                if config_mgr:
+                    config_mgr.set("camera", "source", src_val)
+                if video_stream:
+                    video_stream.update_source(src_val)
+                changed = True
 
         if "gemini_api_key" in data:
             key = str(data["gemini_api_key"]).strip()

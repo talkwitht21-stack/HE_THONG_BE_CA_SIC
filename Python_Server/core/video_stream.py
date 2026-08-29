@@ -26,6 +26,22 @@ class VideoStream:
         
         self._init_camera()
 
+    def update_source(self, new_source):
+        """
+        Đổi nguồn Camera/IP Camera (RTSP/HTTP/USB) trong runtime mà không cần tắt server.
+        """
+        with self.lock:
+            self.source = int(new_source) if str(new_source).isdigit() else str(new_source).strip()
+            if self.cap:
+                try:
+                    self.cap.release()
+                except Exception:
+                    pass
+                self.cap = None
+            self._init_camera()
+            print(f"[CAMERA] Da doi nguon Camera sang: {self.source}")
+            return bool(self.cap and self.cap.isOpened())
+
     def _init_camera(self):
         try:
             src = int(self.source) if str(self.source).isdigit() else str(self.source)
@@ -56,10 +72,10 @@ class VideoStream:
         cv2.rectangle(img, (20, 20), (self.width - 20, self.height - 20), (199, 132, 2), 2)
         cv2.putText(img, "HE THONG BE CA SIC - AI CAMERA", (40, 60), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (161, 105, 3), 2)
-        cv2.putText(img, "DANG KET NOI NGUON CAMERA...", (40, 100), 
+        cv2.putText(img, f"NGUON: {self.source}", (40, 100), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, (100, 100, 100), 1)
         
-        # Vẽ một vài gợn sóng nước demo
+        # Vẽ gợn sóng nước demo
         t = time.time()
         for x in range(30, self.width - 30, 10):
             y = int(self.height / 2 + 15 * np.sin(x * 0.03 + t * 2))
@@ -81,7 +97,6 @@ class VideoStream:
                     else:
                         frame = raw_frame
                 else:
-                    # Mat ket noi -> thu reconnect dinh ky moi 5s
                     time.sleep(1.0)
                     self._init_camera()
             
@@ -89,7 +104,7 @@ class VideoStream:
                 frame = self._create_placeholder_frame()
                 time.sleep(0.05)
                 
-            # Tinh toan FPS
+            # Tính toán FPS
             now = time.time()
             self.frame_count += 1
             if now - self.last_frame_time >= 1.0:
@@ -100,37 +115,29 @@ class VideoStream:
             with self.lock:
                 self.frame = frame
 
-            time.sleep(1.0 / self.fps if self.fps > 0 else 0.03)
+            time.sleep(1.0 / self.fps)
 
     def get_frame(self):
         with self.lock:
             if self.frame is not None:
                 return self.frame.copy()
-            return self._create_placeholder_frame()
+        return None
 
     def get_jpeg_bytes(self, overlay_info=None):
         frame = self.get_frame()
-        
-        # Ve overlay thong so AI neu co
-        if overlay_info:
-            fps_text = f"FPS: {self.actual_fps}"
-            cv2.putText(frame, fps_text, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 0), 2)
-            
-            fish_text = f"Ca: {overlay_info.get('total_fish', 0)} | Chet: {overlay_info.get('dead_fish', 0)}"
-            cv2.putText(frame, fish_text, (15, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 200, 255), 2)
-            
-            turb_text = f"Do duc: {overlay_info.get('water_turbidity', 0)}%"
-            cv2.putText(frame, turb_text, (15, 85), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 150, 0), 2)
+        if frame is None:
+            frame = self._create_placeholder_frame()
 
-        ret, jpeg = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+        if overlay_info:
+            text = f"Dead: {overlay_info.get('dead_fish', 0)} | Turbidity: {overlay_info.get('water_turbidity', 0)}%"
+            cv2.putText(frame, text, (15, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+        ret, jpeg = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
         if ret:
             return jpeg.tobytes()
         return None
 
     def stop(self):
         self.running = False
-        if self.thread:
-            self.thread.join(timeout=2.0)
         if self.cap:
             self.cap.release()
-        print("[CAMERA] Da dung luong camera.")
