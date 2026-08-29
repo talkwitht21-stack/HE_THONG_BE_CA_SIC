@@ -76,11 +76,7 @@
     .btn.action { background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); width: 100%; padding: 11px; margin-top: 10px; font-size: 0.88em; border-radius: 8px; }
     
     /* IFrame ThingsBoard */
-    .tb-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; background: #f0f9ff; padding: 10px 14px; border-radius: 10px; border: 1px solid #bae6fd; }
-    .tb-input { flex: 1; min-width: 250px; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.84em; }
-    .tb-btn { padding: 8px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.82em; cursor: pointer; }
-    .tb-btn:hover { background: #0369a1; }
-    .tb-frame { width: 100%; height: 700px; border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .tb-frame { width: 100%; height: 750px; border: none; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
     .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: 800; }
     .badge-lan { background: #e0f2fe; color: #0284c7; }
     .badge-mode { background: #fef3c7; color: #d97706; padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: bold; }
@@ -245,21 +241,16 @@
       </div>
     </div>
 
-    <!-- KHU VỰC CHẾ ĐỘ 2: CLOUD THINGSBOARD EMBED -->
+    <!-- KHU VỰC CHẾ ĐỘ 2: CLOUD THINGSBOARD EMBED (FULL MÀN HÌNH SẠCH SẼ) -->
     <div id="view-cloud" style="display:none">
-      <div class="card">
-        <div class="card-title">
+      <div class="card" style="padding:14px">
+        <div class="card-title" style="margin-bottom:10px">
           <span>Bảng Điều Khiển ThingsBoard Cloud</span>
-          <a id="tb-direct-link" href="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e" target="_blank" style="font-size:0.78em;color:#0284c7;text-decoration:none;font-weight:bold">Mở Tab Mới ↗</a>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button onclick="openSettingsModal()" style="background:none;border:none;color:#0284c7;font-size:0.8em;font-weight:bold;cursor:pointer">⚙️ Đổi Link Dashboard</button>
+            <a id="tb-direct-link" href="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e" target="_blank" style="font-size:0.78em;color:#0284c7;text-decoration:none;font-weight:bold">Mở Tab Mới ↗</a>
+          </div>
         </div>
-        
-        <!-- Ô CÀI ĐẶT NHẬP LINK PUBLIC DASHBOARD TRỰC TIẾP TRÊN CHẾ ĐỘ CLOUD -->
-        <div class="tb-toolbar">
-          <label style="font-size:0.8em;font-weight:bold;color:#0369a1;white-space:nowrap">Link Public Dashboard:</label>
-          <input type="text" id="inp-tb-url-cloud-view" class="tb-input" placeholder="Dán link ThingsBoard Public Dashboard tại đây...">
-          <button class="tb-btn" onclick="saveTbUrlFromCloudView()">Lưu &amp; Tải Lại Dashboard</button>
-        </div>
-
         <iframe class="tb-frame" id="tb-iframe" src="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e"></iframe>
       </div>
     </div>
@@ -330,28 +321,34 @@
         </div>
       </div>
 
-      <!-- 4. ThingsBoard Access Token -->
-      <div class="setting-section">
+      <!-- 4. ThingsBoard Cloud & Dashboard Link (Gộp Trực Quan) -->
+      <div class="setting-section" style="background:#f0f9ff;border:1px solid #bae6fd;padding:14px;border-radius:12px">
+        <strong style="color:#0369a1;font-size:0.86em;text-transform:uppercase;display:block;margin-bottom:6px">
+          ☁️ ThingsBoard Cloud &amp; Public Dashboard
+        </strong>
+        <p style="font-size:0.75em;color:#475569;margin-bottom:10px">
+          Cấu hình Access Token cho thiết bị AI Node và Đường link Public Dashboard để nhúng trực tiếp vào Web.
+        </p>
+
+        <!-- TB Token -->
         <label class="setting-label">
           ThingsBoard Device Access Token (AI Node): 
           <span id="tb-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
         </label>
-        <div class="setting-row">
+        <div class="setting-row" style="margin-bottom:10px">
           <input type="password" id="inp-tb-token" class="setting-input" placeholder="Dán Token Device AI ThingsBoard">
           <button class="setting-btn" onclick="saveSettings('thingsboard')">Lưu Token TB</button>
         </div>
-      </div>
 
-      <!-- 5. ThingsBoard Public Dashboard Link -->
-      <div class="setting-section">
-        <label class="setting-label">ThingsBoard Public Dashboard Link (Nhúng Web):</label>
-        <div class="setting-row">
-          <input type="text" id="inp-tb-url" class="setting-input" placeholder="https://thingsboard.cloud/dashboard/...">
-          <button class="setting-btn" onclick="saveSettings('tb_url')">Lưu Link TB</button>
+        <!-- TB Public Dashboard Link -->
+        <label class="setting-label">ThingsBoard Public Dashboard Link (Nhúng Web Chế độ 2):</label>
+        <div class="setting-row" style="margin-bottom:0">
+          <input type="text" id="inp-tb-url" class="setting-input" placeholder="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=...">
+          <button class="setting-btn" onclick="saveSettings('tb_url')">Lưu Link Dashboard</button>
         </div>
       </div>
 
-      <!-- 6. Telegram Bot Token -->
+      <!-- 5. Telegram Bot Token -->
       <div class="setting-section">
         <label class="setting-label">
           Telegram Bot Token (@BotFather): 
@@ -363,7 +360,7 @@
         </div>
       </div>
 
-      <!-- 7. Telegram Chat ID -->
+      <!-- 6. Telegram Chat ID -->
       <div class="setting-section">
         <label class="setting-label">Telegram Chat ID / User ID Nhận Tin:</label>
         <div class="setting-row">
@@ -372,7 +369,7 @@
         </div>
       </div>
 
-      <!-- 8. Tổng Số Cá Thả -->
+      <!-- 7. Tổng Số Cá Thả -->
       <div class="setting-section">
         <label class="setting-label">Tổng Số Cá Thả Vào Bể:</label>
         <div class="setting-row">
@@ -512,24 +509,6 @@
       document.getElementById('ref-count-badge').textContent = `${validCount}/5 Ảnh`;
     }
 
-    function saveTbUrlFromCloudView() {
-      let u = document.getElementById('inp-tb-url-cloud-view').value.trim();
-      if (!u) return alert('Vui lòng dán đường link Public Dashboard của ThingsBoard!');
-      
-      fetch('/api/update_settings', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({thingsboard_dashboard_url: u})
-      })
-      .then(r => r.json())
-      .then(d => {
-        alert('Đã cập nhật đường link ThingsBoard Dashboard!');
-        document.getElementById('tb-iframe').src = u;
-        document.getElementById('tb-direct-link').href = u;
-        fetchStatus();
-      });
-    }
-
     function saveSettings(type) {
       let payload = {};
       if (type === 'camera') {
@@ -578,6 +557,13 @@
         if (type === 'gemini') document.getElementById('inp-gemini-key').value = '';
         if (type === 'thingsboard') document.getElementById('inp-tb-token').value = '';
         if (type === 'tg_token') document.getElementById('inp-tg-token').value = '';
+        if (type === 'tb_url') {
+          let u = document.getElementById('inp-tb-url').value.trim();
+          if (u) {
+            document.getElementById('tb-iframe').src = u;
+            document.getElementById('tb-direct-link').href = u;
+          }
+        }
         fetchStatus();
       });
     }
@@ -647,9 +633,6 @@
             
             let inpTbUrl = document.getElementById('inp-tb-url');
             if (inpTbUrl && !inpTbUrl.value) inpTbUrl.value = d.tb_dashboard_url;
-
-            let inpTbUrlCloud = document.getElementById('inp-tb-url-cloud-view');
-            if (inpTbUrlCloud && !inpTbUrlCloud.value) inpTbUrlCloud.value = d.tb_dashboard_url;
           }
 
           // Telegram Bot Token Status
