@@ -82,7 +82,7 @@ enum FeedPhase {
 FeedPhase feedPhase     = FEED_IDLE;
 unsigned long feedPhaseStart = 0;
 bool feedingActive     = false;
-uint8_t feed_angle     = 180; // Góc quay cho ăn (10-180 độ)
+int feed_angle         = 180; // Góc quay cho ăn (Không giới hạn góc)
 
 // Logic Sục Oxy
 bool oxyModeContinuous = false; // false = chu kỳ, true = liên tục
@@ -140,7 +140,7 @@ void setup() {
 
   // Load ma phim IR & Goc quay tu Flash
   prefs.begin("beca", false);
-  feed_angle = prefs.getUChar("fa", 180);
+  feed_angle = prefs.getInt("fa", 180);
   ir_btn_1 = prefs.getUChar("ir1", 0x45);
   ir_btn_2 = prefs.getUChar("ir2", 0x46);
   ir_btn_3 = prefs.getUChar("ir3", 0x47);
@@ -256,7 +256,7 @@ void startFeeding() {
     feedingActive = true;
     feedPhase = FEED_OPENING;
     feedPhaseStart = millis();
-    servoFeed.attach(SERVO_FEED_PIN);
+    servoFeed.attach(SERVO_FEED_PIN, 500, 2500);
     servoFeed.write(feed_angle);
   }
 }
@@ -424,9 +424,9 @@ void handleMasterCommand() {
       }
 
       if (doc.containsKey("fa")) {
-        feed_angle = constrain(doc["fa"].as<int>(), 10, 180);
+        feed_angle = doc["fa"].as<int>();
         prefs.begin("beca", false);
-        prefs.putUChar("fa", feed_angle);
+        prefs.putInt("fa", feed_angle);
         prefs.end();
       }
 

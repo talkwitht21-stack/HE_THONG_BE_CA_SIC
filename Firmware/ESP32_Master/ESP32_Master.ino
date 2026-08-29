@@ -129,7 +129,7 @@ int    last_feed_day   = -1; // Theo doi ngay de reset cac moc
 bool   feed_done_slot1 = false;
 bool   feed_done_slot2 = false;
 bool   feed_done_slot3 = false;
-uint8_t feed_angle   = 180; // Goc quay cho an (10-180 do)
+int feed_angle       = 180; // Goc quay cho an (Khong gioi han goc)
 
 int    led_last_transition_min = -1; // Theo doi moc chuyen trang thai Den LED
 
@@ -557,13 +557,18 @@ void setupWeb() {
     if (d.containsKey("fon"))    filter_on_min     = d["fon"];
     if (d.containsKey("fof"))    filter_off_min    = d["fof"];
 
-    if (d.containsKey("fen1"))   feed_en_1         = d["fen1"];
-    if (d.containsKey("ft1"))    feed_time_1       = d["ft1"].as<String>();
-    if (d.containsKey("fen2"))   feed_en_2         = d["fen2"];
-    if (d.containsKey("ft2"))    feed_time_2       = d["ft2"].as<String>();
-    if (d.containsKey("fen3"))   feed_en_3         = d["fen3"];
-    if (d.containsKey("ft3"))    feed_time_3       = d["ft3"].as<String>();
-    if (d.containsKey("fa"))     feed_angle        = constrain(d["fa"].as<int>(), 10, 180);
+    bool feedChanged = false;
+    if (d.containsKey("fen1"))   { feed_en_1   = d["fen1"]; feedChanged = true; }
+    if (d.containsKey("ft1"))    { feed_time_1 = d["ft1"].as<String>(); feedChanged = true; }
+    if (d.containsKey("fen2"))   { feed_en_2   = d["fen2"]; feedChanged = true; }
+    if (d.containsKey("ft2"))    { feed_time_2 = d["ft2"].as<String>(); feedChanged = true; }
+    if (d.containsKey("fen3"))   { feed_en_3   = d["fen3"]; feedChanged = true; }
+    if (d.containsKey("ft3"))    { feed_time_3 = d["ft3"].as<String>(); feedChanged = true; }
+    if (d.containsKey("fa"))     { feed_angle  = d["fa"].as<int>(); feedChanged = true; }
+    if (feedChanged) {
+      feed_done_slot1 = feed_done_slot2 = feed_done_slot3 = false;
+      Serial.println("[FEED] Da cap nhat lich cho an -> Reset co feed_done de co hieu luc ngay!");
+    }
 
     if (d.containsKey("ths"))    timer_heater_sec  = d["ths"];
     if (d.containsKey("tfs"))    timer_fan_sec     = d["tfs"];
@@ -660,7 +665,7 @@ void loadSettings() {
   feed_time_2     = prefs.getString("ft2", "12:00:00");
   feed_en_3       = prefs.getBool("fe3", false);
   feed_time_3     = prefs.getString("ft3", "18:00:00");
-  feed_angle      = prefs.getUChar("fa", 180);
+  feed_angle      = prefs.getInt("fa", 180);
 
   timer_heater_sec= prefs.getUInt("ths", 0);
   timer_fan_sec   = prefs.getUInt("tfs", 0);
@@ -728,7 +733,7 @@ void saveSettings() {
   prefs.putString("ft2", feed_time_2);
   prefs.putBool("fe3", feed_en_3);
   prefs.putString("ft3", feed_time_3);
-  prefs.putUChar("fa", feed_angle);
+  prefs.putInt("fa", feed_angle);
 
   prefs.putUInt("ths", timer_heater_sec);
   prefs.putUInt("tfs", timer_fan_sec);

@@ -279,7 +279,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         </div>
         <div class="form-group">
           <span>Góc Quay Servo (10° - 180°):</span>
-          <input type="number" id="s-fa" min="10" max="180" value="180" style="width:75px">
+          <input type="number" id="s-fa" value="180" style="width:75px">
         </div>
       </div>
 
