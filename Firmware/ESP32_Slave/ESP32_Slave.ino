@@ -126,9 +126,11 @@ void setup() {
   
   applyRelayStates(); // Khởi tạo mặc định
 
-  // Servo
+  // Servo - attach khi dùng và detach khi xong để chống nóng & rung motor
   servoFeed.attach(SERVO_FEED_PIN);
   servoFeed.write(0);
+  delay(150);
+  servoFeed.detach();
 
   // Load ma phim IR & Goc quay tu Flash
   prefs.begin("beca", false);
@@ -247,15 +249,18 @@ void startFeeding() {
     Serial.printf("[SLAVE] Servo: Cho an START (Goc: %d do)\n", feed_angle);
     feedingActive = true;
     feedStart = millis();
+    servoFeed.attach(SERVO_FEED_PIN);
     servoFeed.write(feed_angle);
   }
 }
 
 void handleFeeding() {
   if (feedingActive && (millis() - feedStart >= FEED_DURATION_MS)) {
-    Serial.println("[SLAVE] Servo: Cho an STOP");
-    feedingActive = false;
+    Serial.println("[SLAVE] Servo: Cho an STOP & Detach PWM");
     servoFeed.write(0);
+    delay(200); // Chờ servo quay về vị trí 0 rồi ngắt PWM
+    servoFeed.detach();
+    feedingActive = false;
   }
 }
 
@@ -404,24 +409,48 @@ void handleMasterCommand() {
   }
 }
 
+// Ham doc sieu am loc trung vi 5 mau (Median Filter) de chong nhay so ao do gon song nuoc
+float readUltrasonicMedian() {
+  float samples[5];
+  int validCount = 0;
+  for (int i = 0; i < 5; i++) {
+    digitalWrite(HC_TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(HC_TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(HC_TRIG_PIN, LOW);
+    long duration = pulseIn(HC_ECHO_PIN, HIGH, 25000); // Timeout 25ms
+    if (duration > 0) {
+      float d = (duration / 2.0) * 0.0343;
+      if (d >= 2.0 && d <= 400.0) {
+        samples[validCount++] = d;
+      }
+    }
+    delay(3); // Nghi ngan giua cac lan ban xung
+  }
+  if (validCount == 0) return -1.0;
+
+  // Sap xep Bubble sort de lay trung vi
+  for (int i = 0; i < validCount - 1; i++) {
+    for (int j = i + 1; j < validCount; j++) {
+      if (samples[i] > samples[j]) {
+        float temp = samples[i];
+        samples[i] = samples[j];
+        samples[j] = temp;
+      }
+    }
+  }
+  return samples[validCount / 2];
+}
+
 void sendStatusToMaster() {
   float wt  = ds18b20.getTempCByIndex(0); // Doc gia tri da chuyen doi o lan truoc (0ms non-blocking)
   ds18b20.requestTemperatures();          // Yeu cau chuyen doi ngam cho lan sau
   float at  = dht.readTemperature();
   float ah  = dht.readHumidity();
 
-  // Doc sieu am
-  digitalWrite(HC_TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(HC_TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(HC_TRIG_PIN, LOW);
-  long duration = pulseIn(HC_ECHO_PIN, HIGH, 30000); // Timeout 30ms
-  if (duration > 0) {
-    waterLevelCm = (duration / 2.0) * 0.0343;
-  } else {
-    waterLevelCm = -1; // Loi
-  }
+  // Doc sieu am qua bo loc trung vi (Median Filter)
+  waterLevelCm = readUltrasonicMedian();
 
   if (isnan(at)) at = -999.0;
   if (isnan(ah)) ah = -999.0;

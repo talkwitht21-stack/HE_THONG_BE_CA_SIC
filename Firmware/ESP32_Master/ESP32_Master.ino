@@ -36,7 +36,6 @@
 String sta_ssid       = "NONNET";
 String sta_password   = "12345678";
 const char* HOST_NAME = "beca"; // Ten mien Local mac dinh: http://beca.local
-String cameraIP       = "";
 
 // MQTT ThingsBoard
 bool   mqtt_enabled   = false;
@@ -47,6 +46,7 @@ String mqtt_token     = "";
 // NTP Time
 const char* NTP_SERVER      = "pool.ntp.org";
 const long  GMT_OFFSET_SEC  = 7 * 3600; // GMT+7
+unsigned long lastNtpSync   = 0;
 
 // Doi tuong he thong
 WiFiClient    wifiClient;
@@ -141,6 +141,8 @@ unsigned long start_pump      = 0;
 unsigned long start_drain     = 0;
 unsigned long start_led       = 0;
 unsigned long start_filter    = 0;
+unsigned long autoPumpStart   = 0;
+bool          autoPumpTimeoutAlarm = false;
 unsigned long lastSlaveContact= 0;
 
 unsigned long lastWifiAttempt = 0;
@@ -219,6 +221,13 @@ void loop() {
   // 5. Quan ly ket noi WiFi & Den bao LED GPIO 2
   if (WiFi.status() == WL_CONNECTED) {
     digitalWrite(PIN_LED_STATUS, HIGH); // Sang dung khi truc tuyen
+
+    // Tu dong cap nhat lai NTP moi 1 gio
+    if (ms - lastNtpSync >= 3600000UL) {
+      lastNtpSync = ms;
+      configTime(GMT_OFFSET_SEC, 0, NTP_SERVER);
+      Serial.println("[NTP] Da dong bo lai gio he thong.");
+    }
   } else {
     // Nhay LED 300ms bao loi mat WiFi
     if (ms - lastLedBlink >= 300) {
@@ -349,7 +358,6 @@ void setupWeb() {
     d["ssid"]   = sta_ssid;
     d["pass"]   = sta_password;
     d["hn"]     = HOST_NAME;
-    d["cam"]    = cameraIP;
 
     d["mqe"]    = mqtt_enabled;
     d["mqs"]    = mqtt_server;
@@ -358,6 +366,8 @@ void setupWeb() {
 
     d["wst"]    = (WiFi.status() == WL_CONNECTED) ? 2 : 0;
     d["wip"]    = (WiFi.status() == WL_CONNECTED) ? WiFi.localIP().toString() : "";
+    d["rssi"]   = (WiFi.status() == WL_CONNECTED) ? WiFi.RSSI() : 0;
+    d["heap"]   = ESP.getFreeHeap();
 
     d["ir1"]    = ir1; d["ir2"] = ir2; d["ir3"] = ir3; d["ir4"] = ir4;
     d["ir5"]    = ir5; d["ir6"] = ir6; d["ir7"] = ir7; d["ir8"] = ir8; d["ir0"] = ir0;
@@ -545,8 +555,6 @@ void setupWeb() {
 
     if (d.containsKey("sys"))    systemEnabled     = d["sys"];
 
-    if (d.containsKey("cam"))    cameraIP          = d["cam"].as<String>();
-
     bool wifiChanged = false;
     if (d.containsKey("ssid") && d.containsKey("pass")) {
       String ns = d["ssid"].as<String>();
@@ -602,7 +610,6 @@ void loadSettings() {
   prefs.begin("beca", false);
   sta_ssid        = prefs.getString("ssid", "NONNET");
   sta_password    = prefs.getString("pass", "12345678");
-  cameraIP        = prefs.getString("cam", "");
 
   mqtt_enabled    = prefs.getBool("mqe", false);
   mqtt_server     = prefs.getString("mqs", "demo.thingsboard.io");
@@ -662,10 +669,15 @@ void loadSettings() {
 }
 
 void saveSettings() {
+  // Validate va rang buoc thong so hop ly
+  if (th_heater_off <= th_heater_on) th_heater_off = th_heater_on + 1.0;
+  if (th_fan_on <= th_fan_off) th_fan_on = th_fan_off + 1.0;
+  if (th_water_low <= th_water_full) th_water_low = th_water_full + 5.0;
+  if (th_water_empty <= th_water_low) th_water_empty = th_water_low + 5.0;
+
   prefs.begin("beca", false);
   prefs.putString("ssid", sta_ssid);
   prefs.putString("pass", sta_password);
-  prefs.putString("cam", cameraIP);
 
   prefs.putBool("mqe", mqtt_enabled);
   prefs.putString("mqs", mqtt_server);
@@ -934,14 +946,25 @@ void checkLogic() {
 
     // Tu dong bom bu nuoc (chi chay khi KHONG trong che do loc nuoc song song)
     if (auto_pump && !filterMode) {
-      if (is_low && !pumpState) {
+      if (is_low && !pumpState && !autoPumpTimeoutAlarm) {
         pumpState = true;
+        autoPumpStart = ms;
         stateChanged = true;
-        Serial.println("[LOGIC] Nuoc thap -> BAT Bom Bu");
+        Serial.println("[LOGIC] Nuoc thap -> BAT Bom Bu Tu Dong");
       } else if (is_full && pumpState) {
         pumpState = false;
+        autoPumpStart = 0;
+        autoPumpTimeoutAlarm = false; // Reset trang thai canh bao khi da bom day
         stateChanged = true;
         Serial.println("[LOGIC] Nuoc day -> TAT Bom Bu (chong tran)");
+      }
+
+      // [FAILSAFE NGUY HIEM]: Bom bu chay lien tuc qua 10 phut (600s) ma chua day -> Ngat khan cap
+      if (pumpState && autoPumpStart > 0 && (ms - autoPumpStart >= 600000UL)) {
+        pumpState = false;
+        autoPumpTimeoutAlarm = true; // Khoa lai chong chay bom / tran nuoc
+        stateChanged = true;
+        Serial.println("[FAILSAFE NGUY HIEM] !!! BOM BU CHAY QUA 10 PHUT -> NGAT KHAN CAP CHONG TRAN / CHAY BOM !!!");
       }
     }
   }
@@ -1105,6 +1128,17 @@ void handleMQTT() {
       if (mqtt.connect("ESP32_Master", mqtt_token.c_str(), NULL)) {
         Serial.println("[MQTT] Ket noi thanh cong!");
         mqtt.subscribe("v1/devices/me/rpc/request/+");
+
+        // Gui Client Attributes len ThingsBoard khi vua ket noi
+        StaticJsonDocument<256> attr;
+        attr["firmware_version"] = "v3.1";
+        attr["device_name"]      = "ESP32_Master_BeCa";
+        attr["mdns_url"]         = "http://beca.local";
+        attr["mac_address"]      = WiFi.macAddress();
+        attr["local_ip"]         = WiFi.localIP().toString();
+        char attrBuf[256];
+        serializeJson(attr, attrBuf);
+        mqtt.publish("v1/devices/me/attributes", attrBuf);
       } else {
         Serial.printf("[MQTT] Ket noi that bai (rc=%d), se thu lai sau 15s.\n", mqtt.state());
       }
@@ -1114,23 +1148,30 @@ void handleMQTT() {
 
   mqtt.loop();
 
-  // Gui Telemetry moi 5s
+  // Gui Telemetry day du moi 5s
   if (ms - lastMqttPublish >= 5000) {
     lastMqttPublish = ms;
 
-    StaticJsonDocument<300> d;
-    d["water_temp"] = waterTemp;
-    d["air_temp"]   = airTemp;
-    d["air_hum"]    = airHum;
-    d["water_cm"]   = waterLevelCm;
-    d["heater"]     = heaterState;
-    d["fan"]        = fanState;
-    d["pump"]       = pumpState;
-    d["oxy"]        = oxyState;
-    d["drain"]      = drainState;
-    d["led"]        = ledState;
+    StaticJsonDocument<450> d;
+    d["water_temp"]   = waterTemp;
+    d["air_temp"]     = airTemp;
+    d["air_hum"]      = airHum;
+    d["water_cm"]     = waterLevelCm;
+    d["heater"]       = heaterState;
+    d["fan"]          = fanState;
+    d["pump"]         = pumpState;
+    d["oxy"]          = oxyState;
+    d["drain"]        = drainState;
+    d["led"]          = ledState;
+    d["filter"]       = filterMode;
+    d["filter_cycle"] = filterCycleMode;
+    d["system"]       = systemEnabled;
+    d["rssi"]         = WiFi.RSSI();
+    d["free_heap"]    = ESP.getFreeHeap();
+    d["ip"]           = WiFi.localIP().toString();
+    if (last_ir.length() > 0) d["last_ir"] = last_ir;
 
-    char buf[300];
+    char buf[450];
     serializeJson(d, buf);
     Serial.println("[MQTT SEND] " + String(buf));
     mqtt.publish("v1/devices/me/telemetry", buf);
@@ -1142,18 +1183,83 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
   for (unsigned int i = 0; i < length; i++) msg += (char)payload[i];
   Serial.println("[MQTT RECV] " + msg);
 
-  StaticJsonDocument<200> d;
+  StaticJsonDocument<256> d;
   if (deserializeJson(d, msg)) return;
 
   String method = d["method"].as<String>();
   bool val = d["params"].as<bool>();
+  bool feedTriggered = false;
 
-  if (method == "setHeater") { heaterState = val; if (val) start_heater = millis(); }
-  else if (method == "setFan") { fanState = val; if (val) start_fan = millis(); }
-  else if (method == "setDrain") { drainState = val; if (val) start_drain = millis(); }
-  else if (method == "setLed") { ledState = val; }
-  else if (method == "setOxy") { oxyModeContinuous = false; oxyState = val; }
-  else if (method == "setFeed" && val) { sendToSlave(true); return; }
+  if (method == "setHeater") { 
+    heaterState = val; 
+    timer_heater_active = false; 
+    if (val) start_heater = millis(); 
+  }
+  else if (method == "setFan") { 
+    fanState = val; 
+    timer_fan_active = false; 
+    if (val) start_fan = millis(); 
+  }
+  else if (method == "setPump") { 
+    pumpState = val; 
+    if (!pumpState && filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; } 
+  }
+  else if (method == "setDrain") { 
+    drainState = val; 
+    timer_drain_active = false; 
+    if (!drainState && filterMode) { filterMode = filterCycleMode = false; timer_filter_active = false; } 
+    if (drainState) start_drain = millis(); 
+  }
+  else if (method == "setLed") { 
+    ledState = val; 
+    timer_led_active = false; 
+    if (val) start_led = millis(); 
+  }
+  else if (method == "setOxy") { 
+    oxyModeContinuous = false; 
+    oxyState = val; 
+  }
+  else if (method == "setFilter") {
+    filterCycleMode = false;
+    filterMode = val;
+    timer_filter_active = false;
+    drainState = pumpState = val;
+    if (val) start_drain = start_pump = start_filter = millis();
+  }
+  else if (method == "setFilterCycle") {
+    filterCycleMode = val;
+    timer_filter_active = false;
+    if (val) {
+      filterCyclePhaseOn = true;
+      filterCycleLastChange = millis();
+      filterMode = drainState = pumpState = true;
+      start_drain = start_pump = start_filter = millis();
+    } else {
+      filterMode = drainState = pumpState = false;
+    }
+    saveSettings();
+  }
+  else if (method == "setSystem") {
+    systemEnabled = val;
+    if (!systemEnabled) {
+      heaterState = fanState = pumpState = oxyState = drainState = ledState = filterMode = filterCycleMode = false;
+      timer_heater_active = timer_fan_active = timer_drain_active = timer_led_active = timer_filter_active = false;
+      oxyModeContinuous = false;
+    }
+    saveSettings();
+  }
+  else if (method == "setFeed" && val) {
+    feedTriggered = true;
+  }
 
-  sendToSlave(false);
+  sendToSlave(feedTriggered);
+
+  // Tra loi 2-way RPC response ve ThingsBoard de widget tren Dashboard khong bi timeout
+  String topicStr = String(topic);
+  int reqIdx = topicStr.lastIndexOf('/');
+  if (reqIdx != -1) {
+    String reqId = topicStr.substring(reqIdx + 1);
+    String respTopic = "v1/devices/me/rpc/response/" + reqId;
+    mqtt.publish(respTopic.c_str(), "{\"status\":\"SUCCESS\"}");
+  }
 }
