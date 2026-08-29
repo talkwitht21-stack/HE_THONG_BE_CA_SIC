@@ -549,35 +549,9 @@ void setupWeb() {
     if (d.containsKey("sl_on"))  led_on_time       = d["sl_on"].as<String>();
     if (d.containsKey("sl_off")) led_off_time      = d["sl_off"].as<String>();
 
-    if (d.containsKey("fcm")) {
-      bool new_fcm = d["fcm"].as<bool>();
-      if (new_fcm != filterCycleMode) {
-        filterCycleMode = new_fcm;
-        timer_filter_active = false;
-        if (filterCycleMode) {
-          filterCyclePhaseOn = true;
-          filterCycleLastChange = millis();
-          filterMode = drainState = pumpState = true;
-          start_drain = start_pump = start_filter = millis();
-        } else {
-          filterMode = drainState = pumpState = false;
-        }
-      }
-    }
-    if (d.containsKey("fon")) {
-      uint16_t new_fon = d["fon"];
-      if (new_fon > 0 && new_fon != filter_on_min) {
-        filter_on_min = new_fon;
-        filterCycleLastChange = millis();
-      }
-    }
-    if (d.containsKey("fof")) {
-      uint16_t new_fof = d["fof"];
-      if (new_fof > 0 && new_fof != filter_off_min) {
-        filter_off_min = new_fof;
-        filterCycleLastChange = millis();
-      }
-    }
+    if (d.containsKey("fcm"))    filterCycleMode   = d["fcm"].as<bool>();
+    if (d.containsKey("fon"))    filter_on_min     = d["fon"];
+    if (d.containsKey("fof"))    filter_off_min    = d["fof"];
 
     bool feedChanged = false;
     if (d.containsKey("fen1"))   { feed_en_1   = d["fen1"]; feedChanged = true; }
@@ -995,7 +969,7 @@ void checkLogic() {
     bool is_full  = (waterLevelCm <= th_water_full);  // Rat gan -> nuoc day, dung bom bu
 
     // Tu dong bom bu nuoc (chi chay khi KHONG trong che do loc nuoc song song)
-    if (auto_pump && !filterMode && !filterCycleMode) {
+    if (auto_pump && !filterMode) {
       // 1. Khi nuoc thap -> Tu dong bat bom bu
       if (is_low && !pumpState && !autoPumpTimeoutAlarm) {
         pumpState = true;
@@ -1118,8 +1092,8 @@ void checkLogic() {
 
   // ===================== 7. CHU KY LOC NUOC TU DONG =====================
   if (filterCycleMode && !is_empty) {
-    unsigned long onMs  = (unsigned long)max(1, (int)filter_on_min) * 60000UL;
-    unsigned long offMs = (unsigned long)max(1, (int)filter_off_min) * 60000UL;
+    unsigned long onMs  = (unsigned long)filter_on_min * 60000UL;
+    unsigned long offMs = (unsigned long)filter_off_min * 60000UL;
 
     if (filterCyclePhaseOn) {
       if (!filterMode || !drainState || !pumpState) {
@@ -1131,7 +1105,7 @@ void checkLogic() {
         filterCycleLastChange = ms;
         filterMode = drainState = pumpState = false;
         stateChanged = true;
-        Serial.printf("[LOGIC] Chu ky Loc Nuoc: Het %u phut CHAY -> Chuyen sang NGHI (%u phut)\n", filter_on_min, filter_off_min);
+        Serial.println("[LOGIC] Chu ky Loc Nuoc -> Chuyen sang phase NGHI");
       }
     } else {
       if (filterMode || drainState || pumpState) {
@@ -1143,7 +1117,7 @@ void checkLogic() {
         filterCycleLastChange = ms;
         filterMode = drainState = pumpState = true;
         stateChanged = true;
-        Serial.printf("[LOGIC] Chu ky Loc Nuoc: Het %u phut NGHI -> Chuyen sang CHAY (%u phut)\n", filter_off_min, filter_on_min);
+        Serial.println("[LOGIC] Chu ky Loc Nuoc -> Chuyen sang phase CHAY");
       }
     }
   }
