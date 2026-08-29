@@ -10,31 +10,31 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
   <title>Hệ Thống Bể Cá Thông Minh SIC</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0fdfa; color: #1e293b; min-height: 100vh; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f9ff; color: #1e293b; min-height: 100vh; }
     .container { max-width: 560px; margin: 0 auto; padding: 16px; }
     
     /* Header */
-    .header-box { text-align: center; margin-bottom: 16px; padding: 14px; background: #ffffff; border-radius: 16px; border: 1px solid #ccfbf1; box-shadow: 0 4px 15px rgba(6, 182, 212, 0.08); }
-    h1 { color: #0891b2; font-size: 1.35em; letter-spacing: 1px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .header-box { text-align: center; margin-bottom: 16px; padding: 14px; background: #ffffff; border-radius: 16px; border: 1px solid #bae6fd; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.08); }
+    h1 { color: #0284c7; font-size: 1.35em; letter-spacing: 1px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .subtitle { color: #64748b; font-size: 0.78em; margin-top: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
     
     /* Navigation Tabs */
     .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
     .tab { flex: 1; padding: 12px; text-align: center; background: #ffffff; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 0.88em; color: #64748b; border: 1px solid #e2e8f0; transition: all 0.2s ease; }
     .tab:hover { background: #e0f2fe; color: #0284c7; }
-    .tab.active { background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%); color: #ffffff; border-color: transparent; box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25); }
+    .tab.active { background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); color: #ffffff; border-color: transparent; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25); }
     
     .panel { display: none; }
     .panel.active { display: block; }
     
     /* Cards */
-    .card { background: #ffffff; border-radius: 14px; padding: 16px; margin-bottom: 14px; border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03); }
-    .card-title { color: #0e7490; font-size: 0.82em; text-transform: uppercase; margin-bottom: 12px; border-bottom: 1.5px solid #ecfeff; padding-bottom: 6px; font-weight: 800; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
+    .card { background: #ffffff; border-radius: 14px; padding: 16px; margin-bottom: 14px; border: 1px solid #e0f2fe; box-shadow: 0 2px 10px rgba(14, 165, 233, 0.04); }
+    .card-title { color: #0369a1; font-size: 0.82em; text-transform: uppercase; margin-bottom: 12px; border-bottom: 1.5px solid #f0f9ff; padding-bottom: 6px; font-weight: 800; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
     
     /* Metrics Grid */
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .box { background: #f8fafc; padding: 12px 8px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0; transition: transform 0.15s ease; }
-    .box:hover { border-color: #67e8f9; transform: translateY(-1px); }
+    .box { background: #f8fafc; padding: 12px 8px; border-radius: 10px; text-align: center; border: 1px solid #e0f2fe; transition: all 0.15s ease; }
+    .box:hover { border-color: #7dd3fc; background: #f0f9ff; transform: translateY(-1px); }
     .val { font-size: 1.45em; font-weight: 800; color: #0284c7; }
     .lbl { font-size: 0.72em; color: #64748b; margin-top: 4px; font-weight: 600; }
     
@@ -42,7 +42,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 10px 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
     .row-info { flex: 1; display: flex; flex-direction: column; }
     .row-label { font-size: 0.88em; color: #1e293b; font-weight: 700; }
-    .countdown-lbl { font-size: 0.72em; color: #0284c7; font-weight: 700; margin-top: 2px; }
+    .countdown-lbl { font-size: 0.72em; color: #0ea5e9; font-weight: 700; margin-top: 2px; }
     .row-ctrl { display: flex; align-items: center; gap: 6px; }
     
     /* Buttons */
@@ -50,11 +50,11 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     .btn:active { transform: scale(0.96); }
     .btn.on  { background: #10b981; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
     .btn.off { background: #94a3b8; }
-    .btn.timer-btn { background: #0284c7; font-size: 0.76em; padding: 8px 10px; min-width: 68px; }
-    .btn.timer-btn.active { background: #7c3aed; }
+    .btn.timer-btn { background: #0ea5e9; font-size: 0.76em; padding: 8px 10px; min-width: 68px; }
+    .btn.timer-btn.active { background: #0284c7; }
     
     .sys-btn { width: 100%; margin-bottom: 12px; padding: 12px; font-size: 0.95em; letter-spacing: 1px; font-weight: 800; border-radius: 10px; }
-    .feed-btn { background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%); width: 100%; padding: 13px; margin-top: 8px; font-size: 0.95em; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: white; box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3); transition: all 0.2s ease; }
+    .feed-btn { background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); width: 100%; padding: 13px; margin-top: 8px; font-size: 0.95em; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; color: white; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25); transition: all 0.2s ease; }
     .feed-btn:active { transform: scale(0.98); }
     
     .timer-wrap { display: flex; align-items: center; gap: 2px; }
@@ -64,16 +64,16 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     /* Settings Form */
     .form-group { margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.88em; color: #334155; font-weight: 600; }
     .form-group input { width: 90px; padding: 7px 8px; background: #ffffff; border: 1.5px solid #cbd5e1; color: #0f172a; border-radius: 6px; text-align: center; font-weight: bold; font-size: 0.9em; }
-    .form-group input:focus { border-color: #06b6d4; outline: none; }
+    .form-group input:focus { border-color: #38bdf8; outline: none; }
     .form-group input.wide { width: 180px; text-align: left; }
     .form-group select { padding: 7px 8px; background: #ffffff; border: 1.5px solid #cbd5e1; color: #0f172a; border-radius: 6px; width: 115px; font-weight: bold; }
-    .save-btn { width: 100%; background: linear-gradient(135deg, #06b6d4 0%, #0284c7 100%); color: white; padding: 13px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; margin-top: 14px; font-size: 0.95em; box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3); }
+    .save-btn { width: 100%; background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); color: white; padding: 13px; border: none; border-radius: 10px; font-weight: 800; cursor: pointer; margin-top: 14px; font-size: 0.95em; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25); }
     
     /* IR Mapping */
     .ir-lbl { font-size: 0.84em; color: #475569; font-weight: 600; }
     .ir-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 9px; }
-    .ir-row input { width: 54px; padding: 5px 6px; background: #f8fafc; border: 1.5px solid #cbd5e1; color: #0891b2; border-radius: 6px; text-align: center; font-size: 0.88em; font-weight: 800; }
-    .ir-btn { padding: 6px 12px; background: #0284c7; border: none; border-radius: 6px; color: white; font-size: 0.78em; font-weight: bold; cursor: pointer; }
+    .ir-row input { width: 54px; padding: 5px 6px; background: #f8fafc; border: 1.5px solid #cbd5e1; color: #0284c7; border-radius: 6px; text-align: center; font-size: 0.88em; font-weight: 800; }
+    .ir-btn { padding: 6px 12px; background: #0ea5e9; border: none; border-radius: 6px; color: white; font-size: 0.78em; font-weight: bold; cursor: pointer; }
     
     .hint { font-size: 0.72em; color: #64748b; margin-top: -4px; margin-bottom: 10px; }
     .badge { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 0.75em; font-weight: 800; }
@@ -106,7 +106,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           <div class="box"><div class="val" id="v-ah">--</div><div class="lbl">Độ Ẩm K.Khí (%)</div></div>
           <div class="box"><div class="val" id="v-wl">--</div><div class="lbl">Mực Nước (cm cách nắp)</div></div>
           <div class="box"><div class="val" id="v-time" style="font-size:1.2em">--:--</div><div class="lbl">Giờ Hệ Thống (NTP)</div></div>
-          <div class="box"><div class="val" id="v-rssi" style="font-size:1.1em;color:#0891b2">-- dBm</div><div class="lbl">Sóng WiFi (RSSI)</div></div>
+          <div class="box"><div class="val" id="v-rssi" style="font-size:1.1em;color:#0284c7">-- dBm</div><div class="lbl">Sóng WiFi (RSSI)</div></div>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 
         <div class="row">
           <div class="row-info">
-            <span class="row-label">Sục Khí Oxy (<span id="oxy-mode-lbl" style="color:#0891b2">Chu kỳ</span>)</span>
+            <span class="row-label">Sục Khí Oxy (<span id="oxy-mode-lbl" style="color:#0ea5e9">Chu kỳ</span>)</span>
           </div>
           <div class="row-ctrl"><button class="btn off" id="b-oxy" onclick="toggle('oxy')">TẮT</button></div>
         </div>
@@ -181,7 +181,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
           <div class="row-info">
             <span class="row-label">Lọc Nước Tuần Hoàn (Song Song)</span>
             <span class="countdown-lbl" id="c-filter"></span>
-            <span id="lbl-filter-cycle" style="font-size:0.75em;color:#0891b2;display:block;font-weight:bold"></span>
+            <span id="lbl-filter-cycle" style="font-size:0.75em;color:#0ea5e9;display:block;font-weight:bold"></span>
           </div>
           <div class="row-ctrl">
             <div class="timer-wrap">
@@ -287,7 +287,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
         <div class="card-title">Kết Nối Mạng WiFi &amp; mDNS</div>
         <div class="form-group"><span>WiFi SSID:</span><input type="text" id="s-ssid" class="wide"></div>
         <div class="form-group"><span>Mật Khẩu WiFi:</span><input type="text" id="s-pass" class="wide"></div>
-        <div class="form-group"><span>Tên Miền Local:</span><span style="color:#0891b2;font-weight:bold;font-size:0.9em">http://beca.local</span></div>
+        <div class="form-group"><span>Tên Miền Local:</span><span style="color:#0284c7;font-weight:bold;font-size:0.9em">http://beca.local</span></div>
         <div class="form-group"><span>Trạng thái WiFi:</span><span id="s-wst" style="font-weight:bold;font-size:0.85em">--</span></div>
       </div>
 
