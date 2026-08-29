@@ -573,6 +573,7 @@ void setupWeb() {
     if (d.containsKey("tls"))    timer_led_sec     = d["tls"];
 
     if (d.containsKey("sys"))    systemEnabled     = d["sys"];
+    if (d.containsKey("total_fish")) total_fish = d["total_fish"];
 
     bool wifiChanged = false;
     if (d.containsKey("ssid") && d.containsKey("pass")) {
@@ -695,6 +696,7 @@ void saveSettings() {
   if (th_water_empty <= th_water_low) th_water_empty = th_water_low + 5.0;
 
   prefs.begin("beca", false);
+  prefs.putUShort("tf", total_fish);
   prefs.putString("ssid", sta_ssid);
   prefs.putString("pass", sta_password);
 
@@ -1195,6 +1197,7 @@ void handleMQTT() {
     d["air_temp"]     = (airTemp > -500.0)   ? airTemp   : 0.0;
     d["air_hum"]      = (airHum > -500.0)    ? airHum    : 0.0;
     d["water_cm"]     = waterLevelCm;
+    d["total_fish"]   = total_fish;
     d["heater"]       = heaterState;
     d["fan"]          = fanState;
     d["pump"]         = pumpState;

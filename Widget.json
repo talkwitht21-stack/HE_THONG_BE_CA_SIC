@@ -1163,7 +1163,7 @@
           "configMode": "basic",
           "actions": {},
           "showTitleIcon": true,
-          "titleIcon": "pets",
+          "titleIcon": "set_meal",
           "iconColor": "#0369a1",
           "titleFont": {
             "size": 15,

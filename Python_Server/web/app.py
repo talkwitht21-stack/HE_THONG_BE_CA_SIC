@@ -258,6 +258,19 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
                 shared_state["total_fish_configured"] = tf
                 if config_mgr:
                     config_mgr.set("aquarium", "total_fish", tf)
+                if esp32_client:
+                    esp32_client.set_schedule({"total_fish": tf})
+                if mqtt_ai and mqtt_ai.enabled:
+                    dead = shared_state.get("confirmed_dead_fish", 0)
+                    turb = shared_state.get("ai_result", {}).get("water_turbidity", 0)
+                    mqtt_ai.publish_ai_telemetry({
+                        "total_fish": tf,
+                        "alive_fish": max(0, tf - dead),
+                        "dead_fish": dead,
+                        "water_turbidity": turb,
+                        "summary": shared_state.get("ai_result", {}).get("summary", ""),
+                        "ai_engine": "Gemini 3.5 Flash VLM"
+                    }, fps=video_stream.actual_fps if video_stream else 15.0)
                 changed = True
             except ValueError:
                 pass
