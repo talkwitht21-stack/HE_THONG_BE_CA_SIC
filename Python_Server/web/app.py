@@ -66,6 +66,7 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "interval_alert_sec": inv_alert,
             "fps": video_stream.actual_fps if video_stream else 0.0,
             "ref_status": ref_status,
+            "esp32_base_url": esp32_client.base_url if esp32_client else "http://beca.local",
             "esp32": esp_data,
             "timestamp": time.time()
         })
@@ -182,6 +183,17 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
     def api_update_settings():
         data = request.get_json() or {}
         changed = False
+
+        if "esp32_base_url" in data:
+            esp_url = str(data["esp32_base_url"]).strip()
+            if esp_url:
+                if not esp_url.startswith("http://") and not esp_url.startswith("https://"):
+                    esp_url = "http://" + esp_url
+                if config_mgr:
+                    config_mgr.set("esp32_lan", "base_url", esp_url)
+                if esp32_client:
+                    esp32_client.update_base_url(esp_url)
+                changed = True
 
         if "camera_source" in data:
             src = str(data["camera_source"]).strip()

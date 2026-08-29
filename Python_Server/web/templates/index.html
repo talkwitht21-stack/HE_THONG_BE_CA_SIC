@@ -700,6 +700,21 @@
         <button class="btn-modal-close" onclick="closeSettingsModal()">✖</button>
       </div>
 
+      <!-- 0. Địa Chỉ IP / Hostname ESP32 Master (Mạng LAN) -->
+      <div class="setting-section" style="background:#fdf4ff;border:1px solid #f0abfc;padding:14px;border-radius:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <strong style="color:#a21caf;font-size:0.86em;text-transform:uppercase">🌐 Địa Chỉ ESP32 Master (Mạng LAN)</strong>
+          <span id="esp32-url-status-lbl" style="font-size:0.8em;color:#9333ea;font-weight:bold"></span>
+        </div>
+        <p style="font-size:0.75em;color:#475569;margin-bottom:10px">
+          Địa chỉ IP hoặc mDNS của ESP32 Master (Mặc định: <code>http://beca.local</code> hoặc <code>http://192.168.1.50</code>).
+        </p>
+        <div class="setting-row" style="margin-bottom:0">
+          <input type="text" id="inp-esp32-url" class="setting-input" placeholder="http://beca.local hoặc http://192.168.1.50">
+          <button class="setting-btn" style="background:#a855f7" onclick="saveSettings('esp32_url')">Lưu Địa Chỉ ESP32</button>
+        </div>
+      </div>
+
       <!-- 1. Cài Đặt Camera & Chu Kỳ Phân Tích AI -->
       <div class="setting-section" style="background:#f0fdf4;border:1px solid #bbf7d0;padding:14px;border-radius:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -1102,7 +1117,11 @@
 
     function saveSettings(type) {
       let payload = {};
-      if (type === 'camera') {
+      if (type === 'esp32_url') {
+        let u = document.getElementById('inp-esp32-url').value.trim();
+        if (!u) return alert('Vui lòng nhập địa chỉ IP hoặc Hostname của ESP32!');
+        payload.esp32_base_url = u;
+      } else if (type === 'camera') {
         let src = document.getElementById('inp-cam-source').value.trim();
         let invNorm = parseInt(document.getElementById('inp-cam-inv-norm').value);
         let invAlert = parseInt(document.getElementById('inp-cam-inv-alert').value);

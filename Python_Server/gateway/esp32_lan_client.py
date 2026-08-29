@@ -13,6 +13,19 @@ class ESP32LANClient:
         self.last_cached_data = {}
         self.last_fetch_time = 0
 
+    def update_base_url(self, new_url):
+        """
+        Cập nhật địa chỉ IP hoặc Hostname mới của ESP32 Master (ví dụ: http://192.168.1.50 hoặc http://beca.local)
+        """
+        if new_url:
+            url_str = str(new_url).strip().rstrip("/")
+            if not url_str.startswith("http://") and not url_str.startswith("https://"):
+                url_str = "http://" + url_str
+            self.base_url = url_str
+            print(f"[ESP32 LAN] Da cap nhat Base URL cua ESP32 Master sang: {self.base_url}")
+            return True
+        return False
+
     def get_data(self):
         """
         Lấy toàn bộ dữ liệu cảm biến và trạng thái relay từ ESP32 qua GET /api/data
