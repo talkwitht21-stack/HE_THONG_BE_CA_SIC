@@ -73,52 +73,73 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "timestamp": time.time()
         })
 
+    @app.route("/api/update_fish_status", methods=["POST"])
     @app.route("/api/update_dead_fish", methods=["POST"])
-    def api_update_dead_fish():
+    def api_update_fish_status():
         data = request.get_json() or {}
-        if "dead_fish" in data:
-            try:
-                new_dead = max(0, int(data["dead_fish"]))
-                shared_state["confirmed_dead_fish"] = new_dead
-                shared_state["suspected_dead_fish"] = new_dead
+        try:
+            total = shared_state.get("total_fish_configured", 10)
+            
+            dead = int(data.get("dead_fish", shared_state.get("confirmed_dead_fish", 0)))
+            dead = max(0, dead)
+            
+            suspected = int(data.get("suspected_fish", data.get("suspected_dead_fish", shared_state.get("suspected_dead_fish", 0))))
+            suspected = max(0, suspected)
+            
+            if "total_fish" in data:
+                total = max(1, int(data["total_fish"]))
+                shared_state["total_fish_configured"] = total
+                if config_mgr:
+                    config_mgr.set("aquarium", "total_fish", total)
+            
+            if "alive_fish" in data:
+                alive = max(0, int(data["alive_fish"]))
+                total = max(alive + dead, total)
+                shared_state["total_fish_configured"] = total
+                if config_mgr:
+                    config_mgr.set("aquarium", "total_fish", total)
+            else:
+                alive = max(0, total - dead)
                 
-                total = shared_state.get("total_fish_configured", 10)
-                alive = max(0, total - new_dead)
+            shared_state["confirmed_dead_fish"] = dead
+            shared_state["suspected_dead_fish"] = suspected
+            
+            if dead > 0:
+                shared_state["verify_progress"] = f"5/5 (Thủ công: {dead} cá chết)"
+            elif suspected > 0:
+                shared_state["verify_progress"] = f"1/5 (Thủ công: {suspected} nghi ngờ)"
+            else:
+                shared_state["verify_progress"] = "0/5 (An toàn - Đã reset thủ công)"
                 
-                if new_dead > 0:
-                    shared_state["verify_progress"] = f"5/5 (Thủ công: {new_dead} cá chết)"
-                else:
-                    shared_state["verify_progress"] = "0/5 (An toàn - Đã reset thủ công)"
-                
-                cur_ai = shared_state.get("ai_result", {})
-                cur_ai["dead_fish"] = new_dead
-                cur_ai["confirmed_dead_fish"] = new_dead
-                cur_ai["alive_fish"] = alive
-                cur_ai["summary"] = f"Người dùng đã điều chỉnh thủ công số cá chết: {new_dead} con."
-                shared_state["ai_result"] = cur_ai
-                
-                if mqtt_ai and mqtt_ai.enabled:
-                    ai_telemetry = {
-                        "total_fish": total,
-                        "alive_fish": alive,
-                        "dead_fish": new_dead,
-                        "water_turbidity": cur_ai.get("water_turbidity", 15),
-                        "summary": cur_ai.get("summary", ""),
-                        "ai_engine": cur_ai.get("ai_engine", "Gemini 3.5 Flash"),
-                        "is_alert": (new_dead > 0)
-                    }
-                    mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps if video_stream else 0.0)
-                
-                return jsonify({
-                    "status": "success", 
-                    "dead_fish": new_dead,
-                    "alive_fish": alive,
+            cur_ai = shared_state.get("ai_result", {})
+            cur_ai["dead_fish"] = dead
+            cur_ai["confirmed_dead_fish"] = dead
+            cur_ai["alive_fish"] = alive
+            cur_ai["summary"] = f"Người dùng đã điều chỉnh thủ công: {alive} cá sống, {suspected} nghi ngờ, {dead} cá chết."
+            shared_state["ai_result"] = cur_ai
+            
+            if mqtt_ai and mqtt_ai.enabled:
+                ai_telemetry = {
                     "total_fish": total,
-                    "message": f"Đã cập nhật số cá chết thành {new_dead} con thành công!"
-                })
-            except Exception as e:
-                return jsonify({"status": "error", "message": str(e)}), 400
-        return jsonify({"status": "error", "message": "Thieu tham so dead_fish"}), 400
+                    "alive_fish": alive,
+                    "dead_fish": dead,
+                    "water_turbidity": cur_ai.get("water_turbidity", 15),
+                    "summary": cur_ai.get("summary", ""),
+                    "ai_engine": cur_ai.get("ai_engine", "Gemini 3.5 Flash"),
+                    "is_alert": (dead > 0)
+                }
+                mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps if video_stream else 0.0)
+                
+            return jsonify({
+                "status": "success",
+                "total_fish": total,
+                "alive_fish": alive,
+                "suspected_fish": suspected,
+                "dead_fish": dead,
+                "message": f"Đã cập nhật tình hình cá: {alive} Sống | {suspected} Nghi ngờ | {dead} Chết!"
+            })
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)}), 400
 
     @app.route("/api/instant_analyze", methods=["POST", "GET"])
     def api_instant_analyze():

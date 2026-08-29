@@ -199,13 +199,16 @@ def main():
                         shared_state["confirmed_dead_fish"] = confirmed_dead
 
                         if confirmed_dead > 0:
+                            shared_state["confirmed_dead_fish"] = confirmed_dead
+                            shared_state["suspected_dead_fish"] = 0 # XÓA NGHI NGỜ KHI ĐÃ XÁC NHẬN CHẾT
                             shared_state["verify_progress"] = f"5/5 (Xác nhận {confirmed_dead} cá chết)"
-                            print(f"[AI MOTION CONFIRMED] XAC NHAN 100% CO {confirmed_dead} CA CHET QUA 5 KHUNG HINH!")
+                            print(f"[AI MOTION CONFIRMED] XAC NHAN 100% CO {confirmed_dead} CA CHET QUA 5 KHUNG HINH (DA XOA NGHI NGO)!")
                             if telegram_bot and telegram_bot.enabled:
                                 telegram_bot.check_and_send_alert(motion_res)
                         else:
+                            shared_state["confirmed_dead_fish"] = 0
+                            shared_state["suspected_dead_fish"] = 0 # XÓA NGHI NGỜ KHI CÁ BƠI LẠI
                             shared_state["verify_progress"] = "0/5 (An toàn - Cá đã cử động qua 5 frames)"
-                            shared_state["suspected_dead_fish"] = 0
                             print("[AI MOTION SAFE] Ca da cu dong/boi loi qua 5 frames -> Xac nhan ca song khoe!")
 
                         # Đồng bộ ThingsBoard
