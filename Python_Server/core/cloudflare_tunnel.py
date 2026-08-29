@@ -9,12 +9,14 @@ class CloudflareTunnel:
     """
     Tự động tạo đường hầm Cloudflare Quick Tunnel (miễn phí, không cần mở port router)
     và trích xuất Public URL (https://*.trycloudflare.com).
+    Hỗ trợ cả thư viện pycloudflared và binary cloudflared.
     """
     def __init__(self, port=5000, on_url_ready=None):
         self.port = port
         self.on_url_ready = on_url_ready
         self.public_url = None
         self.process = None
+        self.tunnel_obj = None
         self.running = False
         self.thread = None
 
@@ -28,18 +30,24 @@ class CloudflareTunnel:
     def _run_tunnel(self):
         print(f"[CLOUDFLARE] Dang khoi tao Cloudflare Tunnel cho port {self.port}...")
         
-        # Kiem tra thu vien pycloudflared hoac binary cloudflared
+        # 1. Thu dung pycloudflared
+        try:
+            from pycloudflared import try_cloudflare
+            print("[CLOUDFLARE] Dang ket noi Cloudflare Quick Tunnel qua pycloudflared...")
+            self.tunnel_obj = try_cloudflare(port=self.port, verbose=False)
+            if self.tunnel_obj and self.tunnel_obj.tunnel_url:
+                self.public_url = self.tunnel_obj.tunnel_url
+                self._notify_ready()
+                return
+        except Exception as e:
+            print(f"[CLOUDFLARE WARN] pycloudflared try_cloudflare that bai ({e}), thu chay truc tiep...")
+
+        # 2. Fallback sang Subprocess chay cloudflared
         cmd = None
         if shutil.which("cloudflared"):
             cmd = ["cloudflared", "tunnel", "--url", f"http://127.0.0.1:{self.port}"]
         else:
-            try:
-                import pycloudflared
-                # pycloudflared ho tro tu tai binary
-                cmd = ["pycloudflared", "tunnel", "--url", f"http://127.0.0.1:{self.port}"]
-            except ImportError:
-                # Fallback: Thu chay qua python -m pycloudflared
-                cmd = [os.sys.executable, "-m", "pycloudflared", "tunnel", "--url", f"http://127.0.0.1:{self.port}"]
+            cmd = [os.sys.executable, "-m", "pycloudflared", "tunnel", "--url", f"http://127.0.0.1:{self.port}"]
 
         try:
             self.process = subprocess.Popen(
@@ -56,23 +64,23 @@ class CloudflareTunnel:
             for line in iter(self.process.stdout.readline, ''):
                 if not self.running:
                     break
-                # Tim link trycloudflare
                 match = url_pattern.search(line)
                 if match and not self.public_url:
                     self.public_url = match.group(0)
-                    print("=" * 65)
-                    print(f" CLOUDFLARE PUBLIC URL: {self.public_url}")
-                    print("=" * 65)
-                    
-                    if self.on_url_ready:
-                        try:
-                            self.on_url_ready(self.public_url)
-                        except Exception as e:
-                            print(f"[CLOUDFLARE CALLBACK ERROR] {e}")
+                    self._notify_ready()
 
         except Exception as e:
             print(f"[CLOUDFLARE ERROR] Khong the chay Cloudflare Tunnel: {e}")
-            print("[CLOUDFLARE TIP] Cai dat bang cach chay: pip install pycloudflared")
+
+    def _notify_ready(self):
+        print("=" * 65)
+        print(f" [CLOUDFLARE] PUBLIC WEB URL: {self.public_url}")
+        print("=" * 65)
+        if self.on_url_ready and self.public_url:
+            try:
+                self.on_url_ready(self.public_url)
+            except Exception as e:
+                print(f"[CLOUDFLARE CALLBACK ERROR] {e}")
 
     def get_url(self):
         return self.public_url

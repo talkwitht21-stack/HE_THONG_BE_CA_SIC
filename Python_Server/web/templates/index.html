@@ -10,14 +10,19 @@
     .container { max-width: 1100px; margin: 0 auto; }
     
     /* Header */
-    .header { background: #ffffff; padding: 16px 22px; border-radius: 16px; border: 1px solid #bae6fd; box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .header { background: #ffffff; padding: 16px 22px; border-radius: 16px; border: 1px solid #bae6fd; box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
     .title h1 { color: #0284c7; font-size: 1.38em; font-weight: 800; }
     .title p { color: #64748b; font-size: 0.82em; font-weight: 600; margin-top: 2px; }
     
-    /* Mode Switcher */
-    .mode-bar { display: flex; gap: 8px; background: #e0f2fe; padding: 4px; border-radius: 10px; }
-    .mode-btn { padding: 8px 16px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.84em; cursor: pointer; color: #0369a1; background: transparent; transition: all 0.2s ease; }
+    /* Header Controls */
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .mode-bar { display: flex; gap: 6px; background: #e0f2fe; padding: 4px; border-radius: 10px; }
+    .mode-btn { padding: 8px 14px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.82em; cursor: pointer; color: #0369a1; background: transparent; transition: all 0.2s ease; }
     .mode-btn.active { background: #0284c7; color: #ffffff; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3); }
+    
+    /* Nút Cài Đặt Hệ Thống */
+    .btn-settings-open { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: #ffffff; padding: 8px 16px; border: none; border-radius: 10px; font-weight: 700; font-size: 0.84em; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25); transition: all 0.2s ease; }
+    .btn-settings-open:hover { transform: translateY(-1px); opacity: 0.95; }
 
     /* Cloudflare URL Banner */
     .tunnel-banner { background: #ecfeff; border: 1px solid #a5f3fc; padding: 8px 16px; border-radius: 10px; font-size: 0.82em; color: #0e7490; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -59,11 +64,6 @@
     .ref-btn-up { background: #e0f2fe; color: #0369a1; }
     .ref-btn-del { background: #fee2e2; color: #dc2626; margin-top: 2px; }
 
-    /* Settings Form */
-    .form-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
-    .form-input { flex: 1; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85em; }
-    .form-btn { padding: 8px 14px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.8em; }
-
     /* Control Panel */
     .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .ctrl-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
@@ -74,22 +74,87 @@
     .btn.action { background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); width: 100%; padding: 11px; margin-top: 10px; font-size: 0.88em; border-radius: 8px; }
     
     /* IFrame ThingsBoard */
-    .tb-frame { width: 100%; height: 650px; border: none; border-radius: 10px; }
+    .tb-frame { width: 100%; height: 700px; border: none; border-radius: 12px; }
     .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: 800; }
     .badge-lan { background: #e0f2fe; color: #0284c7; }
     .badge-mode { background: #fef3c7; color: #d97706; padding: 4px 8px; border-radius: 6px; font-size: 0.75em; font-weight: bold; }
+
+    /* SETTINGS MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-box {
+      background: #ffffff;
+      width: 100%;
+      max-width: 620px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border-radius: 18px;
+      border: 1px solid #bae6fd;
+      box-shadow: 0 25px 50px -12px rgba(14, 165, 233, 0.25);
+      padding: 24px;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #f0f9ff;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    .modal-header h2 { color: #0284c7; font-size: 1.25em; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+    .btn-modal-close {
+      background: #f1f5f9;
+      border: none;
+      font-size: 1.2em;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      cursor: pointer;
+      color: #64748b;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+    .btn-modal-close:hover { background: #fee2e2; color: #ef4444; }
+    
+    .setting-section { margin-bottom: 18px; }
+    .setting-label { display: block; font-size: 0.82em; font-weight: 700; color: #334155; margin-bottom: 6px; }
+    .setting-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .setting-input { flex: 1; padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85em; }
+    .setting-input:focus { outline: none; border-color: #0284c7; }
+    .setting-btn { padding: 9px 16px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.82em; transition: all 0.2s; white-space: nowrap; }
+    .setting-btn:hover { background: #0369a1; }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <div class="header">
       <div class="title">
         <h1>BỂ CÁ SIC - TRUNG TÂM EDGE AI &amp; GATEWAY</h1>
         <p>Gemini Flash Multimodal AI &bull; Cloudflare Tunnel &bull; Telegram Bot</p>
       </div>
-      <div class="mode-bar">
-        <button class="mode-btn active" id="btn-lan" onclick="setMode('lan')">CHẾ ĐỘ 1: LAN (beca.local)</button>
-        <button class="mode-btn" id="btn-cloud" onclick="setMode('cloud')">CHẾ ĐỘ 2: CLOUD (ThingsBoard)</button>
+      <div class="header-actions">
+        <div class="mode-bar">
+          <button class="mode-btn active" id="btn-lan" onclick="setMode('lan')">CHẾ ĐỘ 1: LAN</button>
+          <button class="mode-btn" id="btn-cloud" onclick="setMode('cloud')">CHẾ ĐỘ 2: CLOUD (ThingsBoard)</button>
+        </div>
+        <!-- Nút Mở Hộp Thoại Cài Đặt -->
+        <button class="btn-settings-open" onclick="openSettingsModal()">
+          <span>⚙️ CÀI ĐẶT HỆ THỐNG</span>
+        </button>
       </div>
     </div>
 
@@ -134,69 +199,6 @@
               <div style="font-size:0.8em;color:#64748b;margin-top:4px">Lần chụp cuối: <span id="ai-time">--</span> &bull; FPS: <span id="ai-fps">--</span></div>
             </div>
           </div>
-
-          <!-- QUẢN LÝ 5 ẢNH MẪU THAM CHIẾU BỂ CÁ (BASELINE CALIBRATION) -->
-          <div class="card">
-            <div class="card-title">
-              <span>5 Ảnh Mẫu Tham Chiếu (Chống Nhận Diện Nhầm)</span>
-              <span id="ref-count-badge" class="badge badge-lan">0/5 Ảnh</span>
-            </div>
-            <p style="font-size:0.78em;color:#64748b;margin-bottom:8px">
-              Chụp hoặc tải lên 5 ảnh bể cá lúc bình thường (các góc sáng, tối, lũa đá) để AI đối chiếu, loại bỏ 100% việc nhận nhầm vật thể tĩnh thành cá chết.
-            </p>
-            <div class="ref-grid" id="ref-slots-container">
-              <!-- Render 5 slots via JS -->
-            </div>
-          </div>
-
-          <!-- Cài Đặt Hệ Thống Bể Cá Toàn Diện -->
-          <div class="card">
-            <div class="card-title">Cài Đặt &amp; Khóa API Hệ Thống</div>
-            
-            <!-- 1. Google Gemini API Key -->
-            <label style="font-size:0.8em;font-weight:bold;color:#475569">
-              Google Gemini Vision API Key: 
-              <span id="gemini-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
-            </label>
-            <div class="form-row">
-              <input type="password" id="inp-gemini-key" class="form-input" placeholder="Dán API Key từ aistudio.google.com">
-              <button class="form-btn" onclick="saveSettings('gemini')">Lưu API Key</button>
-            </div>
-
-            <!-- 2. ThingsBoard Access Token -->
-            <label style="font-size:0.8em;font-weight:bold;color:#475569">
-              ThingsBoard Device Access Token (AI Node): 
-              <span id="tb-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
-            </label>
-            <div class="form-row">
-              <input type="password" id="inp-tb-token" class="form-input" placeholder="Dán Token Device AI ThingsBoard">
-              <button class="form-btn" onclick="saveSettings('thingsboard')">Lưu Token TB</button>
-            </div>
-
-            <!-- 3. Telegram Bot Token -->
-            <label style="font-size:0.8em;font-weight:bold;color:#475569">
-              Telegram Bot Token (@BotFather): 
-              <span id="tg-token-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
-            </label>
-            <div class="form-row">
-              <input type="password" id="inp-tg-token" class="form-input" placeholder="Dán Token từ @BotFather">
-              <button class="form-btn" onclick="saveSettings('tg_token')">Lưu Token Bot</button>
-            </div>
-
-            <!-- 4. Telegram Chat ID -->
-            <label style="font-size:0.8em;font-weight:bold;color:#475569">Telegram Chat ID / User ID Nhận Tin:</label>
-            <div class="form-row">
-              <input type="text" id="inp-chat-id" class="form-input" placeholder="Nhập Telegram Chat ID của bạn">
-              <button class="form-btn" onclick="saveSettings('telegram')">Lưu ID Telegram</button>
-            </div>
-
-            <!-- 5. Tổng Số Cá Thả -->
-            <label style="font-size:0.8em;font-weight:bold;color:#475569">Tổng Số Cá Thả Vào Bể:</label>
-            <div class="form-row">
-              <input type="number" id="inp-total-fish" class="form-input" min="1" max="100" placeholder="Số cá thả (VD: 10)">
-              <button class="form-btn" onclick="saveSettings('fish')">Lưu Số Cá</button>
-            </div>
-          </div>
         </div>
 
         <!-- Cột Phải: Điều Khiển Trực Tiếp ESP32 qua LAN -->
@@ -237,9 +239,103 @@
     <!-- KHU VỰC CHẾ ĐỘ 2: CLOUD THINGSBOARD EMBED -->
     <div id="view-cloud" style="display:none">
       <div class="card">
-        <div class="card-title">Dashboard ThingsBoard Cloud</div>
-        <iframe class="tb-frame" id="tb-iframe" src="https://demo.thingsboard.io"></iframe>
+        <div class="card-title">
+          <span>Bảng Điều Khiển ThingsBoard Cloud</span>
+          <a id="tb-direct-link" href="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e" target="_blank" style="font-size:0.75em;color:#0284c7;text-decoration:none;font-weight:bold">Mở Tab Mới ↗</a>
+        </div>
+        <iframe class="tb-frame" id="tb-iframe" src="https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e"></iframe>
       </div>
+    </div>
+  </div>
+
+  <!-- HỘP THOẠI CÀI ĐẶT HỆ THỐNG (SETTINGS MODAL DIALOG) -->
+  <div class="modal-backdrop" id="settings-modal" onclick="closeSettingsModalOnBackdrop(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>⚙️ CÀI ĐẶT &amp; KHÓA API HỆ THỐNG</h2>
+        <button class="btn-modal-close" onclick="closeSettingsModal()">✖</button>
+      </div>
+
+      <!-- 1. Quản lý 5 Ảnh Mẫu Tham Chiếu -->
+      <div class="setting-section" style="background:#f8fafc;border:1px solid #e2e8f0;padding:12px;border-radius:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <strong style="color:#0284c7;font-size:0.85em;text-transform:uppercase">5 Ảnh Mẫu Tham Chiếu (Baseline Calibration)</strong>
+          <span id="ref-count-badge" class="badge badge-lan">0/5 Ảnh</span>
+        </div>
+        <p style="font-size:0.75em;color:#64748b;margin-bottom:8px">
+          Chụp hoặc tải lên 5 ảnh bể cá lúc bình thường (các góc sáng, tối, lũa đá) để AI đối chiếu, loại bỏ 100% việc nhận nhầm vật thể tĩnh thành cá chết.
+        </p>
+        <div class="ref-grid" id="ref-slots-container">
+          <!-- Render 5 slots via JS -->
+        </div>
+      </div>
+
+      <!-- 2. Google Gemini API Key -->
+      <div class="setting-section">
+        <label class="setting-label">
+          Google Gemini Vision API Key: 
+          <span id="gemini-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
+        </label>
+        <div class="setting-row">
+          <input type="password" id="inp-gemini-key" class="setting-input" placeholder="Dán API Key từ aistudio.google.com">
+          <button class="setting-btn" onclick="saveSettings('gemini')">Lưu API Key</button>
+        </div>
+      </div>
+
+      <!-- 3. ThingsBoard Access Token -->
+      <div class="setting-section">
+        <label class="setting-label">
+          ThingsBoard Device Access Token (AI Node): 
+          <span id="tb-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
+        </label>
+        <div class="setting-row">
+          <input type="password" id="inp-tb-token" class="setting-input" placeholder="Dán Token Device AI ThingsBoard">
+          <button class="setting-btn" onclick="saveSettings('thingsboard')">Lưu Token TB</button>
+        </div>
+      </div>
+
+      <!-- 4. ThingsBoard Public Dashboard Link -->
+      <div class="setting-section">
+        <label class="setting-label">ThingsBoard Public Dashboard Link (Nhúng trên Web):</label>
+        <div class="setting-row">
+          <input type="text" id="inp-tb-url" class="setting-input" placeholder="https://thingsboard.cloud/dashboard/...">
+          <button class="setting-btn" onclick="saveSettings('tb_url')">Lưu Link TB</button>
+        </div>
+      </div>
+
+      <!-- 5. Telegram Bot Token -->
+      <div class="setting-section">
+        <label class="setting-label">
+          Telegram Bot Token (@BotFather): 
+          <span id="tg-token-status-lbl" style="font-size:0.85em;color:#10b981;font-weight:normal"></span>
+        </label>
+        <div class="setting-row">
+          <input type="password" id="inp-tg-token" class="setting-input" placeholder="Dán Token từ @BotFather">
+          <button class="setting-btn" onclick="saveSettings('tg_token')">Lưu Token Bot</button>
+        </div>
+      </div>
+
+      <!-- 6. Telegram Chat ID -->
+      <div class="setting-section">
+        <label class="setting-label">Telegram Chat ID / User ID Nhận Tin:</label>
+        <div class="setting-row">
+          <input type="text" id="inp-chat-id" class="setting-input" placeholder="Nhập Telegram Chat ID của bạn">
+          <button class="setting-btn" onclick="saveSettings('telegram')">Lưu ID Telegram</button>
+        </div>
+      </div>
+
+      <!-- 7. Tổng Số Cá Thả -->
+      <div class="setting-section">
+        <label class="setting-label">Tổng Số Cá Thả Vào Bể:</label>
+        <div class="setting-row">
+          <input type="number" id="inp-total-fish" class="setting-input" min="1" max="100" placeholder="Số cá thả (VD: 10)">
+          <button class="setting-btn" onclick="saveSettings('fish')">Lưu Số Cá</button>
+        </div>
+      </div>
+
+      <button style="width:100%;padding:12px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;font-weight:bold;color:#475569;cursor:pointer;margin-top:10px" onclick="closeSettingsModal()">
+        ĐÓNG CÀI ĐẶT
+      </button>
     </div>
   </div>
 
@@ -248,6 +344,20 @@
   <script>
     let _currentMode = 'lan';
     let _uploadSlot = null;
+
+    function openSettingsModal() {
+      document.getElementById('settings-modal').classList.add('show');
+    }
+
+    function closeSettingsModal() {
+      document.getElementById('settings-modal').classList.remove('show');
+    }
+
+    function closeSettingsModalOnBackdrop(e) {
+      if (e.target.id === 'settings-modal') {
+        closeSettingsModal();
+      }
+    }
 
     function setMode(mode) {
       _currentMode = mode;
@@ -355,6 +465,10 @@
         let tok = document.getElementById('inp-tb-token').value.trim();
         if (!tok) return alert('Vui lòng nhập Access Token của ThingsBoard!');
         payload.thingsboard_token = tok;
+      } else if (type === 'tb_url') {
+        let u = document.getElementById('inp-tb-url').value.trim();
+        if (!u) return alert('Vui lòng nhập Link Dashboard ThingsBoard hợp lệ!');
+        payload.thingsboard_dashboard_url = u;
       } else if (type === 'tg_token') {
         let tok = document.getElementById('inp-tg-token').value.trim();
         if (!tok) return alert('Vui lòng nhập Telegram Bot Token!');
@@ -420,6 +534,18 @@
             }
           }
 
+          // ThingsBoard Dashboard Link Update
+          if (d.tb_dashboard_url) {
+            let iframe = document.getElementById('tb-iframe');
+            if (iframe && iframe.src !== d.tb_dashboard_url) {
+              iframe.src = d.tb_dashboard_url;
+            }
+            let directLink = document.getElementById('tb-direct-link');
+            if (directLink) directLink.href = d.tb_dashboard_url;
+            let inpTbUrl = document.getElementById('inp-tb-url');
+            if (inpTbUrl && !inpTbUrl.value) inpTbUrl.value = d.tb_dashboard_url;
+          }
+
           // Telegram Bot Token Status
           let tgTokLbl = document.getElementById('tg-token-status-lbl');
           if (tgTokLbl) {
@@ -436,7 +562,7 @@
           if (d.public_url) {
             document.getElementById('tunnel-text').innerHTML = `<a class="tunnel-link" href="${d.public_url}" target="_blank">${d.public_url}</a>`;
           } else {
-            document.getElementById('tunnel-text').textContent = 'Chưa tạo hoặc dùng IP cục bộ';
+            document.getElementById('tunnel-text').textContent = 'Đang khởi tạo đường hầm Cloudflare...';
           }
 
           // Reference Slots
@@ -480,9 +606,9 @@
 
           // Settings inputs if empty
           let inpFish = document.getElementById('inp-total-fish');
-          if (!inpFish.value) inpFish.value = total;
+          if (inpFish && !inpFish.value) inpFish.value = total;
           let inpChat = document.getElementById('inp-chat-id');
-          if (!inpChat.value && d.telegram_chat_id) inpChat.value = d.telegram_chat_id;
+          if (inpChat && !inpChat.value && d.telegram_chat_id) inpChat.value = d.telegram_chat_id;
 
           // ESP32 LAN Data
           if (d.esp32) {

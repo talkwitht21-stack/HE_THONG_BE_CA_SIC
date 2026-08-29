@@ -41,6 +41,8 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         has_tg = bool(current_tg_token and current_tg_token != "YOUR_TELEGRAM_BOT_TOKEN")
         masked_tg = (current_tg_token[:6] + "..." + current_tg_token[-4:]) if len(current_tg_token) > 10 else ("Đã lưu" if has_tg else "")
 
+        tb_dash_url = config_mgr.get("thingsboard", "dashboard_url", "https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e") if config_mgr else ""
+
         return jsonify({
             "ai": shared_state.get("ai_result", {}),
             "confirmed_dead_fish": shared_state.get("confirmed_dead_fish", 0),
@@ -54,6 +56,7 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "tb_token_masked": masked_tb,
             "has_tg_token": has_tg,
             "tg_token_masked": masked_tg,
+            "tb_dashboard_url": tb_dash_url,
             "fps": video_stream.actual_fps if video_stream else 0.0,
             "ref_status": ref_status,
             "esp32": esp_data,
@@ -140,6 +143,13 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
                     config_mgr.set("thingsboard", "enabled", True)
                 if mqtt_ai:
                     mqtt_ai.update_token(tb_tok)
+                changed = True
+
+        if "thingsboard_dashboard_url" in data:
+            tb_url = str(data["thingsboard_dashboard_url"]).strip()
+            if tb_url:
+                if config_mgr:
+                    config_mgr.set("thingsboard", "dashboard_url", tb_url)
                 changed = True
 
         if "telegram_bot_token" in data:

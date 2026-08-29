@@ -1,49 +1,33 @@
-# ==============================================================================
-# HỆ THỐNG BỂ CÁ SIC - CẤU HÌNH PYTHON SERVER (EDGE AI & IOT GATEWAY)
-# ==============================================================================
-
-# 1. Cấu hình Camera & Chu kỳ phân tích AI
-camera:
-  source: 0 # 0 là Webcam USB, hoặc chuỗi RTSP: "rtsp://admin:123456@192.168.1.100:554/stream1"
-  width: 640
-  height: 480
-  fps: 15
-  interval_normal_sec: 120 # Chu kỳ chụp ảnh bình thường: Mỗi 2 phút (120 giây)
-  interval_alert_sec: 10   # Chu kỳ chụp khi phát hiện cá chết: Chụp liên tục mỗi 10 giây
-
-# 2. Cấu hình Bể Cá & Quản lý số lượng cá
 aquarium:
-  total_fish: 10 # Tổng số cá thả trong bể (chỉnh sửa trực tiếp trên Web Dashboard)
-
-# 3. Cấu hình Google Gemini Multimodal Vision AI
-gemini:
-  enabled: true
-  api_key: "YOUR_GEMINI_API_KEY" # Lấy API Key miễn phí tại: https://aistudio.google.com/
-  model: "gemini-2.0-flash"      # hoặc "gemini-1.5-flash"
-  temperature: 0.2
-
-# 4. Cấu hình Telegram Chatbot
-telegram:
-  enabled: false # Đổi thành true sau khi điền bot_token và chat_id
-  bot_token: "YOUR_TELEGRAM_BOT_TOKEN" # Lấy token từ @BotFather
-  chat_id: "YOUR_TELEGRAM_CHAT_ID"     # Lấy ID từ @userinfobot (có thể sửa trực tiếp trên Web)
-  cooldown_minutes: 10                 # Khoảng cách tối thiểu giữa 2 lần gửi cảnh báo
-
-# 5. Cấu hình ThingsBoard Cloud (Device AI riêng biệt)
-thingsboard:
-  enabled: false
-  host: "demo.thingsboard.io"
-  port: 1883
-  access_token: "YOUR_RPI5_AI_DEVICE_TOKEN" # Token của Device AI riêng
-
-# 6. Cấu hình Kết nối Cục bộ ESP32 qua mạng LAN
+  total_fish: 10
+camera:
+  fps: 15
+  height: 480
+  interval_alert_sec: 10
+  interval_normal_sec: 120
+  source: 0
+  width: 640
 esp32_lan:
+  base_url: http://beca.local
   enabled: true
-  base_url: "http://beca.local"
   timeout_sec: 2.0
-
-# 7. Cấu hình Web Server Flask & Cloudflare Tunnel
+gemini:
+  api_key: YOUR_GEMINI_API_KEY
+  enabled: true
+  model: gemini-2.0-flash
+  temperature: 0.2
+telegram:
+  bot_token: YOUR_TELEGRAM_BOT_TOKEN
+  chat_id: YOUR_TELEGRAM_CHAT_ID
+  cooldown_minutes: 10
+  enabled: false
+thingsboard:
+  access_token: YOUR_RPI5_AI_DEVICE_TOKEN
+  dashboard_url: https://thingsboard.cloud/dashboard/1f6621a0-a3ae-11f1-9b46-e7fbeb690c95?publicId=05e0b4a0-a3b0-11f1-8523-a9586d32bc6e
+  enabled: false
+  host: thingsboard.cloud
+  port: 1883
 web:
-  host: "0.0.0.0"
+  enable_cloudflare: true
+  host: 0.0.0.0
   port: 5000
-  enable_cloudflare: true # Tự động tạo Cloudflare Tunnel (trycloudflare) và gửi link qua Telegram
