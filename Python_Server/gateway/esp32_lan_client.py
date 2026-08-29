@@ -49,9 +49,21 @@ class ESP32LANClient:
         """
         url = f"{self.base_url}/api/timer"
         try:
-            payload = {"d": dev_name, "sec": seconds}
+            payload = {"d": dev_name, "sec": int(seconds)}
             r = requests.post(url, json=payload, timeout=self.timeout)
             return r.status_code == 200
         except Exception as e:
             print(f"[ESP32 LAN ERROR] Loi goi POST /api/timer: {e}")
+            return False
+
+    def set_schedule(self, schedule_dict):
+        """
+        Gửi cài đặt lịch trình và chu kỳ qua POST /api/set
+        """
+        url = f"{self.base_url}/api/set"
+        try:
+            r = requests.post(url, json=schedule_dict, timeout=self.timeout)
+            return r.status_code == 200
+        except Exception as e:
+            print(f"[ESP32 LAN ERROR] Loi goi POST /api/set: {e}")
             return False
