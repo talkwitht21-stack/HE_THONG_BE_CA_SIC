@@ -470,6 +470,26 @@
             </div>
           </div>
 
+          <!-- KHỐI HIỂN THỊ TRỰC QUAN 5 KHUNG HÌNH XÁC THỰC CHUYỂN ĐỘNG (TEMPORAL MOTION) -->
+          <div class="card" style="margin-top:14px" id="verify-frames-card">
+            <div class="card-title">
+              <span>📸 5 Khung Hình Xác Thực Chuyển Động (Temporal Motion)</span>
+              <span id="verify-status-badge" class="badge" style="background:#10b981;color:white;font-size:0.72em">Đang Chờ</span>
+            </div>
+            <div style="font-size:0.78em;color:#64748b;margin-bottom:8px">
+              🔍 Tự động chụp 5 khung hình liên tiếp, nén 20% pixel, viền phân cách neon và ghép 1 ảnh gửi Gemini AI kiểm tra chuyển động (sống/chết).
+            </div>
+
+            <div class="gallery-grid" id="motion-frames-grid" style="grid-template-columns: repeat(5, 1fr); gap: 6px;">
+              <!-- 5 Frames rendered dynamically -->
+              <div class="gallery-card" id="vframe-slot-1"><div class="gallery-empty" style="padding:15px 4px;font-size:0.7em">Frame 1</div></div>
+              <div class="gallery-card" id="vframe-slot-2"><div class="gallery-empty" style="padding:15px 4px;font-size:0.7em">Frame 2</div></div>
+              <div class="gallery-card" id="vframe-slot-3"><div class="gallery-empty" style="padding:15px 4px;font-size:0.7em">Frame 3</div></div>
+              <div class="gallery-card" id="vframe-slot-4"><div class="gallery-empty" style="padding:15px 4px;font-size:0.7em">Frame 4</div></div>
+              <div class="gallery-card" id="vframe-slot-5"><div class="gallery-empty" style="padding:15px 4px;font-size:0.7em">Frame 5</div></div>
+            </div>
+          </div>
+
           <!-- KHỐI HIỂN THỊ TRỰC QUAN 5 ẢNH MẪU THAM CHIẾU (BASELINE CALIBRATION) -->
           <div class="card" style="margin-top:14px">
             <div class="card-title">
@@ -1336,6 +1356,24 @@
             document.getElementById('tunnel-text').innerHTML = `<a class="tunnel-link" href="${d.public_url}" target="_blank">${d.public_url}</a>`;
           } else {
             document.getElementById('tunnel-text').textContent = 'Đang khởi tạo đường hầm Cloudflare...';
+          }
+
+          // Render 5 Khung Hình Xác Thực Chuyển Động (Temporal Motion Frames)
+          if (d.verify_frames && Array.isArray(d.verify_frames) && d.verify_frames.length > 0) {
+            let badge = document.getElementById('verify-status-badge');
+            if (badge) {
+              badge.textContent = `Đã Chụp ${d.verify_frames.length}/5 Frames`;
+              badge.style.background = '#0284c7';
+            }
+            d.verify_frames.forEach((b64Img, idx) => {
+              let slotEl = document.getElementById(`vframe-slot-${idx+1}`);
+              if (slotEl) {
+                slotEl.innerHTML = `
+                  <img src="${b64Img}" style="width:100%;height:60px;object-fit:cover;border-radius:6px;border:2px solid #0284c7" alt="Frame ${idx+1}">
+                  <div style="font-size:0.68em;font-weight:bold;text-align:center;margin-top:2px;color:#0369a1">Frame ${idx+1}</div>
+                `;
+              }
+            });
           }
 
           // Reference Slots

@@ -51,6 +51,7 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             "confirmed_dead_fish": shared_state.get("confirmed_dead_fish", 0),
             "suspected_dead_fish": shared_state.get("suspected_dead_fish", 0),
             "verify_progress": shared_state.get("verify_progress", "0/5 (Bình thường)"),
+            "verify_frames": shared_state.get("verify_frames_b64", []),
             "auto_turb_filter_active": shared_state.get("auto_turb_filter_active", False),
             "total_fish_configured": shared_state.get("total_fish_configured", 10),
             "public_url": shared_state.get("public_url", ""),

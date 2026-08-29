@@ -1,3 +1,6 @@
+import gc
+import base64
+from core.motion_collage import create_5frame_motion_collage
 import time
 import threading
 import os
@@ -119,154 +122,136 @@ def main():
     CONFIRM_THRESHOLD = 5
 
     def ai_worker_loop():
-        dead_streak = 0
-        confirmed_dead = 0
-        print("[AI WORKER] Bat dau luong AI doc lap voi chu ky lay mau dong...")
+        print("[AI WORKER] Bat dau luong AI doc lap voi co che Chup 5 Frame Collage kiem tra chuyen dong...")
         
         while True:
             try:
-                # Kiem tra yeu cau reset streak tu nguoi dung khi bam chup thu cong
                 if shared_state.get("reset_streak_requested", False):
-                    dead_streak = 0
-                    confirmed_dead = 0
                     shared_state["reset_streak_requested"] = False
-                    print("[AI WORKER] Da reset streak theo yeu cau chup thu cong tu Web!")
-                frame = video_stream.get_frame()
-                if frame is not None:
-                    res = gemini_ai.analyze_frame(frame)
-                    raw_dead = res.get("dead_fish", 0)
-                    turb = res.get("water_turbidity", 0)
+                    shared_state["suspected_dead_fish"] = 0
+                    shared_state["confirmed_dead_fish"] = 0
+                    shared_state["verify_progress"] = "0/5 (An toàn)"
+                    print("[AI WORKER] Da reset tien trinh theo yeu cau!")
 
-                    # --- TỰ ĐỘNG CHẠY MÁY LỌC KHI ĐỘ ĐỤC >= 70% CHO ĐẾN KHI < 60% ---
+                frame1 = video_stream.get_frame()
+                if frame1 is not None:
+                    # 1. Phân tích frame hiện tại
+                    total_cfg = shared_state.get("total_fish_configured", 10)
+                    init_res = gemini_ai.analyze_frame(frame1, total_fish=total_cfg)
+                    raw_dead = init_res.get("dead_fish", 0)
+                    turb = init_res.get("water_turbidity", 0)
+
+                    # Tự động lọc nước khi độ đục >= 70%
                     auto_turb_active = shared_state.get("auto_turb_filter_active", False)
-                    if turb >= 70:
-                        if not auto_turb_active:
-                            shared_state["auto_turb_filter_active"] = True
-                            print(f"[AI AUTO-FILTER] PHAT HIEN DO DUC CAO ({turb}% >= 70%) -> TU DONG BAT MAY LOC NUOC LIEN TUC!")
-                            if esp32_client:
-                                esp_data = esp32_client.get_data()
-                                if not esp_data.get("fl", False):
-                                    esp32_client.control_device("filter")
-                            if telegram_bot and telegram_bot.enabled:
-                                telegram_bot.send_message(
-                                    f"🚨 <b>[CẢNH BÁO NƯỚC ĐỤC & TỰ ĐỘNG LỌC]</b>\n"
-                                    f"• Độ đục nước đo được: <b>{turb}%</b> (Vượt ngưỡng 70%)\n"
-                                    f"• Hệ thống AI đã <b>TỰ ĐỘNG BẬT MÁY LỌC NƯỚC LIÊN TỤC</b> để xử lý nước cho đến khi độ đục giảm xuống dưới 60%!"
-                                )
-                    elif turb < 60:
-                        if auto_turb_active:
-                            shared_state["auto_turb_filter_active"] = False
-                            print(f"[AI AUTO-FILTER] DO DUC DA GIAM AN TOAN ({turb}% < 60%) -> TU DONG TAT MAY LOC NUOC TANG CUONG!")
-                            if esp32_client:
-                                esp_data = esp32_client.get_data()
-                                if esp_data.get("fl", False):
-                                    esp32_client.control_device("filter")
-                            if telegram_bot and telegram_bot.enabled:
-                                telegram_bot.send_message(
-                                    f"✅ <b>[NƯỚC ĐÃ TRONG SẠCH]</b>\n"
-                                    f"• Độ đục nước hiện tại: <b>{turb}%</b> (Đã an toàn &lt; 60%)\n"
-                                    f"• Hệ thống AI đã <b>TỰ ĐỘNG TẮT MÁY LỌC TĂNG CƯỜNG</b>."
-                                )
-                    
+                    if turb >= 70 and not auto_turb_active:
+                        shared_state["auto_turb_filter_active"] = True
+                        if esp32_client:
+                            esp_d = esp32_client.get_data()
+                            if not esp_d.get("fl", False):
+                                esp32_client.control_device("filter")
+                        if telegram_bot and telegram_bot.enabled:
+                            telegram_bot.send_message(f"🚨 <b>[CẢNH BÁO NƯỚC ĐỤC & TỰ ĐỘNG LỌC]</b>\n• Độ đục: <b>{turb}%</b>\n• Đã tự động bật máy lọc liên tục!")
+                    elif turb < 60 and auto_turb_active:
+                        shared_state["auto_turb_filter_active"] = False
+                        if esp32_client:
+                            esp_d = esp32_client.get_data()
+                            if esp_d.get("fl", False):
+                                esp32_client.control_device("filter")
+
+                    # 2. Xử lý khi có nghi ngờ cá chết (raw_dead > 0):
                     if raw_dead > 0:
-                        dead_streak += 1
                         shared_state["suspected_dead_fish"] = raw_dead
+                        shared_state["verify_progress"] = "1/5 (Đang chụp chuỗi 5 ảnh...)"
+                        print(f"[AI MOTION] Phat hien nghi ngo {raw_dead} ca chet -> Tien hanh chup chuoi 5 frames doi chieu chuyen dong...")
                         
-                        if dead_streak >= CONFIRM_THRESHOLD:
-                            # ĐÃ ĐỦ 5 LẦN LIÊN TIẾP -> XÁC THỰC 100% CÁ CHẾT THẬT
-                            confirmed_dead = raw_dead
-                            res["confirmed_dead_fish"] = confirmed_dead
-                            res["is_alert"] = True
-                            shared_state["confirmed_dead_fish"] = confirmed_dead
+                        frames_seq = [frame1]
+                        inv_alert = shared_state.get("interval_alert_sec", 1)
+                        for step in range(2, 6):
+                            time.sleep(inv_alert)
+                            f_next = video_stream.get_frame()
+                            if f_next is not None:
+                                frames_seq.append(f_next)
+                                shared_state["verify_progress"] = f"{step}/5 (Đang chụp...)"
+
+                        # 3. Nén 20% pixel, vẽ viền, dán nhãn và ghép 5 ảnh thành 1 Collage
+                        collage_img, collage_jpeg, ind_jpegs = create_5frame_motion_collage(frames_seq, intervals_sec=inv_alert)
+                        
+                        # Chuyển 5 ảnh sang base64 data URLs để Web hiển thị
+                        b64_list = []
+                        for j_bytes in ind_jpegs:
+                            b64_str = "data:image/jpeg;base64," + base64.b64encode(j_bytes).decode('ascii')
+                            b64_list.append(b64_str)
+                        shared_state["verify_frames_b64"] = b64_list
+                        shared_state["collage_jpeg_bytes"] = collage_jpeg
+
+                        # 4. Gửi Collage duy nhất lên Gemini AI phân tích chuyển động
+                        print("[AI MOTION] Dang gui Collage 5 khung hinh len Gemini 3.5 Flash Vision de kiem tra chuyen dong...")
+                        motion_res = gemini_ai.analyze_5frame_collage(collage_img, total_fish=total_cfg)
+                        
+                        confirmed_dead = motion_res.get("dead_fish", 0)
+                        alive_fish = motion_res.get("alive_fish", max(0, total_cfg - confirmed_dead))
+                        motion_res["confirmed_dead_fish"] = confirmed_dead
+                        shared_state["ai_result"] = motion_res
+                        shared_state["confirmed_dead_fish"] = confirmed_dead
+
+                        if confirmed_dead > 0:
                             shared_state["verify_progress"] = "5/5 (Đã xác nhận 100%)"
-                            shared_state["ai_result"] = res
-                            
+                            print(f"[AI MOTION CONFIRMED] XAC THUC CHINH XAC 100% CO {confirmed_dead} CA CHET QUA 5 KHUNG HINH!")
                             if telegram_bot and telegram_bot.enabled:
-                                telegram_bot.check_and_send_alert(res)
-                                
-                            print(f"[AI CONFIRMED] DA XAC THUC CHINH XAC 100% {confirmed_dead} CA THE BI CHET (Lan 5/5)!")
-                            
-                            # Đẩy dữ liệu chính thức lên ThingsBoard
-                            if mqtt_ai and mqtt_ai.enabled:
-                                total = shared_state.get("total_fish_configured", 10)
-                                alive = max(0, total - confirmed_dead)
-                                ai_telemetry = {
-                                    "total_fish": total,
-                                    "alive_fish": alive,
-                                    "dead_fish": confirmed_dead,
-                                    "water_turbidity": turb,
-                                    "summary": res.get("summary", ""),
-                                    "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
-                                    "is_alert": True
-                                }
-                                mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
-                                
-                            # Sau khi đã xác nhận 5/5, quay lại chu kỳ bình thường (120s) tránh spam API
-                            wait_sec = shared_state.get("interval_normal_sec", 120)
-                            for _ in range(wait_sec):
-                                time.sleep(1)
-                                
+                                telegram_bot.check_and_send_alert(motion_res)
                         else:
-                            # ĐANG TRONG TIẾN TRÌNH XÁC MINH (1/5 -> 4/5)
-                            confirmed_dead = 0
-                            res["confirmed_dead_fish"] = 0
-                            res["is_alert"] = False
-                            res["summary"] = f"Đang chụp xác minh chuyển động cá thể nghi vấn ({dead_streak}/{CONFIRM_THRESHOLD})..."
-                            shared_state["confirmed_dead_fish"] = 0
-                            shared_state["verify_progress"] = f"{dead_streak}/{CONFIRM_THRESHOLD}"
-                            shared_state["ai_result"] = res
-                            print(f"[AI VERIFY] Nghi ngo ca chet ({raw_dead} con): Dang xac thuc lan {dead_streak}/{CONFIRM_THRESHOLD}...")
-                            
-                            # Đồng bộ ThingsBoard trạng thái an toàn trong lúc đếm
-                            if mqtt_ai and mqtt_ai.enabled:
-                                total = shared_state.get("total_fish_configured", 10)
-                                ai_telemetry = {
-                                    "total_fish": total,
-                                    "alive_fish": total,
-                                    "dead_fish": 0,
-                                    "water_turbidity": turb,
-                                    "summary": res.get("summary", ""),
-                                    "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
-                                    "is_alert": (turb >= 40)
-                                }
-                                mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
-                                
-                            # Chu kỳ lấy mẫu khẩn cấp (10s/lần) để đếm đủ 5 lần nhanh chóng
-                            wait_sec = shared_state.get("interval_alert_sec", 10)
-                            for _ in range(wait_sec):
-                                time.sleep(1)
-                    else:
-                        # CÁ BƠI LẠI BÌNH THƯỜNG -> RESET TOÀN BỘ TIẾN TRÌNH VỀ 0/5
-                        if dead_streak > 0:
-                            print(f"[AI RESET] Ca da boi lai binh thuong sau {dead_streak} lan nghi ngo. Reset tien trinh ve 0/5!")
-                            dead_streak = 0
-                            
-                        shared_state["suspected_dead_fish"] = 0
-                        shared_state["verify_progress"] = "0/5 (An toàn)"
-                        confirmed_dead = 0
-                        res["confirmed_dead_fish"] = 0
-                        res["is_alert"] = (turb >= 40)
-                        shared_state["confirmed_dead_fish"] = 0
-                        shared_state["ai_result"] = res
-                        
+                            shared_state["verify_progress"] = "0/5 (An toàn - Đã bơi lội qua 5 frames)"
+                            shared_state["suspected_dead_fish"] = 0
+                            print("[AI MOTION SAFE] Ca da cu dong/boi loi qua cac khung hinh -> Xac nhan ca dang song!")
+
+                        # Đồng bộ ThingsBoard
                         if mqtt_ai and mqtt_ai.enabled:
-                            total = shared_state.get("total_fish_configured", 10)
                             ai_telemetry = {
-                                "total_fish": total,
-                                "alive_fish": total,
-                                "dead_fish": 0,
-                                "water_turbidity": turb,
-                                "summary": res.get("summary", ""),
-                                "ai_engine": res.get("ai_engine", "Gemini 3.5 Flash VLM"),
-                                "is_alert": (turb >= 40)
+                                "total_fish": total_cfg,
+                                "alive_fish": alive_fish,
+                                "dead_fish": confirmed_dead,
+                                "water_turbidity": motion_res.get("water_turbidity", turb),
+                                "summary": motion_res.get("summary", ""),
+                                "ai_engine": motion_res.get("ai_engine", "Gemini 3.5 Flash"),
+                                "is_alert": (confirmed_dead > 0 or turb >= 40)
                             }
                             mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
-                            
-                        # Chu kỳ binh thuong 120s
+
+                        # 5. XÓA CACHE GIẢI PHÓNG RAM CHO RASPBERRY PI 5
+                        del frames_seq
+                        del collage_img
+                        del ind_jpegs
+                        gc.collect()
+                        print("[AI MEMORY] Da xoa sach cache 5 frames sau khi phan tich thanh cong!")
+
+                        # Chu kỳ bình thường 120s
                         wait_sec = shared_state.get("interval_normal_sec", 120)
                         for _ in range(wait_sec):
                             time.sleep(1)
-                            
+
+                    else:
+                        # BÌNH THƯỜNG (KHÔNG CÓ CÁ CHẾT)
+                        shared_state["suspected_dead_fish"] = 0
+                        shared_state["confirmed_dead_fish"] = 0
+                        shared_state["verify_progress"] = "0/5 (An toàn)"
+                        init_res["confirmed_dead_fish"] = 0
+                        shared_state["ai_result"] = init_res
+
+                        if mqtt_ai and mqtt_ai.enabled:
+                            ai_telemetry = {
+                                "total_fish": total_cfg,
+                                "alive_fish": total_cfg,
+                                "dead_fish": 0,
+                                "water_turbidity": turb,
+                                "summary": init_res.get("summary", ""),
+                                "ai_engine": init_res.get("ai_engine", "Gemini 3.5 Flash"),
+                                "is_alert": (turb >= 40)
+                            }
+                            mqtt_ai.publish_ai_telemetry(ai_telemetry, fps=video_stream.actual_fps)
+
+                        wait_sec = shared_state.get("interval_normal_sec", 120)
+                        for _ in range(wait_sec):
+                            time.sleep(1)
                 else:
                     time.sleep(2)
             except Exception as e:

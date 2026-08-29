@@ -139,7 +139,10 @@ class TelegramBotService:
         alert_msg += f"🤖 Nhan xet AI: <i>{ai_result.get('summary', '')}</i>\n"
         alert_msg += f"⏱️ Thoi gian: {time.strftime('%H:%M:%S %d/%m/%Y')}"
         
-        img_bytes = self.video_stream.get_jpeg_bytes() if self.video_stream else None
+        # Uu tien lay anh Collage 5 khung hinh hoac anh chup thuc te luc phat hien ca chet
+        img_bytes = self.shared_state.get("collage_jpeg_bytes")
+        if not img_bytes and self.video_stream:
+            img_bytes = self.video_stream.get_jpeg_bytes()
         if img_bytes:
             ok = self.send_photo(img_bytes, caption=alert_msg[:1000])
             if not ok:
@@ -256,7 +259,10 @@ class TelegramBotService:
                 f"• Nhan xet: <i>{ai_res.get('summary', '')}</i>\n"
                 f"• Thoi gian: {time.strftime('%H:%M:%S %d/%m/%Y')}"
             )
-            img_bytes = self.video_stream.get_jpeg_bytes() if self.video_stream else None
+            # Uu tien lay anh Collage 5 khung hinh hoac anh chup thuc te luc phat hien ca chet
+        img_bytes = self.shared_state.get("collage_jpeg_bytes")
+        if not img_bytes and self.video_stream:
+            img_bytes = self.video_stream.get_jpeg_bytes()
             if img_bytes:
                 self.send_photo(img_bytes, caption=caption)
             else:

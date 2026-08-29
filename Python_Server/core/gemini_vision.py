@@ -1,3 +1,25 @@
+PROMPT_5FRAME_MOTION = """
+Bạn là Chuyên gia Trí tuệ Nhân tạo Giám sát Thủy sinh và Đánh giá Chuyển động Cá (Temporal Motion AI).
+
+BỨC ẢNH ĐÍNH KÈM LÀ MỘT TẤM ẢNH GHÉP TỔNG HỢP (COLLAGE) GỒM 5 KHUNG HÌNH LIÊN TIẾP ĐƯỢC CHỤP THEO DÒNG THỜI GIAN (Frame 1 -> Frame 2 -> Frame 3 -> Frame 4 -> Frame 5). Mỗi khung hình đã được nén tối ưu, kẻ viền phân cách neon và đánh dấu mốc thời gian rõ ràng (+0.0s, +1.0s, +2.0s...).
+
+HƯỚNG DẪN ĐÁNH GIÁ CHUYỂN ĐỘNG (TEMPORAL MOTION ANALYSIS):
+1. QUAN SÁT TỪNG CON CÁ XUYÊN SUỐT CẢ 5 KHUNG HÌNH (Từ Frame 1 đến Frame 5):
+   - CÁ ĐANG SỐNG: Có sự thay đổi vị trí tọa độ, bơi qua lại, quẫy đuôi, vẫy vây, quay đầu hoặc chuyển động cơ thể giữa các Frame 1, 2, 3, 4, 5. Dù chỉ có chuyển động nhẹ ở 1 Frame thì cá đó VẪN LÀ CÁ ĐANG SỐNG KHỎE.
+   - CÁ ĐÃ CHẾT / TỬ VONG: Nằm bất động 100%, lật ngửa bụng, chìm đáy hoặc trôi dạt vô thức, KHÔNG CÓ BẤT KỲ CỬ ĐỘNG NÀO ở vây, đuôi hay thân mình qua CẢ 5 KHUNG HÌNH.
+2. LOẠI TRỪ VẬT THỂ TĨNH: Gỗ lũa, sỏi đá, rêu, ống lọc là vật thể tĩnh trong bể, không đếm là cá.
+
+TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON SAU (KHÔNG thêm bất kỳ văn bản nào ngoài JSON):
+{
+  "dead_fish": <số lượng cá thể XÁC NHẬN CHẾT (bất động 100% qua cả 5 frames), số nguyên>,
+  "alive_fish": <số lượng cá thể XÁC NHẬN ĐANG SỐNG (có cử động bơi/vẫy vây qua 5 frames), số nguyên>,
+  "abnormal_fish": <số lượng cá thể bơi yếu, lờ đờ hoặc trôi nghiêng>,
+  "water_turbidity": <độ đục nước ước tính từ 0 đến 100>,
+  "is_alert": <true nếu dead_fish > 0 hoặc water_turbidity >= 40, ngược lại false>,
+  "summary": "<Nhận xét chi tiết phân tích chuyển động của cá qua 5 khung hình và kết luận sống/chết bằng tiếng Việt trong 1-2 câu>"
+}
+"""
+
 import cv2
 import json
 import time
@@ -101,6 +123,73 @@ class GeminiVisionAnalyzer:
             self._init_model()
             return True
         return False
+
+    def analyze_5frame_collage(self, collage_img, total_fish=10):
+        """
+        Phân tích ảnh ghép Collage 5 khung hình theo dòng thời gian để kiểm tra chuyển động (Chết vs Sống).
+        """
+        if not self.enabled or self.model is None or collage_img is None:
+            return self._fallback_cv_analysis(collage_img, total_fish)
+
+        try:
+            ret, buf = cv2.imencode('.jpg', collage_img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+            if not ret:
+                return self._fallback_cv_analysis(collage_img, total_fish)
+
+            collage_part = {
+                "mime_type": "image/jpeg",
+                "data": buf.tobytes()
+            }
+
+            contents = [PROMPT_5FRAME_MOTION]
+            if self.ref_manager and self.ref_manager.has_references():
+                ref_parts = self.ref_manager.get_reference_image_parts()
+                if ref_parts:
+                    contents.append("--- ANH MAU BE CA BINH THUONG DE LOAI TRU VAT THE TINH ---")
+                    contents.extend(ref_parts)
+                    contents.append("--- ANH COLLAGE 5 KHUNG HINH CHUYEN DONG CAN DANH GIA ---")
+
+            contents.append(collage_part)
+
+            response = None
+            try:
+                response = self.model.generate_content(contents)
+            except Exception as req_err:
+                print(f"[GEMINI WARN] Loi goi {self.active_model_name}: {req_err}. Dang thu fallback...")
+                if self._try_fallback_models():
+                    response = self.model.generate_content(contents)
+                else:
+                    raise req_err
+
+            if not response or not response.text:
+                return self._fallback_cv_analysis(collage_img, total_fish)
+
+            text = response.text.strip()
+            match = re.search(r'\{.*\}', text, re.DOTALL)
+            clean_json = match.group(0) if match else text
+            res = json.loads(clean_json)
+
+            dead = int(res.get("dead_fish", 0))
+            alive = int(res.get("alive_fish", max(0, total_fish - dead)))
+            abnormal = int(res.get("abnormal_fish", 0))
+            turbidity = int(res.get("water_turbidity", 15))
+            summary = res.get("summary", "AI da phan tich 5 khung hinh chuyen dong.")
+            is_alert = bool(res.get("is_alert", dead > 0 or turbidity >= 40))
+
+            return {
+                "dead_fish": dead,
+                "alive_fish": alive,
+                "abnormal_fish": abnormal,
+                "water_turbidity": turbidity,
+                "is_alert": is_alert,
+                "summary": summary,
+                "ai_engine": f"Gemini 3.5 Flash ({self.active_model_name})",
+                "is_5frame_verified": True,
+                "timestamp": time.time()
+            }
+        except Exception as e:
+            print(f"[GEMINI ERROR] Loi phan tich 5-frame collage: {e}")
+            return self._fallback_cv_analysis(collage_img, total_fish)
 
     def analyze_frame(self, frame, total_fish=10):
         """
