@@ -2,14 +2,21 @@ import cv2
 import time
 import threading
 import numpy as np
+import urllib.request
+from urllib.parse import urlparse
 
 class VideoStream:
     """
     Quản lý luồng Camera non-blocking chạy trên background thread.
-    Tương thích cả Webcam USB (0, 1) lẫn IP Camera (RTSP / HTTP Stream).
+    Tích hợp kiến trúc tối ưu từ Nam19ti/IOT_ (Zero-Crash & Dual Engine):
+    - Tự động chuẩn hóa URL (http, https, rtsp, /shot.jpg).
+    - Chế độ 1 (HTTP Fast Snapshot): Đọc ảnh tĩnh trực tiếp qua HTTP GET (siêu nhẹ, < 30ms, không chiếm RAM buffer).
+    - Chế độ 2 (RTSP / VideoCapture): Đọc luồng video RTSP/MJPEG/USB Webcam với buffer size = 1 chống trễ hình.
+    - Tự động chuyển đổi mượt mà và tự phục hồi kết nối.
     """
     def __init__(self, source=0, width=640, height=480, fps=15):
-        self.source = source
+        self.raw_source = source
+        self.source = self._normalize_source(source)
         self.width = width
         self.height = height
         self.fps = fps
@@ -19,6 +26,7 @@ class VideoStream:
         self.running = False
         self.lock = threading.Lock()
         self.thread = None
+        self.is_http_snapshot = False
         
         self.actual_fps = 0.0
         self.last_frame_time = time.time()
@@ -26,12 +34,35 @@ class VideoStream:
         
         self._init_camera()
 
+    def _normalize_source(self, src):
+        """
+        Tự động chuẩn hóa nguồn Camera (URL hoặc index USB Webcam).
+        Học hỏi từ CameraClient của Nam19ti/IOT_.
+        """
+        if src is None:
+            return 0
+        src_str = str(src).strip()
+        if src_str.isdigit():
+            return int(src_str)
+        
+        # Nếu là URL
+        if not (src_str.startswith("http://") or src_str.startswith("https://") or src_str.startswith("rtsp://")):
+            src_str = "http://" + src_str
+
+        parsed = urlparse(src_str)
+        # Nếu người dùng chỉ gõ IP:Port hoặc kết thúc bằng / (VD: 192.168.1.50:8080) -> Tự thêm /shot.jpg cho IP Webcam
+        if src_str.startswith("http") and (not parsed.path or parsed.path == "/"):
+            src_str = src_str.rstrip("/") + "/shot.jpg"
+
+        return src_str
+
     def update_source(self, new_source):
         """
         Đổi nguồn Camera/IP Camera (RTSP/HTTP/USB) trong runtime mà không cần tắt server.
         """
         with self.lock:
-            self.source = int(new_source) if str(new_source).isdigit() else str(new_source).strip()
+            self.raw_source = new_source
+            self.source = self._normalize_source(new_source)
             if self.cap:
                 try:
                     self.cap.release()
@@ -39,22 +70,47 @@ class VideoStream:
                     pass
                 self.cap = None
             self._init_camera()
-            print(f"[CAMERA] Da doi nguon Camera sang: {self.source}")
-            return bool(self.cap and self.cap.isOpened())
+            print(f"[CAMERA] Da doi va chuan hoa nguon Camera sang: {self.source}")
+            return True
 
     def _init_camera(self):
+        """
+        Khởi tạo chế độ đọc phù hợp (HTTP Snapshot hoặc VideoCapture).
+        """
+        if isinstance(self.source, str) and (self.source.endswith("/shot.jpg") or self.source.endswith("/capture") or "/photo" in self.source):
+            self.is_http_snapshot = True
+            print(f"[CAMERA ENGINE] Kich hoat HTTP Fast Snapshot cho: {self.source}")
+            return
+
+        self.is_http_snapshot = False
         try:
-            src = int(self.source) if str(self.source).isdigit() else str(self.source)
-            self.cap = cv2.VideoCapture(src)
+            self.cap = cv2.VideoCapture(self.source)
             if self.cap.isOpened():
+                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # Giảm buffer xuống 1 để triệt tiêu độ trễ
                 self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
                 self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
                 self.cap.set(cv2.CAP_PROP_FPS, self.fps)
-                print(f"[CAMERA] Khoi tao thanh cong nguon: {self.source}")
+                print(f"[CAMERA ENGINE] Khoi tao thanh cong VideoCapture cho: {self.source}")
             else:
-                print(f"[CAMERA WARN] Chua the mo camera: {self.source}. Se tao frame gia lap.")
+                print(f"[CAMERA WARN] Chua the mo VideoCapture: {self.source}. Se thu che do HTTP hoac gia lap.")
         except Exception as e:
-            print(f"[CAMERA ERROR] Loi mo camera: {e}")
+            print(f"[CAMERA ERROR] Loi mo VideoCapture: {e}")
+
+    def _fetch_http_frame(self):
+        """
+        Lấy frame trực tiếp qua HTTP GET từ IP Webcam (Nam19ti/IOT_ method).
+        """
+        try:
+            req = urllib.request.urlopen(self.source, timeout=1.8)
+            arr = np.asarray(bytearray(req.read()), dtype=np.uint8)
+            img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if img is not None and img.size > 0:
+                if img.shape[1] != self.width or img.shape[0] != self.height:
+                    img = cv2.resize(img, (self.width, self.height))
+                return img
+        except Exception:
+            pass
+        return None
 
     def start(self):
         if self.running:
@@ -89,7 +145,13 @@ class VideoStream:
     def _update_loop(self):
         while self.running:
             frame = None
-            if self.cap and self.cap.isOpened():
+
+            # 1. Thử HTTP Fast Snapshot nếu là luồng HTTP
+            if self.is_http_snapshot or (isinstance(self.source, str) and self.source.startswith("http")):
+                frame = self._fetch_http_frame()
+
+            # 2. Thử VideoCapture nếu chưa có frame
+            if frame is None and self.cap and self.cap.isOpened():
                 ret, raw_frame = self.cap.read()
                 if ret and raw_frame is not None:
                     if raw_frame.shape[1] != self.width or raw_frame.shape[0] != self.height:
@@ -97,9 +159,10 @@ class VideoStream:
                     else:
                         frame = raw_frame
                 else:
-                    time.sleep(1.0)
+                    time.sleep(0.5)
                     self._init_camera()
-            
+
+            # 3. Tạo placeholder nếu mất tín hiệu
             if frame is None:
                 frame = self._create_placeholder_frame()
                 time.sleep(0.05)
