@@ -1,6 +1,6 @@
 # DỰ ÁN: HỆ THỐNG GIÁM SÁT VÀ ĐIỀU KHIỂN TỰ ĐỘNG BỂ CÁ ỨNG DỤNG IOT VÀ TRÍ TUỆ NHÂN TẠO
 
-> **Đề tài Nghiên cứu & Ứng dụng:** Xây dựng hệ sinh thái bể cá thông minh tự vận hành toàn diện, kết hợp mạng lưới cảm biến **IoT Đa Tầng (ESP32 Master - Slave)**, **Thị giác Máy tính Edge AI (Raspberry Pi 5)**, **Giao diện Web mDNS Local** và **Nền tảng Đám mây ThingsBoard**.
+> **Đề tài Nghiên cứu & Ứng dụng:** Xây dựng hệ sinh thái bể cá thông minh tự vận hành toàn diện, kết hợp mạng lưới cảm biến **IoT Đa Tầng (ESP32 Master - Slave)**, **Thị giác Máy tính Edge AI (Raspberry Pi 5 / Gemini Flash Vision)**, **Giao diện Web mDNS Local**, **Cloudflare Tunnel** và **Nền tảng Đám mây ThingsBoard**.
 
 ---
 
@@ -12,10 +12,10 @@
 5. [Sơ Đồ Kết Nối Phần Cứng & Pinout](#5-sơ-đồ-kết-nối-phần-cứng--pinout)
 6. [Giao Thức Giao Tiếp Master - Slave (UART)](#6-giao-thức-giao-tiếp-master---slave-uart)
 7. [Bảng Mã Điều Khiển Remote Hồng Ngoại IR](#7-bảng-mã-điều-khiển-remote-hồng-ngoại-ir)
-8. [Giao Diện Web Dashboard & mDNS Local](#8-giao-diện-web-dashboard--mdns-local)
-9. [Hướng Dẫn Cài Đặt & Nạp Firmware](#9-hướng-dẫn-cài-đặt--nạp-firmware)
-10. [Hướng Dẫn Tạo Dashboard Trên ThingsBoard Cloud](#10-hướng-dẫn-tạo-dashboard-trên-thingsboard-cloud)
-11. [Hướng Dẫn Cài Đặt & Vận Hành Python Server (Edge AI & IoT Gateway)](#11-hướng-dẫn-cài-đặt--vận-hành-python-server-edge-ai--iot-gateway)
+8. [Hướng Dẫn Cài Đặt & Nạp Firmware (ESP32 Master & Slave)](#8-hướng-dẫn-cài-đặt--nạp-firmware-esp32-master--slave)
+9. [Hướng Dẫn Import Dashboard ThingsBoard Cloud (21 Widgets Hoàn Chỉnh)](#9-hướng-dẫn-import-dashboard-thingsboard-cloud-21-widgets-hoàn-chỉnh)
+10. [Hướng Dẫn Cài Đặt & Vận Hành Python Server (Edge AI & IoT Gateway)](#10-hướng-dẫn-cài-đặt--vận-hành-python-server-edge-ai--iot-gateway)
+11. [Hướng Dẫn Sử Dụng Chi Tiết Toàn Bộ Hệ Thống Từ A - Z](#11-hướng-dẫn-sử-dụng-chi-tiết-toàn-bộ-hệ-thống-từ-a---z)
 
 ---
 
@@ -24,8 +24,8 @@
 Hệ thống được thiết kế nhằm giải quyết triệt để các rủi ro trong việc nuôi và bảo tồn sinh vật thủy sinh:
 - **Tự động hóa hoàn toàn các chu trình sống:** Kiểm soát nhiệt độ nước chính xác, tự động bơm bù nước chống cạn/tràn, tuần hoàn lọc nước song song, sục khí oxy theo chu kỳ và cho ăn tự động đúng giờ với định lượng chính xác.
 - **Bảo vệ an toàn tuyệt đối (Multi-level Failsafe):** Tự động cắt sưởi khi quá nhiệt ($\ge 35^\circ\text{C}$), ngắt bơm rút và sưởi khi cạn nước, cơ chế Heartbeat giám sát liên tục giữa các vi điều khiển để ngắt điện khẩn cấp khi xảy ra sự cố.
-- **Giám sát trực tiếp sinh vật bằng AI tại Biên (Edge AI):** Phân tích hình ảnh thời gian thực từ Camera thông qua **Raspberry Pi 5** để nhận diện độ vẩn đục của nước, phát hiện cá mắc bệnh, bơi lờ đờ hoặc tử vong nhằm đưa ra cảnh báo sớm qua Email/Cloud.
-- **Vận hành độc lập Offline & Điều khiển đa kênh:** Cho phép điều khiển tức thời qua **Remote Hồng ngoại IR**, mạng nội bộ **Local Web Server (`http://beca.local`)** ngay cả khi mất Internet, và đồng bộ dữ liệu giám sát từ xa qua **ThingsBoard Cloud**.
+- **Giám sát trực tiếp sinh vật bằng AI tại Biên (Edge AI):** Phân tích hình ảnh thời gian thực từ Camera thông qua **Raspberry Pi 5** kết hợp **Gemini Flash Vision VLM** với cơ chế **5 ảnh mẫu tham chiếu (Baseline Calibration)** loại bỏ $100\%$ báo động giả từ lũa/đá tĩnh.
+- **Vận hành độc lập Offline & Điều khiển đa kênh:** Cho phép điều khiển tức thời qua **Remote Hồng ngoại IR**, mạng nội bộ **Local Web Server (`http://beca.local`)** ngay cả khi mất Internet, truy cập từ xa không cần mở port qua **Cloudflare Tunnel**, nhận cảnh báo qua **Telegram Chatbot**, và đồng bộ dữ liệu giám sát qua **ThingsBoard Cloud**.
 
 ---
 
@@ -33,11 +33,12 @@ Hệ thống được thiết kế nhằm giải quyết triệt để các rủ
 
 | Tiêu chí | Bể cá truyền thống trên thị trường | Hệ thống của Đề tài |
 |---|---|---|
-| **Đối tượng giám sát** | Chỉ đo môi trường vật lý (nhiệt độ) | **Giám sát kép:** Môi trường vật lý + Trạng thái thực thể sống (AI Vision) |
-| **Phát hiện cá chết / bệnh** | Không có (chỉ biết khi nước bị ô nhiễm nặng) | **Edge AI trên Raspberry Pi 5** nhận diện hành vi, đếm số lượng, phát hiện cá lật bụng |
+| **Đối tượng giám sát** | Chỉ đo môi trường vật lý (nhiệt độ) | **Giám sát kép:** Môi trường vật lý + Trạng thái thực thể sống (Gemini Vision AI) |
+| **Phát hiện cá chết / bệnh** | Không có (chỉ biết khi nước bị ô nhiễm nặng) | **Gemini Flash VLM + Cơ chế 5 ảnh mẫu tham chiếu** phân biệt chính xác cá thể và lũa/đá tĩnh |
+| **Xác thực chống báo động giả**| Báo động ngay khi có 1 frame lỗi | **Bộ lọc 5 lần liên tiếp (5 Consecutive Positives):** Chụp liên tục 10s/lần, chỉ báo khi đủ 5/5 |
 | **Kiến trúc phần cứng** | 1 vi điều khiển duy nhất (dễ treo khi lỗi) | **Phân lớp Master - Slave:** Tách biệt Gateway xử lý mạng/logic và Node điều khiển cảm biến/relay |
-| **Độ trễ điều khiển** | Phụ thuộc hoàn toàn vào Cloud (1-3 giây) | **Phản hồi tức thì < 50ms:** Remote IR 0ms (non-blocking), Web LAN `beca.local` |
-| **An toàn điện & phần cứng** | Ngắt rơ-le đơn giản | **Failsafe đa tầng:** Cắt cưỡng bức khi cạn/quá nhiệt, Heartbeat PING/PONG 15s tự ngắt khi mất kết nối |
+| **Độ trễ điều khiển** | Phụ thuộc hoàn toàn vào Cloud (1-3 giây) | **Phản hồi tức thì < 50ms:** Remote IR 0ms (non-blocking), Web LAN `beca.local` $< 5\text{ms}$ |
+| **An toàn điện & phần cứng** | Ngắt rơ-le đơn giản | **Failsafe đa tầng:** Cắt cưỡng bức khi cạn/quá nhiệt, Heartbeat UART tự ngắt khi mất kết nối |
 
 ---
 
@@ -45,46 +46,49 @@ Hệ thống được thiết kế nhằm giải quyết triệt để các rủ
 
 ```mermaid
 graph TD
-    %% Khối Cảm biến & Cơ cấu chấp hành
+    %% Khối Ngoại vi
     subgraph HardwareLayer ["LỚP THIẾT BỊ NGOẠI VI (Hardware / Actuators)"]
         DS18B20["Cảm biến Nhiệt Nước (DS18B20)"]
-        DHT22["Cảm biến Nhiệt/Ẩm Không Khí (DHT22)"]
-        HCSR04["Cảm biến Siêu Âm Đo Nước (HC-SR04)"]
+        DHT11["Cảm biến Nhiệt/Ẩm Không Khí (DHT11)"]
+        HCSR04["Cảm biến Siêu Âm Đo Mực Nước (HC-SR04)"]
         IR_REC["Mắt Thu Hồng Ngoại (IR 38kHz)"]
         
-        RELAYS["6 Kênh Relay:<br/>- Sưởi (220V/12V)<br/>- Quạt Làm Mát<br/>- Bơm Bù Nước<br/>- Bơm Rút Nước<br/>- Sục Oxy<br/>- Đèn LED Chiếu Sáng"]
-        SERVO["Servo Cho Ăn (SG90/MG90S)<br/>Góc quay tùy chỉnh 10° - 180°"]
+        RELAYS["6 Kênh Relay (ULN2003 Driver):<br/>- Sưởi (220V/12V)<br/>- Quạt Làm Mát<br/>- Bơm Bù Nước<br/>- Bơm Rút Nước<br/>- Sục Oxy<br/>- Đèn LED Chiếu Sáng"]
+        SERVO["Servo Cho Ăn (SG90/MG90S)<br/>Góc quay rót thức ăn 0° - 180°"]
     end
 
     %% Khối Vi Điều Khiển
     subgraph ControllerLayer ["LỚP ĐIỀU KHIỂN & GATEWAY (Dual ESP32 Architecture)"]
-        ESPSlave["ESP32-Slave (Sensor & Relay Node)<br/>- Đọc cảm biến Non-blocking 0ms<br/>- Giải mã Remote IR tức thì<br/>- Đóng ngắt Relay & Kéo Servo<br/>- Heartbeat PING/PONG 15s"]
-        ESPMaster["ESP32-Master (IoT Gateway & Server)<br/>- Web Server SPA + mDNS: http://beca.local<br/>- Logic Failsafe & Thermostat độc lập<br/>- Quản lý Chu kỳ Lọc nước & Sục Oxy<br/>- Lưu trữ cấu hình Flash NVS (Preferences)"]
+        ESPMaster["ESP32-Master (IoT Gateway & Server)<br/>- Đọc cảm biến liên tục (Median Filter 5 mẫu)<br/>- Web Server mDNS: http://beca.local<br/>- ThingsBoard 2-Way RPC Response < 50ms<br/>- Gửi UART Heartbeat sang Slave mỗi 200ms"]
+        ESPSlave["ESP32-Slave (Relay & Servo Node)<br/>- Lái 6 Relay qua ULN2003<br/>- Điều khiển Servo attach/detach chống rung<br/>- Giải mã Remote IR NEC tức thì<br/>- Watchdog Failsafe 10 phút tự ngắt"]
     end
 
     %% Khối AI & Đám mây
     subgraph CloudAndAI ["LỚP TRÍ TUỆ NHÂN TẠO & ĐÁM MÂY (Edge AI & Cloud)"]
-        IPCam["IP Camera / Smartphone Stream"]
-        RPi5["Raspberry Pi 5 (Edge AI)<br/>- Phân tích độ đục nước<br/>- Nhận diện cá bệnh / cá chết<br/>- Cơ chế Dự phòng Failover"]
-        ThingsBoard["ThingsBoard Cloud (MQTT IoT Platform)<br/>- Telemetry 5s/lần<br/>- Điều khiển RPC từ xa<br/>- Cảnh báo Email khẩn cấp"]
+        Camera["Webcam USB / IP Camera RTSP"]
+        RPi5["Raspberry Pi 5 (Python Server - Edge AI)<br/>- Gemini Flash Vision VLM (Đối chiếu 5 ảnh mẫu)<br/>- Xác thực cá chết 5 lần liên tiếp<br/>- Cloudflare Quick Tunnel (trycloudflare)<br/>- Telegram Bot tương tác 2 chiều"]
+        ThingsBoard["ThingsBoard Cloud Platform (21 Widgets)<br/>- Giám sát môi trường & AI Telemetry<br/>- 10 Nút điều khiển 2 chiều RPC"]
     end
 
-    %% Kết nối vật lý và truyền thông
-    DS18B20 -->|"Đọc nhiệt độ nước"| ESPSlave
-    DHT22 -->|"Đọc nhiệt/ẩm không khí"| ESPSlave
-    HCSR04 -->|"Đo khoảng cách mực nước"| ESPSlave
-    IR_REC -->|"Nhận tín hiệu phím bấm"| ESPSlave
+    %% Kết nối
+    DS18B20 -->|"Đọc nhiệt độ nước"| ESPMaster
+    DHT11 -->|"Đọc nhiệt/ẩm không khí"| ESPMaster
+    HCSR04 -->|"Đo khoảng cách mực nước"| ESPMaster
     
-    ESPSlave -->|"Điều khiển điện"| RELAYS
-    ESPSlave -->|"Kéo góc thức ăn"| SERVO
+    IR_REC -->|"Nhận tín hiệu remote"| ESPSlave
+    ESPSlave -->|"Kích rơ-le"| RELAYS
+    ESPSlave -->|"Kéo góc quay"| SERVO
 
-    ESPSlave <==>|"Giao tiếp UART JSON (9600 baud)<br/>GPIO 16/17"| ESPMaster
-    IPCam -->|"Luồng RTSP/HTTP Video"| RPi5
-    RPi5 -.->|"Đồng bộ kết quả AI"| ESPMaster
-
-    ESPMaster <==>|"WiFi / mDNS Local"| WebClient["Người dùng (Web Browser / Smartphone)"]
-    ESPMaster <==>|"MQTT Protocol (Port 1883)"| ThingsBoard
-    RPi5 -.->|"Failover Backup"| ThingsBoard
+    ESPMaster <==>|"Giao tiếp UART (9600 baud)<br/>GPIO 16/17 ($DATA...*CS)"| ESPSlave
+    
+    Camera -->|"Luồng Video 15 FPS"| RPi5
+    RPi5 <==>|"REST API LAN < 5ms"| ESPMaster
+    
+    ESPMaster <==>|"ThingsBoard MQTT (Port 1883)"| ThingsBoard
+    RPi5 <==>|"ThingsBoard MQTT AI Telemetry"| ThingsBoard
+    
+    RPi5 <==>|"HTTPS Public Tunnel"| RemoteUser["Người dùng (4G/Internet Ngoài Đường)"]
+    RPi5 <==>|"Telegram API"| TgBot["Telegram Bot Cảnh Báo Snapshot"]
 ```
 
 ---
@@ -92,373 +96,205 @@ graph TD
 ## 4. CÁC TÍNH NĂNG CỐT LÕI CHI TIẾT
 
 ### 4.1. Điều Khiển Nhiệt Độ Thông Minh (Thermostat)
-- **Tự động Bật/Tắt Sưởi:** Bật sưởi khi nhiệt độ nước $< 18.0^\circ\text{C}$, Tắt sưởi khi nước $\ge 20.0^\circ\text{C}$ (các ngưỡng nhiệt độ tùy chỉnh linh hoạt từ $10^\circ\text{C} - 40^\circ\text{C}$).
-- **Tự động Bật/Tắt Quạt Làm Mát:** Bật quạt khi nước $> 30.0^\circ\text{C}$, Tắt quạt khi nước $\le 28.0^\circ\text{C}$.
-- **Độc lập 100% theo cảm biến nước DS18B20:** Loại bỏ hoàn toàn sự phụ thuộc sai lệch vào cảm biến môi trường không khí.
-- **Failsafe Quá Nhiệt Tuyệt Đối:** Bất kể thiết bị được bật bằng tay, hẹn giờ hay tự động, khi nhiệt độ nước $\ge 35.0^\circ\text{C}$ $\rightarrow$ Hệ thống lập tức ngắt sưởi cưỡng bức để bảo vệ cá.
+- **Tự động Bật/Tắt Sưởi:** Bật sưởi khi nhiệt độ nước $< 18.0^\circ	ext{C}$, Tắt sưởi khi nước $\ge 20.0^\circ	ext{C}$ (ngưỡng tùy chỉnh linh hoạt).
+- **Tự động Bật/Tắt Quạt Làm Mát:** Bật quạt khi nước $> 30.0^\circ	ext{C}$, Tắt quạt khi nước $\le 28.0^\circ	ext{C}$.
+- **Failsafe Quá Nhiệt Tuyệt Đối:** Bất kể bật tay hay tự động, khi nhiệt độ nước $\ge 35.0^\circ	ext{C}$ $ightarrow$ Lập tức ngắt sưởi cưỡng bức để bảo vệ cá.
 
----
+### 4.2. Quản Lý Mực Nước Siêu Âm Chống Cạn & Chống Tràn
+- **Bộ lọc trung vị 5 mẫu (Median Filter):** Khử hoàn toàn xung nhiễu do bọt khí oxy hoặc sóng nước dao động.
+- **Tự động Bơm Bù Nước:** Bật bơm bù khi khoảng cách nước $> 15.0	ext{cm}$, ngắt khi nước đầy $\le 5.0	ext{cm}$.
+- **Bảo Vệ Chống Tràn & Khóa Bơm Rút:** Ngắt bơm rút khi nước chạm đáy $\ge 30.0	ext{cm}$ để chống cháy bơm.
 
-### 4.2. Quản Lý Mực Nước & Failsafe Cạn Nước (HC-SR04)
-- **Tự động Bơm Bù Nước:** Khi mực nước tụt xuống ngưỡng thấp (`th_water_low`), hệ thống tự động kích hoạt Bơm Bù Nước và ngắt khi nước đầy (`th_water_full`) để chống tràn.
-- **Failsafe Cạn Nước Nguy Hiểm (`is_empty`):** Khi mực nước vượt ngưỡng cạn (`th_water_empty`), Master lập tức ngắt khẩn cấp **Máy Sưởi**, **Bơm Rút Nước** và **Chế Độ Lọc Nước** để chống cháy thanh sưởi và cháy động cơ bơm.
-
----
-
-### 4.3. Chế Độ Lọc Nước Song Song (Water Filter) & Chu Kỳ Tự Động
-- **Lọc Nước Tuần Hoàn Đồng Thời:** Kích hoạt đồng thời cả 2 bơm (**Bơm Rút** và **Bơm Bù**) giúp luân chuyển nước qua hệ thống lọc liên tục.
-- **Hẹn Giờ Đếm Lùi (Countdown Timer):** Hẹn giờ chạy lọc theo số Giờ - Phút - Giây (mặc định 15 phút), hết giờ tự động ngắt cả 2 bơm.
-- **Chế Độ Chu Kỳ Lọc Nước Tự Động (Filter Cycle Mode):**
-  - Tự động luân phiên **Chạy $X$ phút** (mặc định 15p) / **Nghỉ $Y$ phút** (mặc định 45p) liên tục 24/7.
-  - Tùy chỉnh số phút Chạy và Nghỉ linh hoạt trên Web, lưu vĩnh viễn vào bộ nhớ Flash NVS.
-  - Bấm phím **8** trên Remote IR hoặc bấm nút trên Web để chuyển đổi tức thì giữa chế độ thủ công và tự động.
-
----
-
-### 4.4. Hệ Thống Sục Khí Oxy (Air Pump)
-- **Chế độ Bật Liên Tục (Continuous):** Sục khí 24/7.
-- **Chế độ Bật Theo Chu Kỳ (Cycle):** Luân phiên **5 phút BẬT / 15 phút TẮT** (tùy chỉnh số phút linh hoạt trên Web).
-- **Phản hồi Remote IR thông minh:** Bấm phím **4** 1 lần $\rightarrow$ Bật/Tắt chu kỳ; Bấm phím **4** 3 lần liên tiếp trong 3s $\rightarrow$ Bật sủi liên tục.
-
----
-
-### 4.5. Hệ Thống Cho Ăn Tự Động Với Góc Quay Tùy Chỉnh (Servo Feeder)
-- **Hẹn giờ 3 mốc/ngày:** Định dạng chính xác `HH:MM:SS` (ví dụ: `08:00:00`, `12:00:00`, `18:00:00`).
-- **Tùy Chỉnh Góc Quay Rotor Cho Ăn ($10^\circ - 180^\circ$):** Cho phép người dùng chỉnh góc mở Servo trên Web để định lượng thức ăn rơi ra chính xác cho từng loại cá.
-- Khi kích hoạt (theo lịch, bấm Web, hoặc bấm phím **7** Remote): Servo quay đúng góc đã cài đặt, giữ 2 giây rồi tự động quay về $0^\circ$.
-
----
-
-### 4.6. Chiếu Sáng Đèn LED & Hẹn Giờ Khung Giờ
-- Bật/Tắt thủ công, hẹn giờ đếm lùi tự tắt, hoặc chạy tự động theo khung giờ trong ngày (ví dụ: Tự bật lúc `07:00` và tự tắt lúc `21:00`).
-
----
-
-### 4.7. Công Tắc Tổng Khẩn Cấp (Kill Switch)
-- Nút **`[HE THONG: BAT / TAT]`** trên Web Dashboard và phím **0** trên Remote IR.
-- Khi Tắt Hệ Thống: **Lập tức ngắt 100% toàn bộ 7 Relay, Sục Oxy, Chế độ Lọc nước, Chu kỳ Lọc nước và khóa các timer**.
+### 4.3. Hệ Thống Cho Ăn Tự Động Với Servo Kéo Góc
+- **Cơ chế `attach()` / `detach()`:** Chỉ cấp xung PWM khi quay rót thức ăn, sau đó lập tức ngắt xung để chống rung, chống nóng và tăng tuổi thọ servo gấp 10 lần.
+- **Đa kênh kích hoạt:** Hẹn giờ cố định hàng ngày, bấm nút trên Web LAN, nút bấm trên ThingsBoard (Action Button 1 chạm), hoặc gửi lệnh `/feed` qua Telegram.
 
 ---
 
 ## 5. SƠ ĐỒ KẾT NỐI PHẦN CỨNG & PINOUT
 
-### 5.1. ESP32-Master (Nút Gateway & Web Server)
-| Chân ESP32-Master | Chức năng | Kết nối tới |
-|---|---|---|
-| **GPIO 16 (RX2)** | Nhận dữ liệu UART | Chân **TX2 (GPIO 17)** của ESP32-Slave |
-| **GPIO 17 (TX2)** | Truyền dữ liệu UART | Chân **RX2 (GPIO 16)** của ESP32-Slave |
-| **GPIO 0 (BOOT)** | Nút bấm vật lý | Giữ 3 giây để **Factory Reset Flash NVS** |
-| **GPIO 2** | Đèn LED tích hợp | Báo trạng thái hoạt động |
-| **GND** | Nối đất chung | Nối chung với GND của Slave và nguồn 5V |
-
----
-
-### 5.2. ESP32-Slave (Nút Cảm Biến & Rơ-le Ngoại Vi)
-| Chân ESP32-Slave | Thiết bị ngoại vi | Loại tín hiệu | Ghi chú |
+### 5.1. Bảng Phân Bổ Chân ESP32-Master:
+| Chân ESP32 | Thiết Bị Ngoại Vi | Chức Năng | Ghi Chú |
 |---|---|---|---|
-| **GPIO 23** | Relay 1: Máy Sưởi | Output Digital (Active HIGH) | Đóng cắt nguồn điện sưởi |
-| **GPIO 22** | Relay 2: Quạt Tản Nhiệt | Output Digital (Active HIGH) | Quạt làm mát bề mặt |
-| **GPIO 19** | Relay 3: Bơm Bù Nước | Output Digital (Active HIGH) | Bơm nước sạch vào bể |
-| **GPIO 21** | Relay 4: Máy Sục Oxy | Output Digital (Active HIGH) | Bơm khí oxy |
-| **GPIO 26** | Relay 5: Bơm Rút Nước | Output Digital (Active HIGH) | Bơm hút xả nước cũ |
-| **GPIO 27** | Relay 6: Đèn LED | Output Digital (Active HIGH) | Đèn chiếu sáng bể |
-| **GPIO 13** | Động cơ Servo Cho Ăn | Output PWM | SG90 / MG90S (Góc $10^\circ - 180^\circ$) |
-| **GPIO 4** | Mắt Thu Hồng Ngoại (IR) | Input Digital (38kHz) | MH-R38 (Giao thức NEC) |
-| **GPIO 18** | Cảm biến Nhiệt Nước DS18B20 | Input 1-Wire Digital | Trở kéo 4.7kΩ lên 3.3V/5V (Non-blocking) |
-| **GPIO 25** | Cảm biến Nhiệt Ẩm DHT22 | Input Single-bus Digital | Đo nhiệt độ & độ ẩm không khí |
-| **GPIO 5** | Cảm biến Siêu Âm HC-SR04 (Trig) | Output Digital | Phát xung siêu âm 10µs |
-| **GPIO 34** | Cảm biến Siêu Âm HC-SR04 (Echo) | Input Digital (Chỉ đọc) | Nhận sóng phản xạ đo mực nước |
-| **GPIO 16 (RX2)** | Nhận lệnh UART | Input UART | Nối vào **TX2 (GPIO 17)** của Master |
-| **GPIO 17 (TX2)** | Gửi Telemetry UART | Output UART | Nối vào **RX2 (GPIO 16)** của Master |
+| **GPIO 4** | Cảm biến DS18B20 | Đọc nhiệt độ nước | Kèm trở kéo lên $4.7	ext{k}\Omega$ lên 3.3V |
+| **GPIO 5** | Cảm biến DHT11 | Đọc nhiệt/ẩm không khí | Chân DATA DHT11 |
+| **GPIO 18** | Cảm biến HC-SR04 (Trig) | Phát xung siêu âm | Output |
+| **GPIO 19** | Cảm biến HC-SR04 (Echo) | Nhận xung siêu âm | Input (Qua cầu phân áp $1	ext{k}\Omega / 2	ext{k}\Omega$ bảo vệ 3.3V) |
+| **GPIO 16** | Chân RX2 UART | Nhận dữ liệu từ Slave TX | Nối chéo với TX Slave (GPIO 17) |
+| **GPIO 17** | Chân TX2 UART | Gửi lệnh sang Slave RX | Nối chéo với RX Slave (GPIO 16) |
+| **GPIO 2** | LED Onboard | Đèn báo trạng thái mạng | Nhấp nháy khi mất mạng, sáng đứng khi online |
+| **GPIO 0** | Nút BOOT | Factory Reset NVS Flash | Nhấn giữ 3 giây để xóa cấu hình WiFi |
+
+### 5.2. Bảng Phân Bổ Chân ESP32-Slave:
+| Chân ESP32 | Thiết Bị Ngoại Vi | Chức Năng | Ghi Chú |
+|---|---|---|---|
+| **GPIO 23** | Relay 1 (Máy Sưởi) | Đóng cắt nhiệt sưởi | Kích mức CAO qua IC ULN2003 |
+| **GPIO 22** | Relay 2 (Quạt Làm Mát) | Đóng cắt quạt gió | Kích mức CAO qua IC ULN2003 |
+| **GPIO 21** | Relay 3 (Bơm Bù Nước) | Đóng cắt bơm cấp nước | Kích mức CAO qua IC ULN2003 |
+| **GPIO 19** | Relay 4 (Sục Khí Oxy) | Đóng cắt sủi oxy | Kích mức CAO qua IC ULN2003 |
+| **GPIO 18** | Relay 5 (Bơm Rút Nước) | Đóng cắt bơm xả nước | Kích mức CAO qua IC ULN2003 |
+| **GPIO 5** | Relay 6 (Đèn LED) | Đóng cắt đèn chiếu sáng | Kích mức CAO qua IC ULN2003 |
+| **GPIO 13** | Servo Cho Ăn (SG90) | Quay rót thức ăn (PWM) | Chân Signal Servo |
+| **GPIO 15** | Mắt Thu Hồng Ngoại IR | Nhận tín hiệu Remote 38kHz | Chân DATA mắt thu IR |
+| **GPIO 16** | Chân RX2 UART | Nhận lệnh từ Master TX | Nối chéo với TX Master (GPIO 17) |
+| **GPIO 17** | Chân TX2 UART | Gửi phản hồi sang Master RX | Nối chéo với RX Master (GPIO 16) |
 
 ---
 
 ## 6. GIAO THỨC GIAO TIẾP MASTER - SLAVE (UART)
 
-Tốc độ baud: **`9600 baud`**, định dạng dữ liệu: **JSON UTF-8**, kết thúc bằng ký tự xuống dòng `\n`.
+Giao tiếp UART2 hoạt động tại baudrate **9600 bps**, định dạng gói tin ASCII kèm Checksum XOR bảo đảm tính toàn vẹn:
 
-### 6.1. Bản tin Dữ liệu Cảm biến & Trạng thái (Slave $\rightarrow$ Master)
-Định kỳ gửi mỗi **2 giây/lần** (hoặc gửi ngay lập tức khi có sự kiện Remote IR):
-```json
-{
-  "water_temp": 25.4,
-  "air_temp": 28.2,
-  "air_hum": 70.5,
-  "water_cm": 15.3,
-  "heater": 0,
-  "fan": 0,
-  "pump": 1,
-  "oxy": 1,
-  "drain": 1,
-  "led": 0,
-  "oxy_mode": 0,
-  "last_ir": "15"
-}
-```
-
-### 6.2. Bản tin Điều Khiển Relay & Thiết Bị (Master $\rightarrow$ Slave)
-```json
-{
-  "cmd": "relay",
-  "heater": false,
-  "fan": false,
-  "pump": true,
-  "oxy": true,
-  "drain": true,
-  "led": false,
-  "oxy_mode": false,
-  "oo": 5,
-  "of": 15,
-  "fa": 180,
-  "feed": false
-}
-```
-
-### 6.3. Bản tin Đồng Bộ Bảng Mã Phím IR (Master $\rightarrow$ Slave)
-```json
-{
-  "cmd": "ir_map",
-  "ir1": "45",
-  "ir2": "46",
-  "ir3": "47",
-  "ir4": "44",
-  "ir5": "40",
-  "ir6": "43",
-  "ir7": "07",
-  "ir8": "15",
-  "ir0": "16"
-}
-```
-
-### 6.4. Cơ Chế Heartbeat Giám Sát An Toàn (PING / PONG)
-- **Slave gửi mỗi 15 giây:** `{"cmd":"ping"}`
-- **Master phản hồi ngay lập tức:** `{"cmd":"pong"}`
-- Nếu sau 15 giây Slave không nhận được phản hồi từ Master $\rightarrow$ Slave kích hoạt chế độ **`emergencyOff()`**, lập tức cắt nguồn toàn bộ Relay để đảm bảo an toàn tuyệt đối.
+* **Master gửi sang Slave (Heartbeat & Lệnh mỗi 200ms):**
+  $$	exttt{\$CMD,<heater>,<fan>,<pump>,<oxy>,<drain>,<led>,<feed>,<system>*<CS>\n}$$
+* **Slave phản hồi sang Master:**
+  $$	exttt{\$ACK,<relay_states>,<ir_cmd>*<CS>\n}$$
+* **Cơ chế Watchdog 10 phút:** Nếu Slave không nhận được gói tin `$CMD` hợp lệ từ Master trong 10 phút liên tục $ightarrow$ Slave tự động ngắt toàn bộ 6 Relay để đưa bể cá về trạng thái an toàn tuyệt đối.
 
 ---
 
 ## 7. BẢNG MÃ ĐIỀU KHIỂN REMOTE HỒNG NGOẠI IR
 
-Hệ thống sử dụng chuẩn giao thức **NEC (20 phím tiêu chuẩn)**. Người dùng có thể xem mã vừa bấm và gán lại mã phím tùy ý trong tab **CÀI ĐẶT** trên Web:
+Hệ thống hỗ trợ điều khiển tức thì (độ trễ 0ms) qua Remote hồng ngoại NEC tiêu chuẩn:
 
-| Nút bấm Remote | Mã Hex mặc định | Chức năng điều khiển | Hành vi chi tiết |
+| Phím Bấm | Mã Hex NEC | Thiết Bị Điều Khiển | Chức Năng |
 |:---:|:---:|---|---|
-| **1** | `0x45` | **Máy Sưởi** | Bật / Tắt máy sưởi thủ công |
-| **2** | `0x46` | **Quạt Làm Mát** | Bật / Tắt quạt tản nhiệt thủ công |
-| **3** | `0x47` | **Bơm Bù Nước** | Bật / Tắt bơm cấp nước sạch |
-| **4** | `0x44` | **Sục Khí Oxy** | - **Bấm 1 lần:** Bật/Tắt chu kỳ (5p Bật / 15p Tắt)<br/>- **Bấm 3 lần liên tiếp:** Bật sục Oxy liên tục 24/7 |
-| **5** | `0x40` | **Bơm Rút Nước** | Bật / Tắt bơm hút xả nước |
-| **6** | `0x43` | **Đèn LED** | Bật / Tắt đèn chiếu sáng bể |
-| **7** | `0x07` | **Cho Ăn (Servo)** | Kích hoạt quay Servo đến góc đã cài đặt ($10^\circ - 180^\circ$) trong 2 giây |
-| **8** | `0x15` | **Chế Độ Lọc Nước** | Bật / Tắt đồng thời cả Bơm Rút & Bơm Bù để tuần hoàn lọc nước |
-| **0** | `0x16` | **TẮT TẤT CẢ (Emergency)** | Ngắt toàn bộ 6 Relay và hủy tất cả chế độ ngay lập tức |
+| **Phím 1** | `0xFF30CF` | Máy Sưởi | Đảo trạng thái Bật / Tắt |
+| **Phím 2** | `0xFF18E7` | Quạt Làm Mát | Đảo trạng thái Bật / Tắt |
+| **Phím 3** | `0xFF7A85` | Bơm Bù Nước | Đảo trạng thái Bật / Tắt |
+| **Phím 4** | `0xFF10EF` | Sục Khí Oxy | Đảo trạng thái Bật / Tắt |
+| **Phím 5** | `0xFF38C7` | Bơm Rút Nước | Đảo trạng thái Bật / Tắt |
+| **Phím 6** | `0xFF5AA5` | Lọc Tuần Hoàn | Đảo trạng thái Bật / Tắt 2 bơm |
+| **Phím 7** | `0xFF42BD` | Đèn LED Bể Cá | Đảo trạng thái Bật / Tắt |
+| **Phím 8** | `0xFF4AB5` | Cho Ăn Tức Thì | Kích hoạt quay Servo rót thức ăn |
+| **Phím 0 / OFF** | `0xFF6897` | Khóa Hệ Thống | Ngắt khẩn cấp toàn bộ thiết bị |
 
 ---
 
----
+## 8. HƯỚNG DẪN CÀI ĐẶT & NẠP FIRMWARE (ESP32 MASTER & SLAVE)
 
-## 8. GIAO DIỆN WEB DASHBOARD & mDNS LOCAL
+### 8.1. Chuẩn bị môi trường nạp:
+1. Tải và cài đặt **Arduino IDE 2.x** từ [arduino.cc](https://www.arduino.cc/en/software).
+2. Vào **File** $ightarrow$ **Preferences** $ightarrow$ Thêm URL Board ESP32 vào ô *Additional Board Manager URLs*:
+   ```
+   https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+   ```
+3. Vào **Tools** $ightarrow$ **Board** $ightarrow$ **Boards Manager**, tìm `esp32` và bấm **Install** (phiên bản 2.0.x hoặc 3.0.x).
 
-Hệ thống tích hợp máy chủ Web trực tiếp trên ESP32-Master với công nghệ Single Page Application (SPA), phong cách **Theme Trắng & Xanh Aqua (Aqua Ocean)** hiện đại, không cần kết nối Internet vẫn hoạt động đầy đủ 100%:
+### 8.2. Cài đặt các thư viện cần thiết:
+Vào **Tools** $ightarrow$ **Manage Libraries**, tìm và cài đặt các thư viện:
+- `OneWire` và `DallasTemperature` (đọc DS18B20)
+- `DHT sensor library` (đọc DHT11)
+- `PubSubClient` (kết nối MQTT ThingsBoard)
+- `ArduinoJson` (phiên bản 6.x hoặc 7.x)
+- `IRremote` (phiên bản 4.x - giải mã Remote hồng ngoại)
+- `ESP32Servo` (điều khiển Servo SG90)
 
-- **Tên miền truy cập cố định (mDNS):**
-  - **`http://beca.local`** (hoặc `http://beca/` trên Windows).
-  - Hoặc truy cập qua địa chỉ IP cục bộ được cấp phát bởi Router WiFi.
+### 8.3. Nạp Firmware ESP32-Master:
+1. Mở file [`Firmware/ESP32_Master/ESP32_Master.ino`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Firmware/ESP32_Master/ESP32_Master.ino).
+2. Cấu hình tên WiFi và mật khẩu nhà bạn ở đầu file:
+   ```cpp
+   String sta_ssid     = "TEN_WIFI_NHA_BAN";
+   String sta_password = "MAT_KHAU_WIFI";
+   ```
+3. Chọn Board: **ESP32 Dev Module**, chọn đúng Cổng COM và bấm **Upload**.
 
-### Các Phân Hệ Trên Giao Diện Web:
-1. **Tab BẢNG ĐIỀU KHIỂN (Dashboard):**
-   - Giám sát các chỉ số cảm biến: Nhiệt độ nước, Nhiệt độ & Độ ẩm không khí, Mực nước (cm), Cường độ sóng WiFi (RSSI dBm), Đồng hồ thời gian thực NTP.
-   - Nút bật/tắt thủ công cho từng thiết bị có đèn báo trạng thái `ON`/`OFF`.
-   - Cụm Hẹn giờ đếm lùi độc lập (Giờ - Phút - Giây) cho Sưởi, Quạt, Bơm Rút, Lọc Nước và Đèn LED.
-   - Nút kích hoạt **Chu Kỳ Lọc Nước Tự Động** (`[CHU KY: BAT / TAT]`).
-   - Nút **Cho Ăn Tức Thì** và **Công tắc Tổng Hệ Thống (Kill Switch)**.
-2. **Tab CÀI ĐẶT (Settings):**
-   - Thiết lập ngưỡng nhiệt độ sưởi và quạt làm mát (tự động chuẩn hóa).
-   - Thiết lập các mốc khoảng cách mực nước siêu âm (Đầy, Thấp, Cạn).
-   - Cài đặt số phút Bật/Nghỉ của **Chu Kỳ Sục Oxy** và **Chu Kỳ Lọc Nước**.
-   - Cài đặt khung giờ bật/tắt đèn LED tự động.
-   - Cài đặt 3 mốc thời gian cho ăn tự động (`HH:MM:SS`) và **Góc Quay Rotor Cho Ăn ($10^\circ - 180^\circ$)**.
-   - Cấu hình thông tin WiFi và Access Token kết nối **ThingsBoard MQTT**.
-   - Bảng học mã và gán mã phím Remote IR linh hoạt.
-
----
-
-## 9. HƯỚNG DẪN CÀI ĐẶT & NẠP FIRMWARE
-
-### 9.1. Chuẩn bị Môi trường Lập trình
-- Cài đặt **Arduino IDE (bản 1.8.19 hoặc 2.x)** hoặc **VS Code với PlatformIO**.
-- Cài đặt ESP32 Board Package (bản `2.0.x` hoặc `3.x`).
-- **Các thư viện cần thiết:**
-  - `ArduinoJson` (v6.x)
-  - `PubSubClient` (kết nối MQTT ThingsBoard)
-  - `OneWire` & `DallasTemperature` (đo cảm biến DS18B20)
-  - `DHT sensor library` (đo cảm biến DHT22)
-  - `IRremote` (v4.x)
-  - `ESP32Servo` (điều khiển Servo MG90S/SG90)
-  - `ESPmDNS` & `Preferences` (có sẵn trong ESP32 Core)
-
-### 9.2. Quy trình nạp Firmware
-1. **Nạp Firmware cho ESP32-Master:**
-   - Mở file [`Firmware/ESP32_Master/ESP32_Master.ino`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Firmware/ESP32_Master/ESP32_Master.ino).
-   - Chọn Board: `DOIT ESP32 DEVKIT V1` (hoặc `ESP32 Dev Module`).
-   - Bấm **Upload**.
-2. **Nạp Firmware cho ESP32-Slave:**
-   - Mở file [`Firmware/ESP32_Slave/ESP32_Slave.ino`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Firmware/ESP32_Slave/ESP32_Slave.ino).
-   - Chọn Board: `DOIT ESP32 DEVKIT V1`.
-   - Bấm **Upload**.
-3. **Kết nối và Trải nghiệm:**
-   - Bật nguồn cho cả 2 ESP32 và mở trình duyệt truy cập vào **`http://beca.local`** để bắt đầu sử dụng!
+### 8.4. Nạp Firmware ESP32-Slave:
+1. Mở file [`Firmware/ESP32_Slave/ESP32_Slave.ino`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Firmware/ESP32_Slave/ESP32_Slave.ino).
+2. Chọn Board: **ESP32 Dev Module**, chọn đúng Cổng COM và bấm **Upload**.
 
 ---
 
-## 10. HƯỚNG DẪN TẠO DASHBOARD TRÊN THINGSBOARD CLOUD
+## 9. HƯỚNG DẪN IMPORT DASHBOARD THINGSBOARD CLOUD (21 WIDGETS HOÀN CHỈNH)
 
-Hệ thống hỗ trợ giám sát và điều khiển 2 chiều thời gian thực thông qua nền tảng **ThingsBoard Cloud** (hoặc ThingsBoard Community Server tự host). Dưới đây là quy trình từng bước thiết lập Dashboard hoàn chỉnh:
+Hệ thống đã có sẵn file mẫu thiết kế siêu đẹp theo tiêu chuẩn UI/UX hiện đại:
+- [`giám_sát_&_điều_khiển_bể_cá_thông_minh.json`](file:///g:/BECA/HE_THONG_BE_CA_SIC/gi%C3%A1m_s%C3%A1t_&_%C4%91i%E1%BB%81u_khi%E1%BB%83n_b%E1%BB%83_c%C3%A1_th%C3%B4ng_minh.json)
+- [`ThingsBoard_Dashboard_BeCa.json`](file:///g:/BECA/HE_THONG_BE_CA_SIC/ThingsBoard_Dashboard_BeCa.json)
 
-```mermaid
-graph LR
-    ESP[ESP32-Master] <==>|"MQTT Port 1883<br/>Telemetry & 2-Way RPC"| TB[ThingsBoard Cloud]
-    TB <==>|"Web Dashboard / Mobile App"| User[Người Dùng]
+### 🚀 Cách Import Nhanh (Chỉ mất 10 giây):
+1. Đăng nhập vào **[ThingsBoard Cloud](https://demo.thingsboard.io)**.
+2. Vào menu **Dashboards** $ightarrow$ bấm biểu tượng **`+`** (Import Dashboard góc trên bên phải).
+3. Chọn file [`giám_sát_&_điều_khiển_bể_cá_thông_minh.json`](file:///g:/BECA/HE_THONG_BE_CA_SIC/gi%C3%A1m_s%C3%A1t_&_%C4%91i%E1%BB%81u_khi%E1%BB%83n_b%E1%BB%83_c%C3%A1_th%C3%B4ng_minh.json).
+4. Bấm **Import** $ightarrow$ Bạn sẽ có ngay một bảng điều khiển hoàn chỉnh hợp nhất cả ESP32 lẫn Edge AI!
+
+---
+
+## 10. HƯỚNG DẪN CÀI ĐẶT & VẬN HÀNH PYTHON SERVER (EDGE AI & IOT GATEWAY)
+
+### 10.1. Cấu trúc thư mục module hóa:
+```
+Python_Server/
+├── config.yaml                    # File cấu hình tập trung (tự động lưu từ Web)
+├── requirements.txt               # Danh sách thư viện Python
+├── run_server.py                  # Entry-point chính điều phối toàn bộ các luồng
+├── reference_images/              # Thư mục chứa 5 ảnh mẫu tham chiếu (ref_1.jpg .. ref_5.jpg)
+├── core/
+│   ├── reference_manager.py       # Quản lý lưu trữ/nạp 5 ảnh mẫu tham chiếu
+│   ├── config_manager.py          # Quản lý đọc/ghi cấu hình linh hoạt
+│   ├── video_stream.py            # Đọc camera non-blocking 15 FPS
+│   ├── gemini_vision.py           # Gemini Flash Vision VLM (có dynamic reload API Key)
+│   ├── cloudflare_tunnel.py       # Tự động tạo Cloudflare Quick Tunnel (trycloudflare)
+│   └── telegram_bot.py            # Telegram Bot tương tác 2 chiều (/status, /snapshot, /setref, /data, /feed)
+├── gateway/
+│   ├── mqtt_ai_client.py          # Đẩy Telemetry AI lên Device riêng trên ThingsBoard
+│   └── esp32_lan_client.py        # Gọi REST API trực tiếp tới ESP32 qua LAN (http://beca.local)
+└── web/
+    ├── app.py                     # Flask Web Server & API quản lý cấu hình, ảnh mẫu
+    └── templates/
+        └── index.html             # Dashboard Web Hợp Nhất 2 Chế Độ (Trắng - Xanh Nước Nhạt)
 ```
 
-### Bước 1: Tạo Thiết Bị (Device) Trên ThingsBoard
-1. Đăng nhập vào [ThingsBoard](https://demo.thingsboard.io) (hoặc Server ThingsBoard của bạn).
-2. Vào menu **Device Center** $\rightarrow$ **Devices** $\rightarrow$ bấm nút `+` (**Add Device**).
-3. Đặt tên thiết bị: `ESP32_Master_BeCa` (Device profile: `default`).
-4. Bấm **Add**. Sau khi tạo xong, mở chi tiết thiết bị $\rightarrow$ tab **Credentials** $\rightarrow$ Copy chuỗi **Access Token** (ví dụ: `A1b2C3d4E5f6G7h8`).
+### 10.2. Cài đặt môi trường & Khởi chạy Server:
+```bash
+# 1. Di chuyển vào thư mục Python_Server
+cd Python_Server
 
----
+# 2. Cài đặt các thư viện phụ thuộc
+pip install -r requirements.txt
 
-### Bước 2: Cấu Hình Kết Nối Trên ESP32-Master
-1. Kết nối điện thoại hoặc máy tính vào cùng mạng WiFi với ESP32.
-2. Mở trình duyệt truy cập vào **`http://beca.local`** (hoặc địa chỉ IP của ESP32).
-3. Chuyển sang tab **CÀI ĐẶT HỆ THỐNG** $\rightarrow$ cuộn xuống mục **Kết Nối ThingsBoard Cloud (MQTT)**:
-   - **Kích hoạt MQTT:** Chọn `BẬT`
-   - **MQTT Server:** Điền `demo.thingsboard.io` (hoặc tên miền / IP server ThingsBoard của bạn)
-   - **Access Token:** Dán chuỗi Token đã copy ở Bước 1.
-4. Bấm **💾 LƯU TOÀN BỘ CÀI ĐẶT**.
-5. Sau 2-3 giây, trạng thái sẽ báo **ONLINE** màu xanh lá. Vào tab **Latest Telemetry** của thiết bị trên ThingsBoard để thấy các dữ liệu cảm biến nhảy liên tục!
-
----
-
-### Bước 3: Tạo Dashboard & Thiết Lập Entity Alias
-1. Vào menu **Dashboard Center** $\rightarrow$ **Dashboards** $\rightarrow$ bấm nút `+` (**Create new dashboard**).
-2. Đặt tiêu đề: `GIÁM SÁT & ĐIỀU KHIỂN BỂ CÁ THÔNG MINH`.
-3. Mở Dashboard vừa tạo $\rightarrow$ bấm nút **Edit Mode** (biểu tượng cây bút góc dưới bên phải).
-4. Bấm biểu tượng **Entity Aliases** (trên thanh công cụ trên cùng) $\rightarrow$ **Add Alias**:
-   - **Alias name:** `BeCa`
-   - **Filter type:** `Single entity`
-   - **Type:** `Device`
-   - **Device:** Chọn `ESP32_Master_BeCa`
-5. Bấm **Add** và **Save**.
-
----
-
-### Bước 4: Tạo Các Widget Giám Sát (Latest Telemetry)
-
-Bấm **Add new widget** $\rightarrow$ chọn **Datasource:** Alias `BeCa`:
-
-| Nhóm Widget (Bundle) | Tên Widget Khuyên Dùng | Keys Telemetry | Nhãn & Đơn Vị Hiển Thị |
-|---|---|---|---|
-| **Cards** | *Simple Card* hoặc *Value Card* | `water_temp` | Nhiệt Độ Nước (°C) |
-| **Cards** | *Simple Card* | `air_temp`, `air_hum` | Nhiệt Độ (°C) & Độ Ẩm Không Khí (%) |
-| **Cards** | *Simple Card* | `water_cm` | Mực Nước (cm cách nắp bể) |
-| **Cards** | *Simple Card* | `rssi` | Cường Độ Sóng WiFi (dBm) |
-| **Analogue gauges** | *Radial gauge* hoặc *Digital gauge* | `water_temp` (Min: 10, Max: 40) | Đồng hồ nhiệt độ nước |
-| **Analogue gauges** | *Radial gauge* | `water_cm` (Min: 0, Max: 50) | Thước đo khoảng cách mực nước |
-| **Charts** | *Timeseries chart* | `water_temp`, `air_temp`, `air_hum`, `water_cm` | Biểu đồ lịch sử biến thiên 24h |
-
----
-
-### Bước 5: Tạo Các Widget Điều Khiển 2 Chiều (Control RPC)
-
-Vào thư viện **Control widgets** $\rightarrow$ chọn các widget công tắc / nút bấm:
-
-| Tên Thiết Bị | Loại Widget | Method RPC (`method`) | Key Trạng Thái (Target Key) | Mô Tả Chức Năng |
-|---|---|---|---|---|
-| **Máy Sưởi** | Switch control / Round switch | `setHeater` | `heater` | Bật / Tắt thanh sưởi |
-| **Quạt Làm Mát** | Switch control | `setFan` | `fan` | Bật / Tắt quạt tản nhiệt |
-| **Bơm Bù Nước** | Switch control | `setPump` | `pump` | Bật / Tắt bơm cấp nước sạch |
-| **Sục Khí Oxy** | Switch control | `setOxy` | `oxy` | Bật / Tắt máy sục bọt khí oxy |
-| **Bơm Rút Nước** | Switch control | `setDrain` | `drain` | Bật / Tắt bơm xả nước cũ |
-| **Lọc Nước Song Song**| Switch control | `setFilter` | `filter` | Bật / Tắt tuần hoàn lọc 2 bơm |
-| **Chu Kỳ Lọc Tự Động**| Switch control | `setFilterCycle` | `filter_cycle` | Bật / Tắt chu kỳ chạy/nghỉ tự động |
-| **Đèn LED Bể Cá** | Switch control / Light switch | `setLed` | `led` | Bật / Tắt đèn chiếu sáng |
-| **Nút Cho Ăn Tức Thì**| Action Button / Push button | `setFeed` (params: `true`)| N/A | Kích hoạt quay Servo rót thức ăn |
-| **Công Tắc Tổng Khẩn Cấp**| Switch control / Power switch | `setSystem` | `system` | Khóa / Tắt khẩn cấp toàn bộ hệ thống |
-
-> 💡 **Lưu ý quan trọng về RPC:** Firmware ESP32-Master đã được tích hợp sẵn cơ chế **2-Way RPC Response** (`v1/devices/me/rpc/response/{requestId}`). Khi bạn gạt công tắc hoặc bấm nút trên ThingsBoard, ESP32 sẽ lập tức gửi xác nhận thành công về Cloud, giúp giao diện widget cập nhật tức thì trong vòng $< 50\text{ms}$ mà không bao giờ bị báo lỗi timeout!
-
----
-
-### Bước 6: Lưu Và Sử Dụng
-1. Bấm nút **Apply changes** (dấu tích màu cam) để lưu giao diện Dashboard.
-2. Bây giờ bạn có thể mở ThingsBoard trên trình duyệt máy tính hoặc tải ứng dụng **ThingsBoard Mobile App** (iOS / Android) đăng nhập vào để theo dõi và chăm sóc bể cá của mình từ bất kỳ đâu trên thế giới! 🌐🐟
-
----
-
-## 11. HƯỚNG DẪN CÀI ĐẶT & VẬN HÀNH PYTHON SERVER (EDGE AI & IOT GATEWAY)
-
-Python Server được thiết kế để chạy trên **Raspberry Pi 5** (hoặc máy tính mini / PC Windows / Linux) với các tính năng:
-- **Trí tuệ nhân tạo Đa phương thức Gemini Flash Vision:** Phân tích ảnh từ camera theo thời gian thực (đếm số cá sống/chết, phát hiện cá lờ đờ, đo độ đục nước).
-- **Tự động mở Cloudflare Tunnel:** Sinh đường dẫn Public URL (`https://*.trycloudflare.com`) truy cập Web từ xa và tự động gửi link vào Telegram.
-- **Giao diện Web Hợp nhất 2 Chế Độ:**
-  - *Chế độ 1 (LAN `beca.local`):* Gọi trực tiếp REST API của ESP32 qua mạng nội bộ để đọc cảm biến và điều khiển 6 Relay siêu nhanh $< 5\text{ms}$.
-  - *Chế độ 2 (Cloud ThingsBoard):* Nhúng Dashboard ThingsBoard để giám sát từ xa qua Internet.
-- **Telegram Chatbot 2 Chiều:** Tự động gửi ảnh snapshot cảnh báo khẩn cấp khi có sự cố và tương tác lệnh (`/status`, `/snapshot`, `/data`, `/feed`, `/url`).
-- **Đẩy Telemetry AI lên Device riêng trên ThingsBoard:** Tách biệt hoàn toàn với ESP32.
-
----
-
-### 11.1. Logic Chụp Ảnh & Cơ Chế Xác Thực Cá Chết 5 Lần Liên Tiếp (5-Sample Anti-False-Alarm Filter)
-
-```mermaid
-graph TD
-    CAM["Camera (Webcam USB / IP Camera RTSP)"] -->|"Thread đọc non-blocking 15 FPS"| BUF["Bộ đệm khung hình (Video Frame Buffer)"]
-    
-    BUF -->|"1. Chu kỳ bình thường: Mỗi 2 phút chụp 1 ảnh"| GEMINI["Mô hình Gemini Flash Vision VLM"]
-    
-    GEMINI -->|"Phát hiện nghi ngờ dead_fish > 0"| VERIFY["Kích Hoạt Chu Kỳ Xác Thực (Mỗi 10s chụp 1 lần)"]
-    VERIFY -->|"Bộ đếm Streak: 1..5 lần"| CHECK{"Cả 5 lần liên tiếp<br/>đều có cá chết?"}
-    
-    CHECK -->|"CÓ (Đạt 5/5 lần)"| CONFIRM["XÁC NHẬN CÁ CHẾT 100%:<br/>- Trừ số cá sống: Sống = Tổng - Chết<br/>- Gửi ảnh bằng chứng + Cảnh báo Telegram<br/>- Đẩy Telemetry lên ThingsBoard AI"]
-    CHECK -->|"KHÔNG (Cá bơi lại bình thường)"| RESET["HỦY BÁO ĐỘNG GIẢ:<br/>- Reset Streak về 0/5<br/>- Quay lại chu kỳ bình thường 2 phút/lần"]
-    
-    BUF -->|"2. Người dùng bấm nút trên Web hoặc gõ /snapshot"| INSTANT["Chụp & Phân Tích AI Tức Thì (< 2s)"]
-    BUF -->|"3. Luồng liên tục 15 FPS"| MJPEG["MJPEG Video Stream trên Web<br/>http://<ip-pi5>:5000/video_feed"]
+# 3. Khởi chạy Server
+python run_server.py
 ```
 
-#### Chi tiết các luồng xử lý:
-1. **Chu kỳ lấy mẫu bình thường (Mỗi 2 phút / 120s):**
-   - Chụp 1 snapshot nén JPEG $640 \times 480$ gửi sang Gemini Flash Vision.
-2. **Cơ chế xác thực 5 lần liên tiếp chống báo động giả (5 Consecutive Positives):**
-   - Khi có nghi ngờ cá chết, hệ thống **không báo động ngay** mà chuyển sang chế độ xác thực **chụp liên tục mỗi 10 giây**.
-   - Nếu **cả 5 lần chụp liên tiếp** đều phát hiện cá chết $\rightarrow$ Xác nhận chính xác cá chết, cập nhật số cá sống: $\text{Số Cá Sống} = \text{Tổng Cá Thả} - \text{Số Cá Chết}$, đồng thời gửi ảnh snapshot bằng chứng và cảnh báo khẩn cấp qua Telegram!
-   - Nếu trong 5 lần đó cá bơi lại bình thường $\rightarrow$ Reset bộ đếm xác thực về 0, quay lại chu kỳ 2 phút/lần (tránh báo động giả).
-3. **Nút chụp tức thì trên Web & Lệnh Telegram:**
-   - Người dùng bấm nút **📸 CHỤP ẢNH & PHÂN TÍCH AI NGAY** trên Web Dashboard hoặc gõ `/status` trên Telegram để chụp và nhận kết quả tức thì trong $< 2\text{s}$.
-4. **Luồng phát Video trực tiếp MJPEG:**
-   - Duy trì liên tục tại endpoint `/video_feed` cho Web Dashboard.
+* **Tự động mở Cloudflare Tunnel:** Ngay khi khởi động, hệ thống tự động sinh Public URL (`https://*.trycloudflare.com`) và gửi thẳng vào Telegram của bạn!
+* **Truy cập Web Dashboard:** Mở trình duyệt vào **`http://localhost:5000`** (hoặc đường link Cloudflare từ 4G/ngoài đường).
 
 ---
 
-### 11.2. Cơ Chế 5 Ảnh Mẫu Tham Chiếu (Baseline Calibration - Chống Nhận Diện Nhầm)
+## 11. HƯỚNG DẪN SỬ DỤNG CHI TIẾT TOÀN BỘ HỆ THỐNG TỪ A - Z
 
-Để giải quyết triệt để việc AI nhìn nhầm gỗ lũa, đá sỏi, hang hốc, rêu hoặc bóng phản chiếu dưới đáy bể thành cá chết:
-1. **Lưu 5 Ảnh Mẫu Chuẩn:** Người dùng chụp từ camera hoặc tải lên 5 bức ảnh chụp bể cá khi ở trạng thái hoàn toàn bình thường (các góc sáng, tối, lũa đá, mặt nước).
-2. **Đối Chiếu Ground Truth:** Khi phân tích ảnh thực tế, hệ thống gửi kèm 5 ảnh mẫu này sang Gemini Flash Vision làm bộ dữ liệu tham chiếu chuẩn.
-3. **Loại Trừ Vật Thể Tĩnh:** AI so sánh ảnh hiện tại với 5 ảnh mẫu để loại trừ $100\%$ các vật thể tĩnh, chỉ phát hiện và cảnh báo khi có cá thể thực sự bị bất động/tử vong!
-4. **Quản Lý Tiện Lợi:** 
-   - Trên Web Dashboard: Xem trước 5 thumbnail, bấm nút "Chụp Cam" hoặc "Tải Ảnh".
-   - Trên Telegram: Gõ lệnh `/setref 1..5` để chụp frame camera hiện tại lưu làm ảnh mẫu ngay tức thì.
+### 11.1. Cài Đặt Khóa API & Token Trực Tiếp Từ Web Dashboard (Không Cần Sửa Code):
+Mở Web Dashboard tại `http://localhost:5000` $ightarrow$ Cuộn xuống mục **Cài Đặt & Khóa API Hệ Thống**:
+1. **Google Gemini Vision API Key:** Lấy key miễn phí tại [Google AI Studio](https://aistudio.google.com/) $ightarrow$ Dán vào ô và bấm **Lưu API Key** (Hệ thống tự nạp model ngay lập tức).
+2. **ThingsBoard Access Token (Device AI Node):** Tạo Device mới trên ThingsBoard $ightarrow$ Sao chép Access Token $ightarrow$ Dán vào ô và bấm **Lưu Token TB**.
+3. **Telegram Bot Token:** Nhắn tin với [@BotFather](https://t.me/botfather) tạo bot mới $ightarrow$ Dán token vào ô và bấm **Lưu Token Bot**.
+4. **Telegram Chat ID / User ID:** Nhắn tin `/start` với [@userinfobot](https://t.me/userinfobot) để lấy ID của bạn $ightarrow$ Dán vào ô và bấm **Lưu ID Telegram**.
+5. **Tổng Số Cá Thả:** Nhập số cá đang thả trong bể (VD: 10) $ightarrow$ Bấm **Lưu Số Cá**.
 
 ---
 
-### 11.3. Bảng Lệnh Tương Tác Qua Telegram Chatbot
+### 11.2. Thiết Lập 5 Ảnh Mẫu Tham Chiếu (Baseline Calibration):
+* **Mục đích:** Loại bỏ $100\%$ việc AI nhìn nhầm gỗ lũa, đá sỏi, hang hốc dưới đáy bể thành cá chết.
+* **Cách thực hiện:**
+  1. Trong mục **5 Ảnh Mẫu Tham Chiếu**, bạn có 5 slot (`Mẫu 1` .. `Mẫu 5`).
+  2. Bấm nút **Chụp Cam** (để lấy frame camera hiện tại) hoặc bấm **Tải Ảnh** (tải ảnh chụp bể cá lúc bình thường ở các góc sáng, tối, lũa đá).
+  3. Hoặc trên Telegram, gõ lệnh `/setref 1` .. `/setref 5` để chụp lưu ảnh mẫu trực tiếp từ điện thoại!
 
-| Lệnh Telegram | Chức Năng |
+---
+
+### 11.3. Cơ Chế Xác Thực Cá Chết 5 Lần Liên Tiếp (Chống Báo Động Giả):
+* **Chu kỳ bình thường:** Mỗi **2 phút (120s)** chụp 1 ảnh gửi Gemini AI phân tích.
+* **Khi nghi ngờ cá chết:** Hệ thống tự động kích hoạt chu kỳ xác thực **chụp liên tục mỗi 10 giây/lần**.
+  * Nếu **cả 5 lần chụp liên tiếp** đều phát hiện cá chết $ightarrow$ Xác nhận chính xác $100\%$, cập nhật $	ext{Cá Sống} = 	ext{Tổng Cá} - 	ext{Cá Chết}$, gửi ảnh snapshot bằng chứng và cảnh báo khẩn cấp qua Telegram!
+  * Nếu cá bơi lại bình thường $ightarrow$ Reset streak về `0/5`, quay lại chu kỳ 2 phút/lần.
+* **Nút chụp tức thì:** Bấm nút **📸 CHỤP ẢNH & PHÂN TÍCH AI NGAY** trên Web để đọc kết quả trong $< 2	ext{s}$.
+
+---
+
+### 11.4. Bảng Lệnh Tương Tác Qua Telegram Chatbot:
+| Lệnh Telegram | Chức Năng Thực Hiện |
 |---|---|
-| `/status` | Chụp ảnh camera $\rightarrow$ Gửi AI đối chiếu 5 ảnh mẫu $\rightarrow$ Trả về ảnh + báo cáo chi tiết |
+| `/status` | Chụp ảnh camera $ightarrow$ Gửi AI đối chiếu 5 ảnh mẫu $ightarrow$ Trả về ảnh snapshot + báo cáo chi tiết |
 | `/snapshot` | Chụp và gửi ảnh trực tiếp từ camera ngay lập tức |
 | `/setref <1-5>` | Chụp frame camera hiện tại lưu làm ảnh mẫu tham chiếu số $1..5$ |
 | `/refstatus` | Xem danh sách và thời gian lưu của 5 ảnh mẫu tham chiếu |
@@ -468,55 +304,6 @@ graph TD
 
 ---
 
-### 11.4. Cài đặt Môi trường & Thư viện
-```bash
-cd Python_Server
-pip install -r requirements.txt
-```
-
-### 11.5. Cấu hình hệ thống (`config.yaml`)
-Mở file [`Python_Server/config.yaml`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Python_Server/config.yaml) và điền thông tin:
-```yaml
-camera:
-  source: 0 # 0 là Webcam USB, hoặc chuỗi RTSP IP Camera: "rtsp://admin:123456@192.168.1.100:554/stream1"
-  fps: 15
-  interval_normal_sec: 120 # Chu kỳ bình thường: 2 phút / lần
-  interval_alert_sec: 10   # Chu kỳ khi có cá chết: Chụp liên tục 10s / lần
-
-aquarium:
-  total_fish: 10 # Tổng số cá thả trong bể (có thể chỉnh trực tiếp trên Web)
-
-gemini:
-  enabled: true
-  api_key: "YOUR_GEMINI_API_KEY" # Lấy API Key miễn phí tại: https://aistudio.google.com/
-  model: "gemini-2.0-flash"
-
-telegram:
-  enabled: true
-  bot_token: "YOUR_TELEGRAM_BOT_TOKEN" # Lấy token từ @BotFather
-  chat_id: "YOUR_TELEGRAM_CHAT_ID"     # Lấy ID từ @userinfobot (có thể sửa trên Web)
-  cooldown_minutes: 10
-
-thingsboard:
-  enabled: true
-  host: "demo.thingsboard.io"
-  port: 1883
-  access_token: "YOUR_RPI5_AI_DEVICE_TOKEN" # Token của Device AI riêng trên ThingsBoard
-
-esp32_lan:
-  enabled: true
-  base_url: "http://beca.local"
-
-web:
-  host: "0.0.0.0"
-  port: 5000
-  enable_cloudflare: true
-```
-
-### 11.6. Khởi chạy Server
-```bash
-python run_server.py
-```
-* **Tự động mở Cloudflare Tunnel:** Ngay khi khởi động, hệ thống tự động sinh Public URL (`https://*.trycloudflare.com`) và gửi thẳng vào Telegram của bạn!
-* **Truy cập Web Dashboard:** Mở trình duyệt vào **`http://localhost:5000`** (hoặc đường link Cloudflare).
-* **Trải nghiệm Telegram Bot:** Gõ lệnh `/status`, `/snapshot`, `/setref 1`, `/data`, `/feed`, `/url` để nhận báo cáo và ảnh chụp tức thì.
+### 11.5. Chuyển Đổi Linh Hoạt 2 Chế Độ Điều Khiển Trên Web:
+* **Chế độ 1 (LAN `beca.local`):** Bấm nút trên Web để điều khiển 6 Relay trực tiếp qua mạng nội bộ với độ trễ siêu thấp $< 5	ext{ms}$ ngay cả khi mất kết nối Internet.
+* **Chế độ 2 (Cloud ThingsBoard):** Nhúng Dashboard ThingsBoard trực tiếp trên Web để theo dõi biểu đồ lịch sử 24h và điều khiển từ xa.
