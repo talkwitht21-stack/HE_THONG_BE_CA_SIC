@@ -80,9 +80,11 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
             dead = res.get("dead_fish", 0)
             turb = res.get("water_turbidity", 0)
             shared_state["ai_result"] = res
+            shared_state["reset_streak_requested"] = True
+            shared_state["confirmed_dead_fish"] = 0
             if dead > 0:
                 shared_state["suspected_dead_fish"] = dead
-                shared_state["verify_progress"] = "1/5 (Đang xác thực nghi ngờ)"
+                shared_state["verify_progress"] = "1/5 (Bắt đầu xác thực)"
             else:
                 shared_state["suspected_dead_fish"] = 0
                 shared_state["verify_progress"] = "0/5 (An toàn)"
@@ -213,7 +215,7 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         if "interval_normal_sec" in data:
             try:
                 inv_n = int(data["interval_normal_sec"])
-                if inv_n >= 5:
+                if inv_n >= 1:
                     shared_state["interval_normal_sec"] = inv_n
                     if config_mgr:
                         config_mgr.set("camera", "interval_normal_sec", inv_n)
@@ -224,7 +226,7 @@ def create_app(video_stream, gemini_ai, esp32_client, shared_state, config_mgr=N
         if "interval_alert_sec" in data:
             try:
                 inv_a = int(data["interval_alert_sec"])
-                if inv_a >= 3:
+                if inv_a >= 1:
                     shared_state["interval_alert_sec"] = inv_a
                     if config_mgr:
                         config_mgr.set("camera", "interval_alert_sec", inv_a)

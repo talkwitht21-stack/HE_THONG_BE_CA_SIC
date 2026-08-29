@@ -125,6 +125,12 @@ def main():
         
         while True:
             try:
+                # Kiem tra yeu cau reset streak tu nguoi dung khi bam chup thu cong
+                if shared_state.get("reset_streak_requested", False):
+                    dead_streak = 0
+                    confirmed_dead = 0
+                    shared_state["reset_streak_requested"] = False
+                    print("[AI WORKER] Da reset streak theo yeu cau chup thu cong tu Web!")
                 frame = video_stream.get_frame()
                 if frame is not None:
                     res = gemini_ai.analyze_frame(frame)
