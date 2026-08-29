@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bể Cá SIC - Trung Tâm Edge AI & IoT Gateway</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f9ff; color: #1e293b; min-height: 100vh; padding: 16px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    
+    /* Header */
+    .header { background: #ffffff; padding: 18px 24px; border-radius: 16px; border: 1px solid #bae6fd; box-shadow: 0 4px 20px rgba(14, 165, 233, 0.08); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .title h1 { color: #0284c7; font-size: 1.45em; font-weight: 800; letter-spacing: 0.5px; }
+    .title p { color: #64748b; font-size: 0.82em; font-weight: 600; margin-top: 2px; }
+    
+    /* Mode Switcher */
+    .mode-bar { display: flex; gap: 8px; background: #e0f2fe; padding: 4px; border-radius: 10px; }
+    .mode-btn { padding: 8px 16px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.84em; cursor: pointer; color: #0369a1; background: transparent; transition: all 0.2s ease; }
+    .mode-btn.active { background: #0284c7; color: #ffffff; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3); }
+
+    /* Main Grid */
+    .main-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 16px; }
+    @media (max-width: 860px) { .main-grid { grid-template-columns: 1fr; } }
+    
+    /* Card */
+    .card { background: #ffffff; border-radius: 14px; padding: 18px; border: 1px solid #e0f2fe; box-shadow: 0 2px 10px rgba(14, 165, 233, 0.04); margin-bottom: 16px; }
+    .card-title { color: #0369a1; font-size: 0.86em; text-transform: uppercase; font-weight: 800; border-bottom: 1.5px solid #f0f9ff; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Video Box */
+    .video-wrap { width: 100%; border-radius: 10px; overflow: hidden; background: #0f172a; border: 2px solid #bae6fd; position: relative; aspect-ratio: 4/3; }
+    .video-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    
+    /* AI Metrics */
+    .ai-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+    .ai-box { background: #f8fafc; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #e0f2fe; }
+    .ai-val { font-size: 1.5em; font-weight: 800; color: #0284c7; }
+    .ai-lbl { font-size: 0.72em; color: #64748b; font-weight: 700; margin-top: 2px; }
+    .ai-summary { background: #f0f9ff; border: 1px solid #bae6fd; padding: 10px 14px; border-radius: 8px; font-size: 0.84em; color: #0369a1; margin-top: 12px; line-height: 1.4; }
+    
+    /* Control Panel */
+    .ctrl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ctrl-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; }
+    .ctrl-lbl { font-size: 0.84em; font-weight: 700; color: #1e293b; }
+    .btn { padding: 7px 14px; border: none; border-radius: 6px; font-weight: 800; font-size: 0.8em; cursor: pointer; color: white; min-width: 60px; text-align: center; }
+    .btn.on { background: #10b981; }
+    .btn.off { background: #94a3b8; }
+    .btn.action { background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%); width: 100%; padding: 11px; margin-top: 10px; font-size: 0.88em; border-radius: 8px; }
+    
+    /* IFrame ThingsBoard */
+    .tb-frame { width: 100%; height: 650px; border: none; border-radius: 10px; }
+    .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75em; font-weight: 800; }
+    .badge-lan { background: #e0f2fe; color: #0284c7; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="title">
+        <h1>BỂ CÁ SIC - TRUNG TÂM EDGE AI &amp; GATEWAY</h1>
+        <p>Phân Tích Đa Phương Thức Gemini Vision &bull; Dual-Mode IoT Control</p>
+      </div>
+      <div class="mode-bar">
+        <button class="mode-btn active" id="btn-lan" onclick="setMode('lan')">CHẾ ĐỘ 1: LAN (beca.local)</button>
+        <button class="mode-btn" id="btn-cloud" onclick="setMode('cloud')">CHẾ ĐỘ 2: CLOUD (ThingsBoard)</button>
+      </div>
+    </div>
+
+    <!-- KHU VỰC CHẾ ĐỘ 1: LAN DIRECT MODE -->
+    <div id="view-lan">
+      <div class="main-grid">
+        <!-- Cột Trái: Camera & AI -->
+        <div>
+          <div class="card">
+            <div class="card-title">
+              <span>Camera Trực Tiếp (Edge AI Stream)</span>
+              <span id="ai-engine-lbl" class="badge badge-lan">Gemini AI</span>
+            </div>
+            <div class="video-wrap">
+              <img class="video-img" src="/video_feed" alt="Live Camera Stream">
+            </div>
+
+            <div class="ai-grid">
+              <div class="ai-box"><div class="ai-val" id="ai-total">--</div><div class="ai-lbl">Tổng Số Cá</div></div>
+              <div class="ai-box"><div class="ai-val" id="ai-dead" style="color:#ef4444">0</div><div class="ai-lbl">Cá Chết / Bất Thường</div></div>
+              <div class="ai-box"><div class="ai-val" id="ai-turb">--%</div><div class="ai-lbl">Độ Đục Nước</div></div>
+              <div class="ai-box"><div class="ai-val" id="ai-fps">--</div><div class="ai-lbl">Tốc Độ Khung Hình (FPS)</div></div>
+            </div>
+
+            <div class="ai-summary">
+              <strong>Nhận Định AI: </strong><span id="ai-text">Đang phân tích hình ảnh từ camera...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cột Phải: Điều Khiển Trực Tiếp ESP32 qua LAN -->
+        <div>
+          <div class="card">
+            <div class="card-title">
+              <span>Cảm Biến Bể Cá (Nội Bộ LAN)</span>
+              <span id="lan-status" style="font-size:0.75em;color:#10b981;font-weight:bold">ONLINE (beca.local)</span>
+            </div>
+            <div class="ai-grid" style="margin-top:0">
+              <div class="ai-box"><div class="ai-val" id="v-wt">--</div><div class="ai-lbl">Nhiệt Độ Nước (°C)</div></div>
+              <div class="ai-box"><div class="ai-val" id="v-at">--</div><div class="ai-lbl">Nhiệt Độ K.Khí (°C)</div></div>
+              <div class="ai-box"><div class="ai-val" id="v-ah">--</div><div class="ai-lbl">Độ Ẩm K.Khí (%)</div></div>
+              <div class="ai-box"><div class="ai-val" id="v-wl">--</div><div class="ai-lbl">Mực Nước (cm cách nắp)</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Điều Khiển Thiết Bị (Gọi API Cục Bộ)</div>
+            <div class="ctrl-grid">
+              <div class="ctrl-item"><span class="ctrl-lbl">Máy Sưởi</span><button class="btn off" id="b-heater" onclick="sendLAN('heater')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Quạt Làm Mát</span><button class="btn off" id="b-fan" onclick="sendLAN('fan')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Bơm Bù Nước</span><button class="btn off" id="b-pump" onclick="sendLAN('pump')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Sục Khí Oxy</span><button class="btn off" id="b-oxy" onclick="sendLAN('oxy')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Bơm Rút Nước</span><button class="btn off" id="b-drain" onclick="sendLAN('drain')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Lọc Tuần Hoàn</span><button class="btn off" id="b-filter" onclick="sendLAN('filter')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Chu Kỳ Lọc</span><button class="btn off" id="b-filter_cycle" onclick="sendLAN('filter_cycle')">TẮT</button></div>
+              <div class="ctrl-item"><span class="ctrl-lbl">Đèn LED</span><button class="btn off" id="b-led" onclick="sendLAN('led')">TẮT</button></div>
+            </div>
+            
+            <button class="btn action" onclick="sendLAN('feed')">CHO ĂN NGAY TỨC THÌ (SERVO)</button>
+            <button class="btn action" style="background:#ef4444;margin-top:8px" onclick="sendLAN('system')">KHÓA / MỞ TOÀN BỘ HỆ THỐNG</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KHU VỰC CHẾ ĐỘ 2: CLOUD THINGSBOARD EMBED -->
+    <div id="view-cloud" style="display:none">
+      <div class="card">
+        <div class="card-title">Dashboard ThingsBoard Cloud</div>
+        <iframe class="tb-frame" id="tb-iframe" src="https://demo.thingsboard.io"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let _currentMode = 'lan';
+
+    function setMode(mode) {
+      _currentMode = mode;
+      document.getElementById('btn-lan').className = 'mode-btn ' + (mode === 'lan' ? 'active' : '');
+      document.getElementById('btn-cloud').className = 'mode-btn ' + (mode === 'cloud' ? 'active' : '');
+      document.getElementById('view-lan').style.display = (mode === 'lan') ? 'block' : 'none';
+      document.getElementById('view-cloud').style.display = (mode === 'cloud') ? 'block' : 'none';
+    }
+
+    function sendLAN(dev) {
+      fetch('/api/lan_control', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({device: dev})
+      }).then(() => fetchStatus());
+    }
+
+    function fetchStatus() {
+      fetch('/api/status')
+        .then(r => r.json())
+        .then(d => {
+          // AI Data
+          if (d.ai) {
+            document.getElementById('ai-total').textContent = d.ai.total_fish || 0;
+            document.getElementById('ai-dead').textContent = (d.ai.dead_fish || 0) + (d.ai.abnormal_fish || 0);
+            document.getElementById('ai-turb').textContent = (d.ai.water_turbidity || 0) + '%';
+            document.getElementById('ai-text').textContent = d.ai.summary || '--';
+            document.getElementById('ai-engine-lbl').textContent = d.ai.ai_engine || 'Gemini AI';
+          }
+          document.getElementById('ai-fps').textContent = d.fps || '--';
+
+          // ESP32 LAN Data
+          if (d.esp32) {
+            let esp = d.esp32;
+            document.getElementById('v-wt').textContent = (esp.wt > -50) ? esp.wt.toFixed(1) : '--';
+            document.getElementById('v-at').textContent = (esp.at > -50) ? esp.at.toFixed(1) : '--';
+            document.getElementById('v-ah').textContent = (esp.ah > -50) ? esp.ah.toFixed(1) : '--';
+            document.getElementById('v-wl').textContent = (esp.wcm > 0) ? esp.wcm.toFixed(1) : 'Lỗi';
+
+            setBtn('b-heater', esp.h);
+            setBtn('b-fan', esp.f);
+            setBtn('b-pump', esp.p);
+            setBtn('b-oxy', esp.o);
+            setBtn('b-drain', esp.d);
+            setBtn('b-filter', esp.fl);
+            setBtn('b-filter_cycle', esp.fcm);
+            setBtn('b-led', esp.l);
+          }
+        }).catch(() => {});
+    }
+
+    function setBtn(id, st) {
+      let b = document.getElementById(id);
+      if (!b) return;
+      b.className = st ? 'btn on' : 'btn off';
+      b.textContent = st ? 'BẬT' : 'TẮT';
+    }
+
+    setInterval(fetchStatus, 2000);
+    fetchStatus();
+  </script>
+</body>
+</html>

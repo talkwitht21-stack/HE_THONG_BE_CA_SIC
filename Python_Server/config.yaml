@@ -1,0 +1,43 @@
+﻿# ==============================================================================
+# HỆ THỐNG BỂ CÁ SIC - CẤU HÌNH PYTHON SERVER (EDGE AI & IOT GATEWAY)
+# ==============================================================================
+
+# 1. Cấu hình Camera
+camera:
+  source: 0 # 0 là Webcam USB mặc định, hoặc chuỗi RTSP/HTTP: " rtsp://admin:123456@192.168.1.100:554/stream1\
+ width: 640
+ height: 480
+ fps: 15
+ analyze_interval_sec: 10 # Chu kỳ gửi ảnh cho Gemini AI phân tích (giây)
+
+# 2. Cấu hình Google Gemini Multimodal Vision AI
+gemini:
+ enabled: true
+ api_key: \YOUR_GEMINI_API_KEY\ # Lấy API Key miễn phí tại: https://aistudio.google.com/
+ model: \gemini-2.0-flash\ # hoặc \gemini-1.5-flash\
+ temperature: 0.2
+
+# 3. Cấu hình Telegram Chatbot
+telegram:
+ enabled: false # Đổi thành true sau khi điền bot_token và chat_id
+ bot_token: \YOUR_TELEGRAM_BOT_TOKEN\ # Tạo bot qua @BotFather
+ chat_id: \YOUR_TELEGRAM_CHAT_ID\ # Lấy Chat ID qua @userinfobot
+ cooldown_minutes: 10 # Khoảng cách tối thiểu giữa 2 lần gửi cảnh báo lỗi
+
+# 4. Cấu hình ThingsBoard Cloud (Device AI riêng biệt)
+thingsboard:
+ enabled: false # Đổi thành true sau khi có Access Token của Device AI
+ host: \demo.thingsboard.io\
+ port: 1883
+ access_token: \YOUR_RPI5_AI_DEVICE_TOKEN\
+
+# 5. Cấu hình Kết nối Cục bộ ESP32 qua mạng LAN
+esp32_lan:
+ enabled: true
+ base_url: \http://beca.local\ # hoặc IP cục bộ của ESP32 nếu mDNS chưa phân giải
+ timeout_sec: 2.0
+
+# 6. Cấu hình Web Server Flask (Phát MJPEG Stream & Dashboard)
+web:
+ host: \0.0.0.0\
+ port: 5000

@@ -15,6 +15,7 @@
 8. [Giao Diện Web Dashboard & mDNS Local](#8-giao-diện-web-dashboard--mdns-local)
 9. [Hướng Dẫn Cài Đặt & Nạp Firmware](#9-hướng-dẫn-cài-đặt--nạp-firmware)
 10. [Hướng Dẫn Tạo Dashboard Trên ThingsBoard Cloud](#10-hướng-dẫn-tạo-dashboard-trên-thingsboard-cloud)
+11. [Hướng Dẫn Cài Đặt & Vận Hành Python Server (Edge AI & IoT Gateway)](#11-hướng-dẫn-cài-đặt--vận-hành-python-server-edge-ai--iot-gateway)
 
 ---
 
@@ -393,4 +394,64 @@ Vào thư viện **Control widgets** $\rightarrow$ chọn các widget công tắ
 ### Bước 6: Lưu Và Sử Dụng
 1. Bấm nút **Apply changes** (dấu tích màu cam) để lưu giao diện Dashboard.
 2. Bây giờ bạn có thể mở ThingsBoard trên trình duyệt máy tính hoặc tải ứng dụng **ThingsBoard Mobile App** (iOS / Android) đăng nhập vào để theo dõi và chăm sóc bể cá của mình từ bất kỳ đâu trên thế giới! 🌐🐟
+
+---
+
+## 11. HƯỚNG DẪN CÀI ĐẶT & VẬN HÀNH PYTHON SERVER (EDGE AI & IOT GATEWAY)
+
+Python Server được thiết kế để chạy trên **Raspberry Pi 5** (hoặc máy tính mini / PC Windows / Linux) với các tính năng:
+- **Trí tuệ nhân tạo Đa phương thức Gemini Flash Vision:** Phân tích ảnh từ camera theo thời gian thực (đếm số cá, phát hiện cá lờ đờ/chết, đo độ đục nước).
+- **Giao diện Web Hợp nhất 2 Chế Độ:**
+  - *Chế độ 1 (LAN `beca.local`):* Gọi trực tiếp REST API của ESP32 qua mạng nội bộ để đọc cảm biến và điều khiển 6 Relay siêu nhanh $< 5\text{ms}$.
+  - *Chế độ 2 (Cloud ThingsBoard):* Nhúng Dashboard ThingsBoard để giám sát từ xa qua Internet.
+- **Telegram Chatbot 2 Chiều:** Tự động gửi ảnh snapshot cảnh báo khẩn cấp khi có sự cố và tương tác lệnh (`/status`, `/snapshot`, `/data`, `/feed`).
+- **Đẩy Telemetry AI lên Device riêng trên ThingsBoard:** Tách biệt hoàn toàn với ESP32.
+
+### 11.1. Cài đặt Môi trường & Thư viện
+```bash
+cd Python_Server
+pip install -r requirements.txt
+```
+
+### 11.2. Cấu hình hệ thống (`config.yaml`)
+Mở file [`Python_Server/config.yaml`](file:///g:/BECA/HE_THONG_BE_CA_SIC/Python_Server/config.yaml) và điền thông tin:
+```yaml
+camera:
+  source: 0 # 0 là Webcam USB, hoặc chuỗi RTSP IP Camera: "rtsp://admin:123456@192.168.1.100:554/stream1"
+  fps: 15
+  analyze_interval_sec: 10
+
+gemini:
+  enabled: true
+  api_key: "YOUR_GEMINI_API_KEY" # Lấy API Key miễn phí tại: https://aistudio.google.com/
+  model: "gemini-2.0-flash"
+
+telegram:
+  enabled: true
+  bot_token: "YOUR_TELEGRAM_BOT_TOKEN" # Lấy token từ @BotFather
+  chat_id: "YOUR_TELEGRAM_CHAT_ID"     # Lấy ID từ @userinfobot
+  cooldown_minutes: 10
+
+thingsboard:
+  enabled: true
+  host: "demo.thingsboard.io"
+  port: 1883
+  access_token: "YOUR_RPI5_AI_DEVICE_TOKEN" # Token của Device AI riêng trên ThingsBoard
+
+esp32_lan:
+  enabled: true
+  base_url: "http://beca.local"
+
+web:
+  host: "0.0.0.0"
+  port: 5000
+```
+
+### 11.3. Khởi chạy Server
+```bash
+python run_server.py
+```
+* **Truy cập Web Dashboard:** Mở trình duyệt vào **`http://localhost:5000`** (hoặc `http://<ip-pi5>:5000`).
+* **Trải nghiệm Telegram Bot:** Mở ứng dụng Telegram và gõ lệnh `/status` hoặc `/snapshot` để nhận ảnh và báo cáo AI tức thì!
+
 
